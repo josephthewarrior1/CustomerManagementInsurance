@@ -12,6 +12,9 @@ import CustomerListPage from './pages/customers/CustomerListPage';
 import CustomerEditPage from './pages/customers/CustomerEditPage';
 import CustomerDetailPage from './pages/customers/CustomerDetailPage';
 import PropertyListPage from './pages/Property/PropertyList';
+import CarListPage from './pages/Cars/CarListPage';
+import CarDetailPage from './pages/Cars/CarDetailPage';
+import CarEditPage from './pages/Cars/CarEditPage';
 import CreateQuotationPage from './pages/quotations/CreateQuotationPage';
 import CreateInvoicePage from './pages/invoices/CreateInvoicePage';
 import DashboardPage from './pages/dashboard/Dashboard';
@@ -25,7 +28,7 @@ export default function AppRoutes() {
             <Route path="/signup" element={<SignUpPage />} />
 
             <Route path="/" element={<DashboardLayout />}>
-               <Route index element={<DashboardPage />} />{/* Ubah default ke PropertyListPage */}
+                <Route index element={<DashboardPage />} />{/* Ubah default ke PropertyListPage */}
 
                 {/* Customers Routes */}
                 <Route path="customers">
@@ -38,6 +41,13 @@ export default function AppRoutes() {
                 {/* Properties Routes */}
                 <Route path="properties">
                     <Route index element={<PropertyListPage />} />
+                </Route>
+
+                {/* Cars Routes */}
+                <Route path="cars">
+                    <Route index element={<CarListPage />} />
+                    <Route path=":id" element={<CarDetailPage />} />
+                    <Route path="edit/:id" element={<CarEditPage />} />
                 </Route>
 
                 {/* Quotations Routes */}

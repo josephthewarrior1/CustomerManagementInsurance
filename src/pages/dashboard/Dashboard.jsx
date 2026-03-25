@@ -15,6 +15,7 @@ import {
 import CustomerDAO from "../../daos/CustomerDao";
 import PropertyDAO from "../../daos/propertyDao";
 import CompanyDAO from "../../daos/CompanyDao";
+import CarDAO from "../../daos/CarDao";
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const tokens = {
@@ -67,15 +68,15 @@ const formatRupiah = (num) => {
   return `Rp ${n.toLocaleString("id-ID")}`;
 };
 
-const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const STATUS_CONFIG = {
-  "Aktif":              { bg: "#d1fae5", color: "#059669", dot: "#10b981" },
-  "Active":             { bg: "#d1fae5", color: "#059669", dot: "#10b981" },
+  "Aktif": { bg: "#d1fae5", color: "#059669", dot: "#10b981" },
+  "Active": { bg: "#d1fae5", color: "#059669", dot: "#10b981" },
   "Segera Jatuh Tempo": { bg: "#fef3c7", color: "#d97706", dot: "#f59e0b" },
-  "Expired":            { bg: "#fee2e2", color: "#dc2626", dot: "#ef4444" },
-  "Cancelled":          { bg: "#f1f5f9", color: "#64748b", dot: "#94a3b8" },
-  "Unknown":            { bg: "#f8fafc", color: "#94a3b8", dot: "#cbd5e1" },
+  "Expired": { bg: "#fee2e2", color: "#dc2626", dot: "#ef4444" },
+  "Cancelled": { bg: "#f1f5f9", color: "#64748b", dot: "#94a3b8" },
+  "Unknown": { bg: "#f8fafc", color: "#94a3b8", dot: "#cbd5e1" },
 };
 
 // ─── RESPONSIVE HOOK ──────────────────────────────────────────────────────────
@@ -713,21 +714,24 @@ const SearchBar = ({ value, onChange, placeholder }) => (
 );
 
 // ─── VEHICLE TAB ──────────────────────────────────────────────────────────────
-function VehicleTab({ customers }) {
+function VehicleTab({ cars }) {
   const [search, setSearch] = useState("");
   const { isMobile } = useBreakpoint();
 
+  // Normalise: use car.carData?.dueDate and car.status
+  const getCarStatus = (car) => getStatus(car.carData?.dueDate, car.status);
+
   const stats = useMemo(() => {
-    if (!customers.length) return null;
-    const total = customers.length;
-    const aktif     = customers.filter(c => getStatus(c.carData?.dueDate, c.status) === "Aktif").length;
-    const segera    = customers.filter(c => getStatus(c.carData?.dueDate, c.status) === "Segera Jatuh Tempo").length;
-    const expired   = customers.filter(c => getStatus(c.carData?.dueDate, c.status) === "Expired").length;
-    const cancelled = customers.filter(c => getStatus(c.carData?.dueDate, c.status) === "Cancelled").length;
+    if (!cars.length) return null;
+    const total = cars.length;
+    const aktif = cars.filter(c => { const s = getCarStatus(c); return s === "Aktif" || s === "Segera Jatuh Tempo"; }).length;
+    const segera = cars.filter(c => getCarStatus(c) === "Segera Jatuh Tempo").length;
+    const expired = cars.filter(c => getCarStatus(c) === "Expired").length;
+    const cancelled = cars.filter(c => getCarStatus(c) === "Cancelled").length;
     const activePercent = total > 0 ? Math.round((aktif / total) * 100) : 0;
 
     const monthlyMap = Array(12).fill(0);
-    customers.forEach(c => { monthlyMap[new Date(c.createdAt).getMonth()]++; });
+    cars.forEach(c => { monthlyMap[new Date(c.createdAt).getMonth()]++; });
     const monthlyData = MONTH_NAMES.map((month, i) => ({ month, nasabah: monthlyMap[i] }));
 
     const statusData = [
@@ -738,7 +742,7 @@ function VehicleTab({ customers }) {
     ].filter(d => d.value > 0);
 
     const brandMap = {};
-    customers.forEach(c => {
+    cars.forEach(c => {
       const brand = c.carData?.carBrand || "Lainnya";
       brandMap[brand] = (brandMap[brand] || 0) + 1;
     });
@@ -746,26 +750,26 @@ function VehicleTab({ customers }) {
       .sort((a, b) => b[1] - a[1]).slice(0, 7)
       .map(([brand, count]) => ({ brand, count }));
 
-    const soonExpiring = customers
-      .filter(c => getStatus(c.carData?.dueDate, c.status) === "Segera Jatuh Tempo")
+    const soonExpiring = cars
+      .filter(c => getCarStatus(c) === "Segera Jatuh Tempo")
       .sort((a, b) => new Date(a.carData.dueDate) - new Date(b.carData.dueDate))
       .slice(0, 6);
 
     return { total, aktif, segera, expired, cancelled, activePercent, monthlyData, statusData, brandData, soonExpiring };
-  }, [customers]);
+  }, [cars]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return customers
+    return cars
       .filter(c =>
         !q ||
-        c.name?.toLowerCase().includes(q) ||
+        c.carData?.ownerName?.toLowerCase().includes(q) ||
         c.carData?.carBrand?.toLowerCase().includes(q) ||
         c.carData?.plateNumber?.toLowerCase().includes(q)
       )
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, 10);
-  }, [customers, search]);
+  }, [cars, search]);
 
   if (!stats) return (
     <div className="empty-state">
@@ -779,10 +783,10 @@ function VehicleTab({ customers }) {
     <>
       {/* Stat Grid */}
       <div className="stat-grid">
-        <StatCard icon={Users}       iconColor="#2563eb" iconBg="#dbeafe" label="Total Nasabah"       value={stats.total}            sub="Nasabah terdaftar"             trend={100}  delay={0.05} />
-        <StatCard icon={ShieldCheck} iconColor="#10b981" iconBg="#d1fae5" label="Polis Aktif"         value={stats.aktif}            sub={`${stats.activePercent}% dari total`} subColor="#10b981" trendUp trend={stats.activePercent} delay={0.1} />
-        <StatCard icon={Clock}       iconColor="#d97706" iconBg="#fef3c7" label="Segera Jatuh Tempo"  value={stats.segera}           sub="Dalam 30 hari" subColor="#d97706" trendUp={false} delay={0.15} />
-        <StatCard icon={ShieldOff}   iconColor="#ef4444" iconBg="#fee2e2" label="Expired / Cancelled" value={stats.expired + stats.cancelled} sub={`${stats.expired} expired · ${stats.cancelled} cancelled`} subColor="#ef4444" delay={0.2} />
+        <StatCard icon={Users} iconColor="#2563eb" iconBg="#dbeafe" label="Total Nasabah" value={stats.total} sub="Nasabah terdaftar" trend={100} delay={0.05} />
+        <StatCard icon={ShieldCheck} iconColor="#10b981" iconBg="#d1fae5" label="Polis Aktif" value={stats.aktif} sub={`${stats.activePercent}% dari total`} subColor="#10b981" trendUp trend={stats.activePercent} delay={0.1} />
+        <StatCard icon={Clock} iconColor="#d97706" iconBg="#fef3c7" label="Segera Jatuh Tempo" value={stats.segera} sub="Dalam 30 hari" subColor="#d97706" trendUp={false} delay={0.15} />
+        <StatCard icon={ShieldOff} iconColor="#ef4444" iconBg="#fee2e2" label="Expired / Cancelled" value={stats.expired + stats.cancelled} sub={`${stats.expired} expired · ${stats.cancelled} cancelled`} subColor="#ef4444" delay={0.2} />
       </div>
 
       {/* Charts row 1: bar + donut */}
@@ -889,10 +893,10 @@ function VehicleTab({ customers }) {
                 border: `1px solid ${urgent ? "#fed7aa" : "#fde68a"}`,
               }}>
                 <div className="avatar" style={{ background: urgent ? "#ea580c" : "#f59e0b", color: "#fff" }}>
-                  {c.name?.[0]?.toUpperCase() || "?"}
+                  {c.carData?.ownerName?.[0]?.toUpperCase() || "?"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontWeight: 700, fontSize: 12.5, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</p>
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: 12.5, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.carData?.ownerName || "—"}</p>
                   <p style={{ margin: 0, fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.carData?.plateNumber}</p>
                 </div>
                 <div style={{ backgroundColor: urgent ? "#ea580c" : "#f59e0b", color: "#fff", borderRadius: 20, padding: "3px 9px", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
@@ -931,7 +935,7 @@ function VehicleTab({ customers }) {
               {filtered.length === 0 ? (
                 <tr><td colSpan={6} style={{ textAlign: "center", padding: 32, color: "#94a3b8" }}>Tidak ada hasil untuk "{search}"</td></tr>
               ) : filtered.map((c, i) => {
-                const status = getStatus(c.carData?.dueDate, c.status);
+                const status = getCarStatus(c);
                 const due = c.carData?.dueDate
                   ? new Date(c.carData.dueDate).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
                   : "—";
@@ -940,11 +944,11 @@ function VehicleTab({ customers }) {
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div className="avatar" style={{ background: "#dbeafe", color: "#1d4ed8" }}>
-                          {c.name?.[0]?.toUpperCase() || "?"}
+                          {c.carData?.ownerName?.[0]?.toUpperCase() || "?"}
                         </div>
                         <div>
-                          <p style={{ margin: 0, fontWeight: 700, fontSize: 13 }}>{c.name}</p>
-                          <p style={{ margin: 0, fontSize: 11, color: "#94a3b8" }}>{c.phone || "—"}</p>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: 13 }}>{c.carData?.ownerName || "—"}</p>
+                          <p style={{ margin: 0, fontSize: 11, color: "#94a3b8" }}>{c.carData?.plateNumber || "—"}</p>
                         </div>
                       </div>
                     </td>
@@ -988,9 +992,9 @@ function PropertyTab({ properties }) {
   const stats = useMemo(() => {
     if (!properties.length) return null;
     const total = properties.length;
-    const aktif     = properties.filter(p => getPropertyStatus(p) === "Aktif").length;
-    const segera    = properties.filter(p => getPropertyStatus(p) === "Segera Jatuh Tempo").length;
-    const expired   = properties.filter(p => getPropertyStatus(p) === "Expired").length;
+    const aktif = properties.filter(p => getPropertyStatus(p) === "Aktif").length;
+    const segera = properties.filter(p => getPropertyStatus(p) === "Segera Jatuh Tempo").length;
+    const expired = properties.filter(p => getPropertyStatus(p) === "Expired").length;
     const cancelled = properties.filter(p => getPropertyStatus(p) === "Cancelled").length;
     const activePercent = total > 0 ? Math.round((aktif / total) * 100) : 0;
 
@@ -1052,16 +1056,16 @@ function PropertyTab({ properties }) {
     </div>
   );
 
-  const PROPERTY_COLORS = ["#2563eb","#0ea5e9","#38bdf8","#7dd3fc","#bae6fd","#0369a1"];
+  const PROPERTY_COLORS = ["#2563eb", "#0ea5e9", "#38bdf8", "#7dd3fc", "#bae6fd", "#0369a1"];
 
   return (
     <>
       {/* Stat Grid */}
       <div className="stat-grid">
-        <StatCard icon={Building2}   iconColor="#2563eb" iconBg="#dbeafe" label="Total Properti"       value={stats.total}                    sub="Properti terdaftar"          trend={100} delay={0.05} />
-        <StatCard icon={ShieldCheck} iconColor="#10b981" iconBg="#d1fae5" label="Polis Aktif"          value={stats.aktif}                    sub={`${stats.activePercent}% dari total`} subColor="#10b981" trendUp trend={stats.activePercent} delay={0.1} />
-        <StatCard icon={Clock}       iconColor="#d97706" iconBg="#fef3c7" label="Segera Jatuh Tempo"   value={stats.segera}                   sub="Dalam 30 hari" subColor="#d97706" trendUp={false} delay={0.15} />
-        <StatCard icon={XCircle}     iconColor="#ef4444" iconBg="#fee2e2" label="Expired / Cancelled"  value={stats.expired + stats.cancelled} sub={`${stats.expired} expired · ${stats.cancelled} cancelled`} subColor="#ef4444" delay={0.2} />
+        <StatCard icon={Building2} iconColor="#2563eb" iconBg="#dbeafe" label="Total Properti" value={stats.total} sub="Properti terdaftar" trend={100} delay={0.05} />
+        <StatCard icon={ShieldCheck} iconColor="#10b981" iconBg="#d1fae5" label="Polis Aktif" value={stats.aktif} sub={`${stats.activePercent}% dari total`} subColor="#10b981" trendUp trend={stats.activePercent} delay={0.1} />
+        <StatCard icon={Clock} iconColor="#d97706" iconBg="#fef3c7" label="Segera Jatuh Tempo" value={stats.segera} sub="Dalam 30 hari" subColor="#d97706" trendUp={false} delay={0.15} />
+        <StatCard icon={XCircle} iconColor="#ef4444" iconBg="#fee2e2" label="Expired / Cancelled" value={stats.expired + stats.cancelled} sub={`${stats.expired} expired · ${stats.cancelled} cancelled`} subColor="#ef4444" delay={0.2} />
       </div>
 
       {/* Charts row 1 */}
@@ -1073,7 +1077,7 @@ function PropertyTab({ properties }) {
             <AreaChart data={stats.monthlyData} margin={{ top: 8, right: 4, left: -22, bottom: 0 }}>
               <defs>
                 <linearGradient id="pGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#0ea5e9" stopOpacity={0.25} />
+                  <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.25} />
                   <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
                 </linearGradient>
               </defs>
@@ -1243,15 +1247,16 @@ function PropertyTab({ properties }) {
 
 // ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const [activeTab, setActiveTab]     = useState("vehicle");
-  const [customers, setCustomers]     = useState([]);
-  const [properties, setProperties]   = useState([]);
-  const [companyProfile, setCompany]  = useState(null);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState(null);
+  const [activeTab, setActiveTab] = useState("vehicle");
+  const [cars, setCars] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [properties, setProperties] = useState([]);
+  const [companyProfile, setCompany] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [urgentCount, setUrgentCount] = useState(0);
-  const [exporting, setExporting]     = useState(false);
-  const { isMobile }                  = useBreakpoint();
+  const [exporting, setExporting] = useState(false);
+  const { isMobile } = useBreakpoint();
 
   // ─── Export CSV ───────────────────────────────────────────────────────────
   const exportCSV = useCallback(() => {
@@ -1261,11 +1266,11 @@ export default function DashboardPage() {
       let filename = "";
 
       if (activeTab === "vehicle") {
-        filename = `nasabah-kendaraan-${new Date().toISOString().slice(0,10)}.csv`;
-        const headers = ["Nama","Telepon","Merek Kendaraan","Model","No. Plat","Harga Mobil","Jatuh Tempo","Status"];
+        filename = `kendaraan-${new Date().toISOString().slice(0, 10)}.csv`;
+        const headers = ["Nama Pemilik", "Merek Kendaraan", "Model", "No. Plat", "Harga Mobil", "Jatuh Tempo", "Status"];
         rows = [
           headers,
-          ...customers.map(c => {
+          ...cars.map(c => {
             const status = getStatus(c.carData?.dueDate, c.status);
             const due = c.carData?.dueDate
               ? new Date(c.carData.dueDate).toLocaleDateString("id-ID")
@@ -1274,8 +1279,7 @@ export default function DashboardPage() {
               ? Number(c.carData.carPrice).toLocaleString("id-ID")
               : "-";
             return [
-              c.name || "-",
-              c.phone || "-",
+              c.carData?.ownerName || "-",
               c.carData?.carBrand || "-",
               c.carData?.carModel || "-",
               c.carData?.plateNumber || "-",
@@ -1286,8 +1290,8 @@ export default function DashboardPage() {
           }),
         ];
       } else {
-        filename = `properti-${new Date().toISOString().slice(0,10)}.csv`;
-        const headers = ["Nama Pemilik","Telepon","Tipe Properti","Kota","Nilai Properti","Jatuh Tempo","Status"];
+        filename = `properti-${new Date().toISOString().slice(0, 10)}.csv`;
+        const headers = ["Nama Pemilik", "Telepon", "Tipe Properti", "Kota", "Nilai Properti", "Jatuh Tempo", "Status"];
         rows = [
           headers,
           ...properties.map(p => {
@@ -1328,9 +1332,9 @@ export default function DashboardPage() {
 
       // BOM supaya Excel bisa baca karakter Indonesia
       const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-      const url  = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href     = url;
+      link.href = url;
       link.download = filename;
       link.click();
       URL.revokeObjectURL(url);
@@ -1345,10 +1349,11 @@ export default function DashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const [custRes, propRes, compRes] = await Promise.allSettled([
+      const [custRes, propRes, compRes, carRes] = await Promise.allSettled([
         CustomerDAO.getAllCustomers(),
         PropertyDAO.getAllProperties(),
         CompanyDAO.getCompanyProfile(),
+        CarDAO.getAllCars(),
       ]);
 
       let custs = [];
@@ -1356,6 +1361,13 @@ export default function DashboardPage() {
         const res = custRes.value;
         custs = res?.customers || res?.data || (Array.isArray(res) ? res : []);
         setCustomers(custs);
+      }
+
+      let allCars = [];
+      if (carRes.status === "fulfilled") {
+        const res = carRes.value;
+        allCars = res?.cars || res?.data || (Array.isArray(res) ? res : []);
+        setCars(allCars);
       }
 
       let props = [];
@@ -1369,8 +1381,8 @@ export default function DashboardPage() {
         setCompany(compRes.value?.profile || null);
       }
 
-      // Calculate urgent
-      const urgentV = custs.filter(c => {
+      // Calculate urgent (cars expiring within 7 days)
+      const urgentV = allCars.filter(c => {
         if (!c.carData?.dueDate || c.status === "Cancelled") return false;
         const d = Math.ceil((new Date(c.carData.dueDate) - today) / 86400000);
         return d >= 0 && d <= 7;
@@ -1398,10 +1410,10 @@ export default function DashboardPage() {
         <div className="dash-page">
           <div style={{ marginBottom: 24, height: 60, borderRadius: 16 }} className="skeleton" />
           <div className="stat-grid">
-            {[0,1,2,3].map(i => <SkeletonCard key={i} />)}
+            {[0, 1, 2, 3].map(i => <SkeletonCard key={i} />)}
           </div>
           <div className="row-2">
-            {[0,1].map(i => (
+            {[0, 1].map(i => (
               <div key={i} className="card" style={{ padding: 22 }}>
                 <div className="skeleton" style={{ height: 20, width: "50%", marginBottom: 10 }} />
                 <div className="skeleton" style={{ height: 210 }} />
@@ -1495,7 +1507,7 @@ export default function DashboardPage() {
             <Car size={15} />
             Kendaraan
             <span className={activeTab === "vehicle" ? "tab-count" : "tab-count-inactive"}>
-              {customers.length}
+              {cars.length}
             </span>
           </button>
           <button
@@ -1514,7 +1526,7 @@ export default function DashboardPage() {
 
         {/* ── Content ── */}
         {activeTab === "vehicle"
-          ? <VehicleTab customers={customers} />
+          ? <VehicleTab cars={cars} />
           : <PropertyTab properties={properties} />
         }
       </div>

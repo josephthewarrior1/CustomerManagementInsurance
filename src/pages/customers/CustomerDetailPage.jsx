@@ -22,6 +22,8 @@ import { useNavigate, useParams } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CustomerDAO from '../../daos/CustomerDao';
+import CreateCarDialog from '../Cars/CreateCarDialog';
+import CreatePropertyDialog from '../Property/CreatePropertyDialog';
 
 /* ---------------- TAB PANEL ---------------- */
 function TabPanel({ children, value, index }) {
@@ -231,9 +233,14 @@ export default function CustomerDetailPage() {
     const loadingProvider = useLoading();
 
     const [customer, setCustomer] = useState(null);
+    const [cars, setCars] = useState([]);
+    const [properties, setProperties] = useState([]);
+
     const [loading, setLoading] = useState(true);
     const [tabValue, setTabValue] = useState(0);
     const [previewState, setPreviewState] = useState({ open: false, images: [], index: 0 });
+    const [isCarDialogOpen, setIsCarDialogOpen] = useState(false);
+    const [isPropertyDialogOpen, setIsPropertyDialogOpen] = useState(false);
 
     useEffect(() => {
         fetchCustomer();
@@ -245,6 +252,8 @@ export default function CustomerDetailPage() {
             const response = await CustomerDAO.getCustomerById(id);
             if (response.success) {
                 setCustomer(response.customer);
+                setCars(response.cars || []);
+                setProperties(response.properties || []);
             } else {
                 message(response.error || 'Customer not found', 'error');
                 navigate('/customers');
@@ -257,6 +266,14 @@ export default function CustomerDetailPage() {
             loadingProvider.stop();
             setLoading(false);
         }
+    };
+
+    const handleCarCreated = (newCar) => {
+        setCars(prev => [...prev, newCar]);
+    };
+
+    const handlePropertyCreated = (newProperty) => {
+        setProperties(prev => [...prev, newProperty]);
     };
 
     const formatDate = (ts) =>
@@ -413,9 +430,8 @@ export default function CustomerDetailPage() {
                         }}
                     >
                         <Tab label="Personal Info" icon={<Icon icon="mdi:account" width={20} />} iconPosition="start" />
-                        <Tab label="Vehicle" icon={<Icon icon="mdi:car" width={20} />} iconPosition="start" />
-                        <Tab label="Photos" icon={<Icon icon="mdi:camera" width={20} />} iconPosition="start" />
-                        <Tab label="Documents" icon={<Icon icon="mdi:file-document" width={20} />} iconPosition="start" />
+                        <Tab label={`Cars (${cars.length})`} icon={<Icon icon="mdi:car" width={20} />} iconPosition="start" />
+                        <Tab label={`Properties (${properties.length})`} icon={<Icon icon="mdi:home" width={20} />} iconPosition="start" />
                     </Tabs>
                 </Paper>
 
@@ -438,178 +454,123 @@ export default function CustomerDetailPage() {
                     </Grid>
                 </TabPanel>
 
-                {/* ── TAB: VEHICLE ── */}
+                {/* ── TAB: CARS ── */}
                 <TabPanel value={tabValue} index={1}>
-                    <Grid container spacing={3}>
-                        <Grid item xs={12} md={6}>
-                            <InfoCard title="Owner Details">
-                                <InfoRow label="Owner Name" value={customer.carData?.ownerName} icon="mdi:account-circle" />
-                            </InfoCard>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <InfoCard title="Vehicle Identity">
-                                <InfoRow label="Plate Number" value={customer.carData?.plateNumber} icon="mdi:numeric" />
-                            </InfoCard>
-                        </Grid>
-                        <Grid item xs={12}>
-                            <InfoCard title="Vehicle Specifications">
-                                <Grid container spacing={2}>
-                                    <Grid item xs={12} sm={6}>
-                                        <InfoRow label="Brand" value={customer.carData?.carBrand} icon="mdi:car" />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <InfoRow label="Model" value={customer.carData?.carModel} icon="mdi:car-info" />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <InfoRow label="Chassis Number" value={customer.carData?.chassisNumber} icon="mdi:barcode" />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <InfoRow label="Engine Number" value={customer.carData?.engineNumber} icon="mdi:engine" />
-                                    </Grid>
-                                </Grid>
-                            </InfoCard>
-                        </Grid>
-                        <Grid item xs={12}>
-                            <InfoCard title="Financial & Insurance">
-                                <Grid container spacing={2}>
-                                    <Grid item xs={12} sm={6}>
-                                        <InfoRow label="Vehicle Price" value={formatCurrency(customer.carData?.carPrice)} icon="mdi:cash" />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <InfoRow label="Insurance Due Date" value={customer.carData?.dueDate || 'Not set'} icon="mdi:calendar-clock" />
-                                    </Grid>
-                                </Grid>
-                            </InfoCard>
-                        </Grid>
-                    </Grid>
-                </TabPanel>
+                    <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B' }}>
+                            Associated Cars
+                        </Typography>
+                        <Button
+                            variant="contained"
+                            startIcon={<Icon icon="mdi:plus" />}
+                            onClick={() => setIsCarDialogOpen(true)}
+                            sx={{
+                                bgcolor: '#1E40AF', color: '#fff', fontWeight: 600, textTransform: 'none',
+                                borderRadius: 2, '&:hover': { bgcolor: '#1E3A8A' }
+                            }}
+                        >
+                            Add Car
+                        </Button>
+                    </Box>
 
-                {/* ── TAB: PHOTOS ── */}
-                <TabPanel value={tabValue} index={2}>
-                    {hasPhotos ? (
+                    {cars.length > 0 ? (
                         <Grid container spacing={3}>
-                            {Object.entries(customer.carPhotos || {})
-                                .filter(([_, url]) => typeof url === 'string' && url.trim() !== '')
-                                .map(([key, url]) => (
-                                    <Grid item xs={12} sm={6} md={6} key={key}>
-                                        <Paper
-                                            elevation={0}
-                                            onClick={() => setPreviewImage(url)}
-                                            sx={{
-                                                borderRadius: 3, border: '1px solid #E2E8F0',
-                                                overflow: 'hidden', cursor: 'pointer',
-                                                transition: 'all 0.2s ease-in-out',
-                                                '&:hover': {
-                                                    transform: 'translateY(-4px)',
-                                                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                                                    borderColor: '#1E40AF'
-                                                }
-                                            }}
-                                        >
-                                            <Box sx={{ p: 2, bgcolor: '#F8FAFC' }}>
-                                                <Stack direction="row" alignItems="center" spacing={1}>
-                                                    <Icon icon="mdi:camera" width={18} color="#1E40AF" />
-                                                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#1E293B', textTransform: 'capitalize' }}>
-                                                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                                                    </Typography>
-                                                </Stack>
+                            {cars.map((car) => (
+                                <Grid item xs={12} md={6} key={car.id}>
+                                    <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff', position: 'relative' }}>
+                                        <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+                                            <IconButton onClick={() => navigate(`/cars/${car.id}`)} size="small" sx={{ color: '#1E40AF', bgcolor: '#EFF6FF' }}>
+                                                <Icon icon="mdi:eye" width={20} />
+                                            </IconButton>
+                                        </Box>
+                                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                                            <Avatar sx={{ bgcolor: '#EFF6FF', color: '#1E40AF', width: 48, height: 48 }}>
+                                                <Icon icon="mdi:car" width={24} />
+                                            </Avatar>
+                                            <Box>
+                                                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B', fontSize: '1.1rem' }}>
+                                                    {car.carData?.carBrand} {car.carData?.carModel}
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 500 }}>
+                                                    {car.carData?.plateNumber}
+                                                </Typography>
                                             </Box>
-                                            <Box
-                                                component="img"
-                                                src={url}
-                                                alt={key}
-                                                onClick={(e) => {
-                                                    const allPhotos = Object.values(customer.carPhotos || {}).filter(u => typeof u === 'string' && u.trim() !== '');
-                                                    const idx = allPhotos.indexOf(url);
-                                                    setPreviewState({ open: true, images: allPhotos, index: idx });
-                                                }}
-                                                sx={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }}
-                                            />
-                                        </Paper>
-                                    </Grid>
-                                ))}
+                                        </Stack>
+                                        <Divider sx={{ my: 2, borderColor: '#F1F5F9' }} />
+                                        <Stack spacing={1.5}>
+                                            <InfoRow label="Owner" value={car.carData?.ownerName || customer.name} icon="mdi:account" />
+                                            <InfoRow label="Price" value={formatCurrency(car.carData?.carPrice)} icon="mdi:cash" />
+                                            <InfoRow label="Insurance Due" value={car.carData?.dueDate || 'Not set'} icon="mdi:calendar" />
+                                        </Stack>
+                                    </Paper>
+                                </Grid>
+                            ))}
                         </Grid>
                     ) : (
                         <Paper elevation={0} sx={{ p: 8, textAlign: 'center', borderRadius: 3, border: '2px dashed #E2E8F0', bgcolor: '#F8FAFC' }}>
-                            <Icon icon="mdi:camera-off" width={64} color="#CBD5E1" />
-                            <Typography variant="h6" sx={{ mt: 2, color: '#64748B', fontWeight: 600 }}>No photos uploaded</Typography>
-                            <Typography variant="body2" sx={{ mt: 1, color: '#94A3B8' }}>Vehicle photos will appear here once uploaded</Typography>
+                            <Icon icon="mdi:car-off" width={64} color="#CBD5E1" />
+                            <Typography variant="h6" sx={{ mt: 2, color: '#64748B', fontWeight: 600 }}>No cars found</Typography>
+                            <Typography variant="body2" sx={{ mt: 1, color: '#94A3B8' }}>This customer doesn't have any registered cars yet.</Typography>
                         </Paper>
                     )}
                 </TabPanel>
 
-                {/* ── TAB: DOCUMENTS ── */}
-                <TabPanel value={tabValue} index={3}>
-                    {hasDocuments ? (
+                {/* ── TAB: PROPERTIES ── */}
+                <TabPanel value={tabValue} index={2}>
+                    <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B' }}>
+                            Associated Properties
+                        </Typography>
+                        <Button
+                            variant="contained"
+                            startIcon={<Icon icon="mdi:plus" />}
+                            onClick={() => setIsPropertyDialogOpen(true)}
+                            sx={{
+                                bgcolor: '#1E40AF', color: '#fff', fontWeight: 600, textTransform: 'none',
+                                borderRadius: 2, '&:hover': { bgcolor: '#1E3A8A' }
+                            }}
+                        >
+                            Add Property
+                        </Button>
+                    </Box>
+
+                    {properties.length > 0 ? (
                         <Grid container spacing={3}>
-                            {Object.entries(customer.documentPhotos || {})
-                                .filter(([_, url]) => typeof url === 'string' && url.trim() !== '')
-                                .map(([key, url]) => (
-                                    <Grid item xs={12} sm={6} md={4} key={key}>
-                                        <Paper
-                                            elevation={0}
-                                            sx={{
-                                                borderRadius: 3, border: '1px solid #E2E8F0',
-                                                overflow: 'hidden',
-                                                cursor: url.includes('pdf') ? 'default' : 'pointer',
-                                                transition: 'all 0.2s ease-in-out',
-                                                '&:hover': url.includes('pdf') ? {} : {
-                                                    transform: 'translateY(-4px)',
-                                                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                                                    borderColor: '#1E40AF'
-                                                }
-                                            }}
-                                        >
-                                            <Box sx={{ p: 2, bgcolor: '#F8FAFC' }}>
-                                                <Stack direction="row" alignItems="center" spacing={1}>
-                                                    <Icon icon="mdi:file-document" width={18} color="#1E40AF" />
-                                                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#1E293B', textTransform: 'uppercase' }}>
-                                                        {key}
-                                                    </Typography>
-                                                    <Chip
-                                                        label="Uploaded"
-                                                        size="small"
-                                                        sx={{ ml: 'auto', bgcolor: '#D1FAE5', color: '#065F46', fontWeight: 600, fontSize: '0.7rem' }}
-                                                    />
-                                                </Stack>
+                            {properties.map((property) => (
+                                <Grid item xs={12} md={6} key={property.id}>
+                                    <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff', position: 'relative' }}>
+                                        <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+                                            <IconButton onClick={() => navigate(`/properties/${property.id}`)} size="small" sx={{ color: '#1E40AF', bgcolor: '#EFF6FF' }}>
+                                                <Icon icon="mdi:eye" width={20} />
+                                            </IconButton>
+                                        </Box>
+                                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                                            <Avatar sx={{ bgcolor: '#EFF6FF', color: '#1E40AF', width: 48, height: 48 }}>
+                                                <Icon icon="mdi:home" width={24} />
+                                            </Avatar>
+                                            <Box>
+                                                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B', fontSize: '1.1rem' }}>
+                                                    {property.propertyData?.propertyType || 'Property'}
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 500 }} noWrap>
+                                                    {property.propertyData?.address}
+                                                </Typography>
                                             </Box>
-                                            {url.includes('pdf') ? (
-                                                <Box sx={{ height: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#F1F5F9', gap: 1 }}>
-                                                    <Icon icon="mdi:file-pdf-box" width={56} color="#DC2626" />
-                                                    <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 500 }}>PDF Document</Typography>
-                                                    <Button
-                                                        size="small"
-                                                        variant="outlined"
-                                                        startIcon={<Icon icon="mdi:open-in-new" width={14} />}
-                                                        onClick={(e) => { e.stopPropagation(); window.open(url, '_blank'); }}
-                                                        sx={{ textTransform: 'none', borderRadius: 2, fontSize: '0.75rem', mt: 0.5 }}
-                                                    >
-                                                        Open PDF
-                                                    </Button>
-                                                </Box>
-                                            ) : (
-                                                <Box
-                                                    component="img"
-                                                    src={url}
-                                                    alt={key}
-                                                    onClick={() => {
-                                                        const allDocs = Object.values(customer.documentPhotos || {})
-                                                            .filter(u => typeof u === 'string' && u.trim() !== '' && !u.includes('pdf'));
-                                                        const idx = allDocs.indexOf(url);
-                                                        setPreviewState({ open: true, images: allDocs, index: idx });
-                                                    }}
-                                                    sx={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }}
-                                                />
-                                            )}
-                                        </Paper>
-                                    </Grid>
-                                ))}
+                                        </Stack>
+                                        <Divider sx={{ my: 2, borderColor: '#F1F5F9' }} />
+                                        <Stack spacing={1.5}>
+                                            <InfoRow label="Value" value={formatCurrency(property.propertyData?.propertyValue)} icon="mdi:cash" />
+                                            <InfoRow label="Insurance Ends" value={property.insuranceData?.endDate ? new Date(property.insuranceData.endDate).toLocaleDateString('id-ID') : 'Not set'} icon="mdi:calendar" />
+                                        </Stack>
+                                    </Paper>
+                                </Grid>
+                            ))}
                         </Grid>
                     ) : (
                         <Paper elevation={0} sx={{ p: 8, textAlign: 'center', borderRadius: 3, border: '2px dashed #E2E8F0', bgcolor: '#F8FAFC' }}>
-                            <Icon icon="mdi:file-document-outline" width={64} color="#CBD5E1" />
-                            <Typography variant="h6" sx={{ mt: 2, color: '#64748B', fontWeight: 600 }}>No documents uploaded</Typography>
-                            <Typography variant="body2" sx={{ mt: 1, color: '#94A3B8' }}>Customer documents will appear here once uploaded</Typography>
+                            <Icon icon="mdi:home-off" width={64} color="#CBD5E1" />
+                            <Typography variant="h6" sx={{ mt: 2, color: '#64748B', fontWeight: 600 }}>No properties found</Typography>
+                            <Typography variant="body2" sx={{ mt: 1, color: '#94A3B8' }}>This customer doesn't have any registered properties yet.</Typography>
                         </Paper>
                     )}
                 </TabPanel>
@@ -623,6 +584,20 @@ export default function CustomerDetailPage() {
                 currentIndex={previewState.index}
                 onIndexChange={(newIndex) => setPreviewState(prev => ({ ...prev, index: newIndex }))}
                 onClose={() => setPreviewState({ open: false, images: [], index: 0 })}
+            />
+
+            {/* Create Asset Dialogs */}
+            <CreateCarDialog
+                open={isCarDialogOpen}
+                onClose={() => setIsCarDialogOpen(false)}
+                customerId={id}
+                onCarCreated={handleCarCreated}
+            />
+            <CreatePropertyDialog
+                open={isPropertyDialogOpen}
+                onClose={() => setIsPropertyDialogOpen(false)}
+                customerId={id}
+                onPropertyCreated={handlePropertyCreated}
             />
         </Box>
     );

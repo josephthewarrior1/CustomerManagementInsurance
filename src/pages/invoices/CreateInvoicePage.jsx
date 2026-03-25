@@ -1,28 +1,16 @@
 import { Icon } from '@iconify/react';
 import {
-    Box,
-    Button,
-    Typography,
-    TextField,
-    Grid,
-    Paper,
-    Divider,
-    Container,
-    IconButton,
-    Dialog,
-    useMediaQuery,
-    useTheme,
-    Stack,
-    InputAdornment,
-    Avatar,
-    Fade,
+    Box, Button, Typography, TextField, Grid, Paper, Divider,
+    Container, IconButton, Dialog, useMediaQuery, useTheme,
+    Stack, InputAdornment, Avatar, Fade, Chip,
 } from '@mui/material';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
-import CustomerDAO from '../../daos/CustomerDao';
 import CompanyDAO from '../../daos/CompanyDao';
+import CarDAO from '../../daos/CarDao';
+import PropertyDAO from '../../daos/propertyDao';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -37,13 +25,15 @@ const C = {
     textSub: '#606770',
     textMuted: '#9EA8B3',
     error: '#D92B2B',
+    car: '#1971C2',
+    carLight: '#EBF4FF',
+    property: '#0369A1',
+    propertyLight: '#E0F2FE',
 };
 
 const inputStyle = {
     '& .MuiOutlinedInput-root': {
-        borderRadius: '8px',
-        fontSize: 14,
-        bgcolor: '#FFFFFF',
+        borderRadius: '8px', fontSize: 14, bgcolor: '#FFFFFF',
         '& fieldset': { borderColor: '#E4E6EA' },
         '&:hover fieldset': { borderColor: '#B0B5BC' },
         '&.Mui-focused fieldset': { borderColor: '#1971C2', borderWidth: '1.5px' },
@@ -76,8 +66,8 @@ function Field({ label, required, children }) {
 
 const STEPS = [
     { label: 'Details', icon: '1' },
-    { label: 'Items',   icon: '2' },
-    { label: 'Review',  icon: '3' },
+    { label: 'Items', icon: '2' },
+    { label: 'Review', icon: '3' },
 ];
 
 function WizardStepper({ active }) {
@@ -117,6 +107,34 @@ function WizardStepper({ active }) {
     );
 }
 
+// ─── Invoice Type Tab ─────────────────────────────────────────────────────────
+function InvoiceTypeTab({ value, onChange }) {
+    return (
+        <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+            {[
+                { key: 'car', label: 'Kendaraan', icon: 'mdi:car', color: C.car, light: C.carLight },
+                { key: 'property', label: 'Properti', icon: 'mdi:home', color: C.property, light: C.propertyLight },
+            ].map(opt => (
+                <Box key={opt.key} flex={1}
+                    onClick={() => onChange(opt.key)}
+                    sx={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
+                        p: 1.75, borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s',
+                        border: `2px solid ${value === opt.key ? opt.color : '#E4E6EA'}`,
+                        bgcolor: value === opt.key ? opt.light : '#fff',
+                        '&:hover': { borderColor: opt.color, bgcolor: opt.light },
+                    }}>
+                    <Icon icon={opt.icon} width={20} color={value === opt.key ? opt.color : C.textMuted} />
+                    <Typography fontSize={14} fontWeight={700}
+                        sx={{ color: value === opt.key ? opt.color : C.textSub }}>
+                        {opt.label}
+                    </Typography>
+                </Box>
+            ))}
+        </Box>
+    );
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 export default function CreateInvoicePage() {
     const navigate = useNavigate();
@@ -126,6 +144,7 @@ export default function CreateInvoicePage() {
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const [activeStep, setActiveStep] = useState(0);
+    const [invoiceType, setInvoiceType] = useState('car'); // 'car' | 'property'
 
     // Company
     const [companyProfile, setCompanyProfile] = useState(null);
@@ -133,26 +152,34 @@ export default function CreateInvoicePage() {
     const [companySubtitle, setCompanySubtitle] = useState('INSURANCE AGENCY');
     const [companyCity, setCompanyCity] = useState('Jakarta');
 
-    // Customer
-    const [customers, setCustomers] = useState([]);
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
-    const [openCustomerDialog, setOpenCustomerDialog] = useState(false);
-    const [customerSearch, setCustomerSearch] = useState('');
+    // Data lists
+    const [cars, setCars] = useState([]);
+    const [properties, setProperties] = useState([]);
+    const [selectedItem, setSelectedItem] = useState(null); // selected car or property
+    const [openSelectDialog, setOpenSelectDialog] = useState(false);
+    const [selectSearch, setSelectSearch] = useState('');
 
     // Invoice
     const [invoiceNumber, setInvoiceNumber] = useState('');
+    const [insuranceName, setInsuranceName] = useState('');
+    const [policyNumber, setPolicyNumber] = useState('');
+    const [ownerAddress, setOwnerAddress] = useState('');
     const [items, setItems] = useState([{ description: '', quantity: 1, price: 0 }]);
     const [adminFee, setAdminFee] = useState(0);
     const [stampDuty, setStampDuty] = useState(0);
-
-    // Preview
     const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
 
     useEffect(() => {
         fetchCompanyProfile();
-        fetchCustomers();
+        fetchData();
         generateInvoiceNumber();
     }, []); // eslint-disable-line
+
+    // When invoice type changes, reset selected item
+    const handleTypeChange = (type) => {
+        setInvoiceType(type);
+        setSelectedItem(null);
+    };
 
     // ── Helpers ──
     const formatCurrency = (value) =>
@@ -177,13 +204,16 @@ export default function CreateInvoicePage() {
         } catch (e) { console.error(e); }
     };
 
-    const fetchCustomers = async () => {
+    const fetchData = async () => {
         try {
             loading.start();
-            const r = await CustomerDAO.getAllCustomers();
-            if (r.success) setCustomers(r.customers || []);
-            else message('Failed to load customers', 'error');
-        } catch (e) { console.error(e); message('Failed to load customers', 'error'); }
+            const [carRes, propRes] = await Promise.allSettled([
+                CarDAO.getAllCars(),
+                PropertyDAO.getAllProperties(),
+            ]);
+            if (carRes.status === 'fulfilled' && carRes.value?.cars) setCars(carRes.value.cars);
+            if (propRes.status === 'fulfilled' && propRes.value?.properties) setProperties(propRes.value.properties);
+        } catch (e) { console.error(e); message('Failed to load data', 'error'); }
         finally { loading.stop(); }
     };
 
@@ -213,14 +243,17 @@ export default function CreateInvoicePage() {
 
     // ── Navigation ──
     const handleNext = () => {
-        if (activeStep === 0 && !selectedCustomer) { message('Please select a customer', 'error'); return; }
+        if (activeStep === 0 && !selectedItem) { message(`Please select a ${invoiceType === 'car' ? 'car' : 'property'}`, 'error'); return; }
         if (activeStep === 1 && !items.some(it => it.description?.trim())) { message('Please add at least one item', 'error'); return; }
         setActiveStep(s => s + 1);
     };
     const handleBack = () => setActiveStep(s => s - 1);
 
     const handleReset = () => {
-        setSelectedCustomer(null);
+        setSelectedItem(null);
+        setInsuranceName('');
+        setPolicyNumber('');
+        setOwnerAddress('');
         setItems([{ description: '', quantity: 1, price: 0 }]);
         setAdminFee(0); setStampDuty(0);
         setActiveStep(0);
@@ -228,7 +261,7 @@ export default function CreateInvoicePage() {
     };
 
     const handleSubmit = () => {
-        if (!selectedCustomer) { message('Please select a customer', 'error'); return; }
+        if (!selectedItem) { message('Please select an item', 'error'); return; }
         setOpenPreviewDialog(true);
     };
 
@@ -238,175 +271,197 @@ export default function CreateInvoicePage() {
         finally { loading.stop(); }
     };
 
-    // ══ PDF — TIDAK DIUBAH ══════════════════════════════════════════════════
+    // ── Derived label helpers ──
+    const getSelectedLabel = () => {
+        if (!selectedItem) return '';
+        if (invoiceType === 'car') {
+            return `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''} — ${selectedItem.carData?.plateNumber || 'No Plate'}`;
+        }
+        return `${selectedItem.propertyData?.propertyType || 'Property'} - ${selectedItem.propertyData?.city || ''}`;
+    };
+
+    const getOwnerName = () => {
+        if (!selectedItem) return '';
+        if (invoiceType === 'car') return selectedItem.carData?.ownerName || '';
+        return selectedItem.ownerName || '';
+    };
+
+    // ── PDF ──────────────────────────────────────────────────────────────────
     const generatePDF = () => {
         const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
         const pageWidth = doc.internal.pageSize.getWidth();
-
         const marginX = 18;
-        const rightX = pageWidth - marginX;
+        let currentY = 20;
 
-        let currentY = 18;
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(16);
+        // Header
+        doc.setFont('times', 'bold');
+        doc.setFontSize(22);
         doc.setTextColor(30, 30, 30);
-        doc.text((companyName || '').toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
-        currentY += 6;
+        doc.text(companyName.toUpperCase(), marginX, currentY, { align: 'left' });
 
-        doc.setFont('helvetica', 'normal');
+        currentY += 5;
+        doc.setFont('times', 'normal');
         doc.setFontSize(10);
-        doc.setTextColor(80, 80, 80);
-        doc.text((companySubtitle || '').toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
+        doc.text(companySubtitle.toUpperCase(), marginX + 115, currentY, { align: 'left' });
+
         currentY += 10;
+        doc.setFont('times', 'normal');
+        doc.setFontSize(16);
+        doc.text('Invoice', pageWidth / 2, currentY, { align: 'center' });
 
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.setTextColor(30, 30, 30);
-        doc.text('INVOICE', pageWidth / 2, currentY, { align: 'center' });
-        currentY += 11;
+        currentY += 15;
 
+        // Info Section
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
-        doc.setTextColor(40, 40, 40);
 
-        const dateStr = new Date().toLocaleDateString('id-ID', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric'
-        });
+        const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 
-        doc.text(`No. ${invoiceNumber}`, marginX, currentY);
-        doc.text(`${companyCity || 'Jakarta'}, ${dateStr}`, rightX, currentY, { align: 'right' });
-        currentY += 13;
-
-        const labelX = marginX;
-        const colonX = marginX + 30;
-        const valueX = marginX + 34;
-
-        const drawRow = (y, label, value) => {
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(10);
-            doc.setTextColor(30, 30, 30);
-            doc.text(label, labelX, y);
-
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(40, 40, 40);
-            doc.text(':', colonX, y);
-            doc.text(String(value ?? '-'), valueX, y);
+        const drawRowTop = (y, label, val) => {
+            doc.text(label, marginX, y);
+            doc.text(':', marginX + 35, y);
+            doc.text(String(val || '-'), marginX + 38, y);
         };
 
-        drawRow(currentY, 'Bill To', selectedCustomer?.name || '-');
-        currentY += 7;
-        drawRow(currentY, 'Address', selectedCustomer?.address || '-');
-        currentY += 7;
+        drawRowTop(currentY, 'No Invoice', invoiceNumber); currentY += 6;
+        drawRowTop(currentY, 'Tgl', dateStr); currentY += 6;
+        drawRowTop(currentY, 'Nama Asuransi', insuranceName); currentY += 10;
 
-        if (selectedCustomer?.carData) {
-            const vehicleStr = [
-                selectedCustomer.carData?.carBrand,
-                selectedCustomer.carData?.carModel,
-                selectedCustomer.carData?.plateNumber ? `(${selectedCustomer.carData.plateNumber})` : ''
-            ].filter(Boolean).join(' ');
-            drawRow(currentY, 'Vehicle', vehicleStr);
-            currentY += 7;
+        drawRowTop(currentY, 'No Polis', policyNumber); currentY += 6;
+        drawRowTop(currentY, 'Nama Tertanggung', getOwnerName()); currentY += 6;
+        drawRowTop(currentY, 'Alamat Tertanggung', ownerAddress); currentY += 10;
+
+        let startDateStr = selectedItem?.carData?.startDate ? new Date(selectedItem.carData.startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
+        let dueDateStr = selectedItem?.carData?.dueDate ? new Date(selectedItem.carData.dueDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
+        if (invoiceType !== 'car') {
+            startDateStr = selectedItem?.insuranceData?.startDate ? new Date(selectedItem.insuranceData.startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
+            dueDateStr = selectedItem?.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
         }
 
-        currentY += 6;
+        drawRowTop(currentY, 'Jangka Waktu', `${startDateStr} - ${dueDateStr}`); currentY += 10;
+        drawRowTop(currentY, 'Jenis Asuransi', invoiceType === 'car' ? 'Kendaraan Bermotor' : 'Properti'); currentY += 10;
 
-        const validItems = items.filter(
-            (item) => item.description && item.description.trim() !== ''
-        );
+        // Table Header
+        let tableStartY = currentY;
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.3);
+        doc.rect(marginX, tableStartY, pageWidth - 2 * marginX, 6);
+        const rightColStart = pageWidth - marginX - 60;
+        doc.line(rightColStart, tableStartY, rightColStart, tableStartY + 6);
 
-        const tableBody = validItems.map((item) => [
-            item.description,
-            { content: String(Number(item.quantity)), styles: { halign: 'center' } },
-            { content: formatCurrencyPDF(item.price), styles: { halign: 'right' } },
-            { content: formatCurrencyPDF(Number(item.quantity) * Number(item.price)), styles: { halign: 'right' } }
-        ]);
-
-        if (Number(adminFee) > 0) {
-            tableBody.push([
-                'Admin Fee',
-                { content: '1', styles: { halign: 'center' } },
-                { content: formatCurrencyPDF(adminFee), styles: { halign: 'right' } },
-                { content: formatCurrencyPDF(adminFee), styles: { halign: 'right' } }
-            ]);
-        }
-
-        if (Number(stampDuty) > 0) {
-            tableBody.push([
-                'Stamp Duty',
-                { content: '1', styles: { halign: 'center' } },
-                { content: formatCurrencyPDF(stampDuty), styles: { halign: 'right' } },
-                { content: formatCurrencyPDF(stampDuty), styles: { halign: 'right' } }
-            ]);
-        }
-
-        tableBody.push([
-            {
-                content: 'Total',
-                colSpan: 3,
-                styles: { fontStyle: 'bold', halign: 'right', fillColor: [255, 255, 255] }
-            },
-            {
-                content: formatCurrencyPDF(calculateTotal()),
-                styles: { fontStyle: 'bold', halign: 'right', fillColor: [255, 255, 255] }
-            }
-        ]);
-
-        autoTable(doc, {
-            startY: currentY,
-            head: [['Description', 'Qty', 'Unit Price', 'Amount']],
-            body: tableBody,
-            theme: 'striped',
-            styles: {
-                fontSize: 10,
-                cellPadding: 3,
-                overflow: 'linebreak',
-                textColor: [40, 40, 40],
-            },
-            headStyles: {
-                fillColor: [66, 66, 66],
-                textColor: [255, 255, 255],
-                fontStyle: 'bold',
-            },
-            columnStyles: {
-                0: { cellWidth: 'auto', halign: 'left' },
-                1: { cellWidth: 20, halign: 'center' },
-                2: { cellWidth: 38, halign: 'right' },
-                3: { cellWidth: 38, halign: 'right' }
-            },
-            didParseCell: (data) => {
-                if (data.section === 'head') {
-                    if (data.column.index === 1) data.cell.styles.halign = 'center';
-                    if (data.column.index === 2) data.cell.styles.halign = 'right';
-                    if (data.column.index === 3) data.cell.styles.halign = 'right';
-                }
-            },
-            margin: { left: marginX, right: marginX }
-        });
-
-        const finalY = doc.lastAutoTable.finalY + 10;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
-        doc.setTextColor(120, 120, 120);
-        doc.text('Payment Terms: Due upon receipt', marginX, finalY);
+        doc.text('Keterangan', marginX + ((rightColStart - marginX) / 2), tableStartY + 4, { align: 'center' });
+        doc.text('Rincian Premi', rightColStart + 30, tableStartY + 4, { align: 'center' });
+
+        // Left Column Content
+        let leftY = tableStartY + 12;
+        doc.setFontSize(9);
+        doc.text('Pembayaran Premi Asuransi Dengan data-data sebagai berikut:', marginX + 3, leftY);
+        leftY += 10;
+
+        const drawCarData = (label, value) => {
+            doc.text(label, marginX + 3, leftY);
+            doc.text(`: ${value || '-'}`, marginX + 25, leftY);
+            leftY += 6;
+        };
+
+        if (invoiceType === 'car') {
+            drawCarData('Merek', selectedItem?.carData?.carBrand);
+            drawCarData('Type', selectedItem?.carData?.carModel);
+            drawCarData('Tahun', selectedItem?.carData?.year);
+            drawCarData('Chassis', selectedItem?.carData?.chassisNumber);
+            drawCarData('Engine', selectedItem?.carData?.engineNumber);
+            drawCarData('Warna', selectedItem?.carData?.color);
+            drawCarData('No Polisi', selectedItem?.carData?.plateNumber);
+        } else {
+            drawCarData('Tipe Properti', selectedItem?.propertyData?.propertyType);
+            drawCarData('Kota', selectedItem?.propertyData?.city);
+            drawCarData('Alamat', selectedItem?.propertyData?.address);
+            drawCarData('Struktur', selectedItem?.propertyData?.buildingStructure);
+        }
+
+        leftY += 15;
+        doc.text('Transfer Premi :', marginX + 3, leftY);
+        leftY += 6;
+        doc.setFont('helvetica', 'bold');
+        doc.text('No.Rek BCA 1940818181', marginX + 3, leftY);
+        leftY += 6;
+        doc.text('PT Jayaindo Artha Sukses', marginX + 3, leftY);
+        doc.setFont('helvetica', 'normal');
+
+        // Right Column Content
+        let rightY = tableStartY + 12;
+        items.forEach(item => {
+            if (item.description) {
+                const isNeg = Number(item.price) < 0 || Number(item.quantity) < 0;
+                doc.text(item.description, rightColStart + 3, rightY);
+                doc.text(': IDR', rightColStart + 28, rightY);
+                doc.text(new Intl.NumberFormat('id-ID').format(Math.abs(item.price * item.quantity)), pageWidth - marginX - 3, rightY, { align: 'right' });
+                if (isNeg) doc.text('-', rightColStart + 38, rightY); // simple minus sign identifier
+                rightY += 6;
+            }
+        });
+
+        if (Number(adminFee) > 0) {
+            doc.text('Biaya Admin', rightColStart + 3, rightY);
+            doc.text(': IDR', rightColStart + 28, rightY);
+            doc.text(new Intl.NumberFormat('id-ID').format(adminFee), pageWidth - marginX - 3, rightY, { align: 'right' });
+            rightY += 6;
+        }
+        if (Number(stampDuty) > 0) {
+            doc.text('Biaya Materai', rightColStart + 3, rightY);
+            doc.text(': IDR', rightColStart + 28, rightY);
+            doc.text(new Intl.NumberFormat('id-ID').format(stampDuty), pageWidth - marginX - 3, rightY, { align: 'right' });
+            rightY += 6;
+        }
+
+        // Draw dynamic table boundaries
+        const finalLeftY = leftY + 10;
+        const finalRightY = rightY + 5;
+        const tableEndY = Math.max(finalLeftY, finalRightY);
+
+        doc.rect(marginX, tableStartY + 6, pageWidth - 2 * marginX, tableEndY - (tableStartY + 6));
+        doc.line(rightColStart, tableStartY + 6, rightColStart, tableEndY);
+
+        // Jumlah row
+        doc.line(rightColStart, finalRightY, pageWidth - marginX, finalRightY);
+        doc.text('Jumlah', rightColStart + 3, finalRightY + 6);
+        doc.text(': IDR', rightColStart + 28, finalRightY + 6);
+        doc.text(new Intl.NumberFormat('id-ID').format(calculateTotal()), pageWidth - marginX - 3, finalRightY + 6, { align: 'right' });
+
+        // Signature
+        let signY = tableEndY + 30;
+        doc.text('(Finance Department)', rightColStart + 30, signY, { align: 'center' });
 
         doc.save(`Invoice_${invoiceNumber}.pdf`);
     };
-    // ════════════════════════════════════════════════════════════════════════
+    // ─────────────────────────────────────────────────────────────────────────
 
-    const filteredCustomers = useMemo(() => {
-        const s = customerSearch.toLowerCase();
-        return customers.filter(c =>
-            c.name?.toLowerCase().includes(s) ||
-            c.phone?.toLowerCase().includes(s) ||
-            c.carData?.carBrand?.toLowerCase().includes(s) ||
-            c.carData?.plateNumber?.toLowerCase().includes(s)
-        );
-    }, [customers, customerSearch]);
+    // Filtered list for dialog
+    const filteredList = useMemo(() => {
+        const s = selectSearch.toLowerCase();
+        if (invoiceType === 'car') {
+            return cars.filter(c =>
+                !s ||
+                c.carData?.ownerName?.toLowerCase().includes(s) ||
+                c.carData?.carBrand?.toLowerCase().includes(s) ||
+                c.carData?.carModel?.toLowerCase().includes(s) ||
+                c.carData?.plateNumber?.toLowerCase().includes(s)
+            );
+        } else {
+            return properties.filter(p =>
+                !s ||
+                p.ownerName?.toLowerCase().includes(s) ||
+                p.propertyData?.propertyType?.toLowerCase().includes(s) ||
+                p.propertyData?.city?.toLowerCase().includes(s)
+            );
+        }
+    }, [invoiceType, cars, properties, selectSearch]);
 
     const validItemCount = items.filter(it => it.description?.trim()).length;
+    const accentColor = invoiceType === 'car' ? C.car : C.property;
+    const accentLight = invoiceType === 'car' ? C.carLight : C.propertyLight;
 
     // ─── RENDER ───────────────────────────────────────────────────────────────
     return (
@@ -426,7 +481,7 @@ export default function CreateInvoicePage() {
                         New Invoice
                     </Typography>
                     <Typography fontSize={13} align="center" sx={{ color: C.textSub, mt: 0.5 }}>
-                        Generate an invoice PDF for your customer
+                        Generate an invoice PDF for car or property insurance
                     </Typography>
                 </Box>
 
@@ -462,32 +517,34 @@ export default function CreateInvoicePage() {
                                 </Section>
                             </Paper>
 
-                            {/* Customer */}
+                            {/* Invoice Type + Selection */}
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: `1px solid ${C.border}`, bgcolor: C.white, p: 3, mb: 2 }}>
-                                <Section title="Customer">
-                                    <Field label="Select Customer" required>
+                                <Section title="Jenis Invoice">
+                                    {/* Tab picker */}
+                                    <InvoiceTypeTab value={invoiceType} onChange={handleTypeChange} />
+
+                                    {/* Select car/property */}
+                                    <Field label={invoiceType === 'car' ? 'Pilih Kendaraan' : 'Pilih Properti'} required>
                                         <Box
-                                            onClick={() => setOpenCustomerDialog(true)}
+                                            onClick={() => setOpenSelectDialog(true)}
                                             sx={{
                                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                                 px: 1.5, py: '9px',
-                                                border: `1px solid ${selectedCustomer ? C.primary : C.border}`,
+                                                border: `1px solid ${selectedItem ? accentColor : C.border}`,
                                                 borderRadius: '8px',
-                                                bgcolor: selectedCustomer ? C.primaryLight : C.white,
+                                                bgcolor: selectedItem ? accentLight : C.white,
                                                 cursor: 'pointer', transition: 'all 0.15s',
-                                                '&:hover': { borderColor: selectedCustomer ? C.primary : '#B0B5BC' },
+                                                '&:hover': { borderColor: selectedItem ? accentColor : '#B0B5BC' },
                                             }}
                                         >
                                             <Box display="flex" alignItems="center" gap={1.25}>
-                                                <Icon icon="mdi:account-search" width={18} color={selectedCustomer ? C.primary : C.textMuted} />
-                                                <Typography fontSize={14} sx={{ color: selectedCustomer ? C.text : C.textMuted }}>
-                                                    {selectedCustomer
-                                                        ? `${selectedCustomer.name} — ${selectedCustomer.carData?.plateNumber || 'No Plate'}`
-                                                        : 'Search and select customer...'}
+                                                <Icon icon={invoiceType === 'car' ? 'mdi:car-search' : 'mdi:home-search'} width={18} color={selectedItem ? accentColor : C.textMuted} />
+                                                <Typography fontSize={14} sx={{ color: selectedItem ? C.text : C.textMuted }}>
+                                                    {selectedItem ? getSelectedLabel() : `Cari dan pilih ${invoiceType === 'car' ? 'kendaraan' : 'properti'}...`}
                                                 </Typography>
                                             </Box>
-                                            {selectedCustomer
-                                                ? <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSelectedCustomer(null); }} sx={{ p: 0.25 }}>
+                                            {selectedItem
+                                                ? <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSelectedItem(null); }} sx={{ p: 0.25 }}>
                                                     <Icon icon="mdi:close" width={15} color={C.textSub} />
                                                 </IconButton>
                                                 : <Icon icon="mdi:chevron-down" width={18} color={C.textMuted} />
@@ -495,20 +552,68 @@ export default function CreateInvoicePage() {
                                         </Box>
                                     </Field>
 
-                                    {selectedCustomer && (
+                                    {/* Selected item detail card */}
+                                    {selectedItem && (
                                         <Box sx={{ mt: -1.5, mb: 0.5, p: 2, borderRadius: '8px', bgcolor: '#F8F9FA', border: `1px solid ${C.border}` }}>
-                                            <Grid container spacing={1.5}>
-                                                {[
-                                                    { label: 'Phone', value: selectedCustomer.phone },
-                                                    { label: 'Vehicle', value: `${selectedCustomer.carData?.carBrand || ''} ${selectedCustomer.carData?.carModel || ''}`.trim() },
-                                                    { label: 'Plate', value: selectedCustomer.carData?.plateNumber },
-                                                    { label: 'Address', value: selectedCustomer.address },
-                                                ].map(({ label, value }) => (
-                                                    <Grid item xs={6} key={label}>
-                                                        <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
-                                                        <Typography fontSize={13} fontWeight={500} sx={{ color: C.text }}>{value || '—'}</Typography>
-                                                    </Grid>
-                                                ))}
+                                            {invoiceType === 'car' ? (
+                                                <Grid container spacing={1.5}>
+                                                    {[
+                                                        { label: 'Pemilik', value: selectedItem.carData?.ownerName },
+                                                        { label: 'Kendaraan', value: `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''}`.trim() },
+                                                        { label: 'No. Plat', value: selectedItem.carData?.plateNumber },
+                                                        { label: 'No. Rangka', value: selectedItem.carData?.chassisNumber },
+                                                        { label: 'Harga Mobil', value: selectedItem.carData?.carPrice ? `Rp ${Number(selectedItem.carData.carPrice).toLocaleString('id-ID')}` : '—' },
+                                                        { label: 'Jatuh Tempo', value: selectedItem.carData?.dueDate ? new Date(selectedItem.carData.dueDate).toLocaleDateString('id-ID') : '—' },
+                                                    ].map(({ label, value }) => (
+                                                        <Grid item xs={6} key={label}>
+                                                            <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
+                                                            <Typography fontSize={13} fontWeight={500} sx={{ color: C.text }}>{value || '—'}</Typography>
+                                                        </Grid>
+                                                    ))}
+                                                </Grid>
+                                            ) : (
+                                                <Grid container spacing={1.5}>
+                                                    {[
+                                                        { label: 'Pemilik', value: selectedItem.ownerName },
+                                                        { label: 'Tipe', value: selectedItem.propertyData?.propertyType },
+                                                        { label: 'Kota', value: selectedItem.propertyData?.city },
+                                                        { label: 'Alamat', value: selectedItem.propertyData?.address },
+                                                        { label: 'Nilai Properti', value: selectedItem.propertyData?.propertyValue ? `Rp ${Number(selectedItem.propertyData.propertyValue).toLocaleString('id-ID')}` : '—' },
+                                                        { label: 'Jatuh Tempo', value: selectedItem.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID') : '—' },
+                                                    ].map(({ label, value }) => (
+                                                        <Grid item xs={6} key={label}>
+                                                            <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
+                                                            <Typography fontSize={13} fontWeight={500} sx={{ color: C.text }}>{value || '—'}</Typography>
+                                                        </Grid>
+                                                    ))}
+                                                </Grid>
+                                            )}
+                                        </Box>
+                                    )}
+
+                                    {/* Additional Manual Inputs for PDF */}
+                                    {selectedItem && (
+                                        <Box mt={3}>
+                                            <Typography fontSize={13} fontWeight={700} mb={1.5} color={C.text}>Informasi Tambahan (Khusus PDF)</Typography>
+                                            <Grid container spacing={2}>
+                                                <Grid item xs={12} sm={4}>
+                                                    <Field label="Nama Asuransi" required={false}>
+                                                        <TextField fullWidth size="small" value={insuranceName} onChange={(e) => setInsuranceName(e.target.value)}
+                                                            placeholder="cth. Asuransi TAP" sx={inputStyle} />
+                                                    </Field>
+                                                </Grid>
+                                                <Grid item xs={12} sm={4}>
+                                                    <Field label="No Polis" required={false}>
+                                                        <TextField fullWidth size="small" value={policyNumber} onChange={(e) => setPolicyNumber(e.target.value)}
+                                                            placeholder="cth. 1100201..." sx={inputStyle} />
+                                                    </Field>
+                                                </Grid>
+                                                <Grid item xs={12} sm={4}>
+                                                    <Field label="Alamat Tertanggung" required={false}>
+                                                        <TextField fullWidth size="small" value={ownerAddress} onChange={(e) => setOwnerAddress(e.target.value)}
+                                                            placeholder="Alamat klien..." sx={inputStyle} />
+                                                    </Field>
+                                                </Grid>
                                             </Grid>
                                         </Box>
                                     )}
@@ -517,7 +622,7 @@ export default function CreateInvoicePage() {
 
                             <Button fullWidth variant="contained" onClick={handleNext}
                                 endIcon={<Icon icon="mdi:arrow-right" width={16} />}
-                                sx={{ borderRadius: '8px', py: 1.4, textTransform: 'none', fontSize: 14, fontWeight: 600, bgcolor: C.primary, boxShadow: 'none', '&:hover': { bgcolor: '#145EA8' } }}>
+                                sx={{ borderRadius: '8px', py: 1.4, textTransform: 'none', fontSize: 14, fontWeight: 600, bgcolor: accentColor, boxShadow: 'none', '&:hover': { filter: 'brightness(0.9)' } }}>
                                 Continue to Items
                             </Button>
                         </Box>
@@ -636,10 +741,10 @@ export default function CreateInvoicePage() {
                                             </Box>
                                         )}
                                     </Stack>
-                                    <Box sx={{ p: 2, borderRadius: '8px', bgcolor: C.primaryLight, border: `1px solid rgba(25,113,194,0.2)` }}>
+                                    <Box sx={{ p: 2, borderRadius: '8px', bgcolor: accentLight, border: `1px solid rgba(25,113,194,0.2)` }}>
                                         <Box display="flex" justifyContent="space-between" alignItems="baseline">
-                                            <Typography fontSize={13} fontWeight={700} sx={{ color: C.primary }}>TOTAL</Typography>
-                                            <Typography fontSize={20} fontWeight={800} sx={{ color: C.primary }}>{formatCurrency(calculateTotal())}</Typography>
+                                            <Typography fontSize={13} fontWeight={700} sx={{ color: accentColor }}>TOTAL</Typography>
+                                            <Typography fontSize={20} fontWeight={800} sx={{ color: accentColor }}>{formatCurrency(calculateTotal())}</Typography>
                                         </Box>
                                     </Box>
                                 </Section>
@@ -653,7 +758,7 @@ export default function CreateInvoicePage() {
                                 </Button>
                                 <Button fullWidth variant="contained" onClick={handleNext}
                                     endIcon={<Icon icon="mdi:arrow-right" width={16} />}
-                                    sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, bgcolor: C.primary, boxShadow: 'none' }}>
+                                    sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, bgcolor: accentColor, boxShadow: 'none' }}>
                                     Review
                                 </Button>
                             </Box>
@@ -665,6 +770,15 @@ export default function CreateInvoicePage() {
                 {activeStep === 2 && (
                     <Fade in key="s3">
                         <Box>
+                            {/* Type badge */}
+                            <Box mb={2} display="flex" justifyContent="center">
+                                <Chip
+                                    icon={<Icon icon={invoiceType === 'car' ? 'mdi:car' : 'mdi:home'} width={15} />}
+                                    label={`Invoice ${invoiceType === 'car' ? 'Kendaraan' : 'Properti'}`}
+                                    sx={{ bgcolor: accentLight, color: accentColor, fontWeight: 700, fontSize: 13, border: `1px solid ${accentColor}40` }}
+                                />
+                            </Box>
+
                             {/* Company */}
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: `1px solid ${C.border}`, bgcolor: C.white, p: 3, mb: 2 }}>
                                 <Section title="Company">
@@ -676,17 +790,25 @@ export default function CreateInvoicePage() {
                                 </Section>
                             </Paper>
 
-                            {/* Customer */}
+                            {/* Bill To */}
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: `1px solid ${C.border}`, bgcolor: C.white, p: 3, mb: 2 }}>
                                 <Section title="Bill To">
                                     <Grid container spacing={2}>
-                                        {[
-                                            { label: 'Name', value: selectedCustomer?.name },
-                                            { label: 'Phone', value: selectedCustomer?.phone },
-                                            { label: 'Address', value: selectedCustomer?.address },
-                                            { label: 'Vehicle', value: `${selectedCustomer?.carData?.carBrand || ''} ${selectedCustomer?.carData?.carModel || ''}`.trim() },
-                                            { label: 'Plate', value: selectedCustomer?.carData?.plateNumber },
-                                        ].map(({ label, value }) => (
+                                        {(invoiceType === 'car' ? [
+                                            { label: 'Pemilik', value: selectedItem?.carData?.ownerName },
+                                            { label: 'Kendaraan', value: `${selectedItem?.carData?.carBrand || ''} ${selectedItem?.carData?.carModel || ''}`.trim() },
+                                            { label: 'No. Plat', value: selectedItem?.carData?.plateNumber },
+                                            { label: 'No. Rangka', value: selectedItem?.carData?.chassisNumber },
+                                            { label: 'No. Mesin', value: selectedItem?.carData?.engineNumber },
+                                            { label: 'Harga Mobil', value: selectedItem?.carData?.carPrice ? `Rp ${Number(selectedItem.carData.carPrice).toLocaleString('id-ID')}` : '—' },
+                                        ] : [
+                                            { label: 'Pemilik', value: selectedItem?.ownerName },
+                                            { label: 'Tipe Properti', value: selectedItem?.propertyData?.propertyType },
+                                            { label: 'Kota', value: selectedItem?.propertyData?.city },
+                                            { label: 'Alamat', value: selectedItem?.propertyData?.address },
+                                            { label: 'Nilai Properti', value: selectedItem?.propertyData?.propertyValue ? `Rp ${Number(selectedItem.propertyData.propertyValue).toLocaleString('id-ID')}` : '—' },
+                                            { label: 'Jatuh Tempo', value: selectedItem?.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID') : '—' },
+                                        ]).map(({ label, value }) => (
                                             <Grid item xs={6} key={label}>
                                                 <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.3 }}>{label}</Typography>
                                                 <Typography fontSize={13.5} fontWeight={500} sx={{ color: C.text }}>{value || '—'}</Typography>
@@ -704,9 +826,7 @@ export default function CreateInvoicePage() {
                                             <Box key={i} display="flex" justifyContent="space-between" alignItems="flex-start" gap={2}>
                                                 <Box flex={1}>
                                                     <Typography fontSize={13} sx={{ color: C.text }}>{item.description}</Typography>
-                                                    <Typography fontSize={12} sx={{ color: C.textSub }}>
-                                                        {item.quantity} × {formatCurrency(item.price)}
-                                                    </Typography>
+                                                    <Typography fontSize={12} sx={{ color: C.textSub }}>{item.quantity} × {formatCurrency(item.price)}</Typography>
                                                 </Box>
                                                 <Typography fontSize={13} fontWeight={600} sx={{ color: C.text, whiteSpace: 'nowrap' }}>
                                                     {formatCurrency(Number(item.quantity) * Number(item.price))}
@@ -722,24 +842,14 @@ export default function CreateInvoicePage() {
                                             <Typography fontSize={13} sx={{ color: C.textSub }}>Subtotal</Typography>
                                             <Typography fontSize={13} fontWeight={600} sx={{ color: C.text }}>{formatCurrency(calculateSubtotal())}</Typography>
                                         </Box>
-                                        {Number(adminFee) > 0 && (
-                                            <Box display="flex" justifyContent="space-between">
-                                                <Typography fontSize={13} sx={{ color: C.textSub }}>Admin Fee</Typography>
-                                                <Typography fontSize={13} sx={{ color: C.text }}>{formatCurrency(adminFee)}</Typography>
-                                            </Box>
-                                        )}
-                                        {Number(stampDuty) > 0 && (
-                                            <Box display="flex" justifyContent="space-between">
-                                                <Typography fontSize={13} sx={{ color: C.textSub }}>Stamp Duty</Typography>
-                                                <Typography fontSize={13} sx={{ color: C.text }}>{formatCurrency(stampDuty)}</Typography>
-                                            </Box>
-                                        )}
+                                        {Number(adminFee) > 0 && <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: C.textSub }}>Admin Fee</Typography><Typography fontSize={13} sx={{ color: C.text }}>{formatCurrency(adminFee)}</Typography></Box>}
+                                        {Number(stampDuty) > 0 && <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: C.textSub }}>Stamp Duty</Typography><Typography fontSize={13} sx={{ color: C.text }}>{formatCurrency(stampDuty)}</Typography></Box>}
                                     </Stack>
 
-                                    <Box sx={{ p: 2.5, borderRadius: '8px', bgcolor: C.primaryLight, border: `1px solid rgba(25,113,194,0.2)`, mb: 2 }}>
+                                    <Box sx={{ p: 2.5, borderRadius: '8px', bgcolor: accentLight, border: `1px solid ${accentColor}30`, mb: 2 }}>
                                         <Box display="flex" justifyContent="space-between" alignItems="baseline">
-                                            <Typography fontSize={14} fontWeight={700} sx={{ color: C.primary }}>TOTAL</Typography>
-                                            <Typography fontSize={22} fontWeight={800} sx={{ color: C.primary }}>{formatCurrency(calculateTotal())}</Typography>
+                                            <Typography fontSize={14} fontWeight={700} sx={{ color: accentColor }}>TOTAL</Typography>
+                                            <Typography fontSize={22} fontWeight={800} sx={{ color: accentColor }}>{formatCurrency(calculateTotal())}</Typography>
                                         </Box>
                                     </Box>
 
@@ -774,51 +884,64 @@ export default function CreateInvoicePage() {
 
             </Container>
 
-            {/* ── Customer Dialog ── */}
-            <Dialog open={openCustomerDialog} onClose={() => { setOpenCustomerDialog(false); setCustomerSearch(''); }}
+            {/* ── Car / Property Select Dialog ── */}
+            <Dialog open={openSelectDialog} onClose={() => { setOpenSelectDialog(false); setSelectSearch(''); }}
                 maxWidth="xs" fullWidth fullScreen={isMobile}
                 PaperProps={{ sx: { borderRadius: isMobile ? 0 : '12px', m: 2 } }}>
                 <Box sx={{ p: 2.5 }}>
                     <Box display="flex" alignItems="center" mb={2}>
-                        <IconButton size="small" onClick={() => { setOpenCustomerDialog(false); setCustomerSearch(''); }} sx={{ mr: 1 }}>
+                        <IconButton size="small" onClick={() => { setOpenSelectDialog(false); setSelectSearch(''); }} sx={{ mr: 1 }}>
                             <Icon icon="mdi:arrow-left" width={20} color={C.textSub} />
                         </IconButton>
-                        <Typography fontSize={16} fontWeight={700} sx={{ color: C.text }}>Select Customer</Typography>
+                        <Typography fontSize={16} fontWeight={700} sx={{ color: C.text }}>
+                            Pilih {invoiceType === 'car' ? 'Kendaraan' : 'Properti'}
+                        </Typography>
                     </Box>
                     <TextField fullWidth autoFocus size="small"
-                        placeholder="Search by name, phone, or plate..."
-                        value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)}
+                        placeholder={invoiceType === 'car' ? 'Cari pemilik, merek, plat...' : 'Cari pemilik, tipe, kota...'}
+                        value={selectSearch} onChange={(e) => setSelectSearch(e.target.value)}
                         InputProps={{ startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" width={18} color={C.textMuted} /></InputAdornment> }}
                         sx={{ mb: 2, ...inputStyle }} />
                     <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
-                        {filteredCustomers.length === 0 ? (
+                        {filteredList.length === 0 ? (
                             <Box sx={{ textAlign: 'center', py: 5 }}>
-                                <Icon icon="mdi:account-search" width={44} color="#C8CDD4" />
-                                <Typography fontSize={14} sx={{ color: C.textSub, mt: 1.5 }}>No customers found</Typography>
-                                {customerSearch && <Button onClick={() => setCustomerSearch('')} sx={{ mt: 1, textTransform: 'none', fontSize: 12, color: C.primary }}>Clear search</Button>}
+                                <Icon icon={invoiceType === 'car' ? 'mdi:car-search' : 'mdi:home-search'} width={44} color="#C8CDD4" />
+                                <Typography fontSize={14} sx={{ color: C.textSub, mt: 1.5 }}>
+                                    Tidak ada {invoiceType === 'car' ? 'kendaraan' : 'properti'} ditemukan
+                                </Typography>
+                                {selectSearch && <Button onClick={() => setSelectSearch('')} sx={{ mt: 1, textTransform: 'none', fontSize: 12, color: C.primary }}>Hapus pencarian</Button>}
                             </Box>
                         ) : (
                             <Stack spacing={1}>
-                                {filteredCustomers.map((customer) => {
-                                    const sel = selectedCustomer?.id === customer.id;
+                                {filteredList.map((item) => {
+                                    const sel = selectedItem?.id === item.id;
+                                    const title = invoiceType === 'car'
+                                        ? `${item.carData?.carBrand || ''} ${item.carData?.carModel || ''}`.trim()
+                                        : item.propertyData?.propertyType || 'Property';
+                                    const sub1 = invoiceType === 'car'
+                                        ? (item.carData?.ownerName || '—')
+                                        : (item.ownerName || '—');
+                                    const sub2 = invoiceType === 'car'
+                                        ? (item.carData?.plateNumber || 'No plate')
+                                        : (item.propertyData?.city || '—');
                                     return (
-                                        <Box key={customer.id}
-                                            onClick={() => { setSelectedCustomer(customer); setOpenCustomerDialog(false); setCustomerSearch(''); }}
+                                        <Box key={item.id}
+                                            onClick={() => { setSelectedItem(item); setOpenSelectDialog(false); setSelectSearch(''); }}
                                             sx={{
                                                 display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: '8px', cursor: 'pointer',
-                                                border: `1px solid ${sel ? C.primary : C.border}`,
-                                                bgcolor: sel ? C.primaryLight : C.white, transition: 'all 0.15s',
-                                                '&:hover': { borderColor: C.primary, bgcolor: sel ? C.primaryLight : '#FAFBFC' },
+                                                border: `1px solid ${sel ? accentColor : C.border}`,
+                                                bgcolor: sel ? accentLight : C.white, transition: 'all 0.15s',
+                                                '&:hover': { borderColor: accentColor, bgcolor: sel ? accentLight : '#FAFBFC' },
                                             }}>
-                                            <Avatar sx={{ width: 38, height: 38, bgcolor: C.primary, fontSize: 15, fontWeight: 700 }}>
-                                                {customer.name?.charAt(0)?.toUpperCase() || 'C'}
+                                            <Avatar sx={{ width: 38, height: 38, bgcolor: accentColor, fontSize: 15, fontWeight: 700 }}>
+                                                <Icon icon={invoiceType === 'car' ? 'mdi:car' : 'mdi:home'} width={20} />
                                             </Avatar>
                                             <Box flex={1} minWidth={0}>
-                                                <Typography fontSize={13.5} fontWeight={600} sx={{ color: C.text }}>{customer.name}</Typography>
-                                                <Typography fontSize={12} sx={{ color: C.textSub }}>{customer.phone || '—'}</Typography>
-                                                <Typography fontSize={12} sx={{ color: C.textMuted }}>{customer.carData?.carBrand || 'No car'} · {customer.carData?.plateNumber || 'No plate'}</Typography>
+                                                <Typography fontSize={13.5} fontWeight={600} sx={{ color: C.text }}>{title}</Typography>
+                                                <Typography fontSize={12} sx={{ color: C.textSub }}>{sub1}</Typography>
+                                                <Typography fontSize={12} sx={{ color: C.textMuted }}>{sub2}</Typography>
                                             </Box>
-                                            {sel && <Icon icon="mdi:check-circle" width={18} color={C.primary} />}
+                                            {sel && <Icon icon="mdi:check-circle" width={18} color={accentColor} />}
                                         </Box>
                                     );
                                 })}
@@ -839,8 +962,14 @@ export default function CreateInvoicePage() {
                     <Box sx={{ p: 2.5, borderRadius: '8px', bgcolor: '#F8F9FA', border: `1px solid ${C.border}`, mb: 2.5 }}>
                         <Stack spacing={0.75}>
                             <Box display="flex" justifyContent="space-between">
-                                <Typography fontSize={13} sx={{ color: C.textSub }}>Customer</Typography>
-                                <Typography fontSize={13} fontWeight={600} sx={{ color: C.text }}>{selectedCustomer?.name}</Typography>
+                                <Typography fontSize={13} sx={{ color: C.textSub }}>Jenis</Typography>
+                                <Typography fontSize={13} fontWeight={600} sx={{ color: accentColor }}>
+                                    {invoiceType === 'car' ? 'Kendaraan' : 'Properti'}
+                                </Typography>
+                            </Box>
+                            <Box display="flex" justifyContent="space-between">
+                                <Typography fontSize={13} sx={{ color: C.textSub }}>Pemilik</Typography>
+                                <Typography fontSize={13} fontWeight={600} sx={{ color: C.text }}>{getOwnerName() || '—'}</Typography>
                             </Box>
                             <Box display="flex" justifyContent="space-between">
                                 <Typography fontSize={13} sx={{ color: C.textSub }}>Items</Typography>

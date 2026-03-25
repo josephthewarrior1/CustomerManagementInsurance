@@ -88,7 +88,7 @@ export default function CustomerListPage() {
         setMobileSearchInput(dataSourceOptions.keyword);
     }, [dataSourceOptions.keyword]);
 
-    // Fetch customers data
+    // Fetch customers data + stats (merged to avoid stale state bug)
     const fetchCustomers = async () => {
         try {
             loading.start();
@@ -101,19 +101,24 @@ export default function CustomerListPage() {
                     name: customer.name || 'No Name',
                     phone: customer.phone || 'No Phone',
                     address: customer.address || 'No Address',
-                    carData: customer.carData || {},
-                    carPhotos: customer.carPhotos || {},
                     createdAt: customer.createdAt,
                     updatedAt: customer.updatedAt,
-                    carBrand: customer.carData?.carBrand || 'No Brand',
-                    plateNumber: customer.carData?.plateNumber || 'No Plate',
-                    dueDate: customer.carData?.dueDate || null,
-                    hasPhotos: customer.carPhotos?.front && customer.carPhotos?.back,
-                    status: customer.status === 'Cancelled' ? 'Cancelled' :
-                        (customer.carData?.dueDate ?
-                            (new Date(customer.carData.dueDate) > new Date() ? 'Active' : 'Expired') :
-                            'Unknown')
+                    // carData is no longer embedded in list API — show placeholder
+                    carBrand: '-',
+                    plateNumber: '-',
+                    dueDate: null,
+                    // Status: customer.status can be 'Cancelled' or null (default Active)
+                    status: customer.status === 'Cancelled' ? 'Cancelled' : 'Active',
                 }));
+
+                // Compute stats from local variable (not stale state)
+                const activeCount = customers.filter(c => c.status === 'Active').length;
+                const cancelledCount = customers.filter(c => c.status === 'Cancelled').length;
+                setSummaries([
+                    { status: "ALL", total: customers.length },
+                    { status: "Active", total: activeCount },
+                    { status: "Cancelled", total: cancelledCount },
+                ]);
 
                 setAllCustomers(customers);
 
@@ -129,9 +134,7 @@ export default function CustomerListPage() {
                     const keyword = dataSourceOptions.keyword.toLowerCase();
                     filteredData = filteredData.filter(customer =>
                         customer.name.toLowerCase().includes(keyword) ||
-                        customer.phone.toLowerCase().includes(keyword) ||
-                        customer.carBrand.toLowerCase().includes(keyword) ||
-                        customer.plateNumber.toLowerCase().includes(keyword)
+                        customer.phone.toLowerCase().includes(keyword)
                     );
                 }
 
@@ -170,40 +173,7 @@ export default function CustomerListPage() {
         }
     };
 
-    // Fetch customer statistics
-    const getStats = async () => {
-        try {
-            const response = await CustomerDAO.getCustomerStats();
-            if (response.success) {
-                const stats = response.stats;
-                const activeCount = allCustomers.filter(c => c.status === 'Active').length;
-                const expiredCount = allCustomers.filter(c => c.status === 'Expired').length;
 
-                const summaryData = [
-                    {
-                        status: "ALL",
-                        total: stats?.totalCustomers || 0,
-                    },
-                    {
-                        status: "Active",
-                        total: activeCount,
-                    },
-                    {
-                        status: "Expired",
-                        total: expiredCount,
-                    },
-                    {
-                        status: "Cancelled",
-                        total: allCustomers.filter(c => c.status === 'Cancelled').length,
-                    },
-                ];
-
-                setSummaries(summaryData);
-            }
-        } catch (error) {
-            console.error('Error fetching stats:', error);
-        }
-    };
 
     const statusOrder = {
         "ALL": 0,
@@ -377,9 +347,7 @@ export default function CustomerListPage() {
         selectedStatus,
     ]);
 
-    useEffect(() => {
-        getStats();
-    }, [allCustomers]);
+
 
     // Desktop Table Columns
     const columns = [
@@ -404,39 +372,7 @@ export default function CustomerListPage() {
                 </Box>
             )
         },
-        {
-            title: 'Car Brand',
-            dataIndex: 'carBrand',
-            key: 'carBrand',
-            sortable: true,
-            render: (value) => (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Icon icon="mdi:car" width={18} />
-                    <Typography variant="body2">{value}</Typography>
-                </Box>
-            )
-        },
-        {
-            title: 'Plate Number',
-            dataIndex: 'plateNumber',
-            key: 'plateNumber',
-            sortable: false,
-            render: (value) => (
-                <Chip
-                    label={value}
-                    size="small"
-                    color="primary"
-                    variant="outlined"
-                />
-            )
-        },
-        {
-            title: 'Due Date',
-            dataIndex: 'dueDate',
-            key: 'dueDate',
-            sortable: false,
-            render: (value) => formatDate(value)
-        },
+
         {
             title: 'Status',
             dataIndex: 'status',
@@ -508,9 +444,7 @@ export default function CustomerListPage() {
             const keyword = dataSourceOptions.keyword.toLowerCase();
             filteredData = filteredData.filter(customer =>
                 customer.name.toLowerCase().includes(keyword) ||
-                customer.phone.toLowerCase().includes(keyword) ||
-                customer.carBrand.toLowerCase().includes(keyword) ||
-                customer.plateNumber.toLowerCase().includes(keyword)
+                customer.phone.toLowerCase().includes(keyword)
             );
         }
 
@@ -622,22 +556,6 @@ export default function CustomerListPage() {
                                         />
                                     </Stack>
 
-                                    <Divider sx={{ mb: 2.5, borderStyle: 'dashed' }} />
-
-                                    <Grid container spacing={2} sx={{ mb: 2.5 }}>
-                                        <Grid item xs={6}>
-                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>VEHICLE</Typography>
-                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155', mt: 0.5 }}>{customer.carBrand}</Typography>
-                                            <Typography variant="caption" sx={{ color: '#64748B' }}>{customer.plateNumber}</Typography>
-                                        </Grid>
-                                        <Grid item xs={6}>
-                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>DUE DATE</Typography>
-                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155', mt: 0.5 }}>{formatDate(customer.dueDate)}</Typography>
-                                            <Typography variant="caption" sx={{ color: customer.status === 'Active' ? '#10B981' : '#EF4444', fontWeight: 600 }}>
-                                                {customer.status === 'Active' ? 'Insurance Active' : customer.status === 'Expired' ? 'Expired' : 'Terminated'}
-                                            </Typography>
-                                        </Grid>
-                                    </Grid>
 
                                     <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1, borderTop: '1px solid #F8FAFC' }}>
                                         <IconButton size="small" onClick={() => navigate(`/customers/${customer.id}`)} sx={{ color: '#64748B' }}><Icon icon="mdi:eye-outline" width={22} /></IconButton>

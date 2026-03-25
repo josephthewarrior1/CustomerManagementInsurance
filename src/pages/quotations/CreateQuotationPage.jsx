@@ -31,8 +31,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
-import CustomerDAO from '../../daos/CustomerDao';
 import CompanyDAO from '../../daos/CompanyDao';
+import CarDAO from '../../daos/CarDao';
+import PropertyDAO from '../../daos/propertyDao';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -50,6 +51,10 @@ const C = {
   success: '#1E8840',
   successLight: '#EBF8EF',
   stepIdle: '#C8CDD4',
+  car: '#1971C2',
+  carLight: '#EBF4FF',
+  property: '#0369A1',
+  propertyLight: '#E0F2FE',
 };
 
 const inputStyle = {
@@ -64,9 +69,9 @@ const inputStyle = {
 };
 
 const STEPS = [
-  { label: 'Details',  icon: '1' },
+  { label: 'Details', icon: '1' },
   { label: 'Coverage', icon: '2' },
-  { label: 'Review',   icon: '3' },
+  { label: 'Review', icon: '3' },
 ];
 
 function WizardStepper({ active }) {
@@ -133,6 +138,33 @@ function Field({ label, required, hint, children }) {
   );
 }
 
+function QuotationTypeTab({ value, onChange }) {
+  return (
+    <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+      {[
+        { key: 'car', label: 'Kendaraan', icon: 'mdi:car', color: C.car, light: C.carLight },
+        { key: 'property', label: 'Properti', icon: 'mdi:home', color: C.property, light: C.propertyLight },
+      ].map(opt => (
+        <Box key={opt.key} flex={1}
+          onClick={() => onChange(opt.key)}
+          sx={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
+            p: 1.75, borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s',
+            border: `2px solid ${value === opt.key ? opt.color : '#E4E6EA'}`,
+            bgcolor: value === opt.key ? opt.light : '#fff',
+            '&:hover': { borderColor: opt.color, bgcolor: opt.light },
+          }}>
+          <Icon icon={opt.icon} width={20} color={value === opt.key ? opt.color : C.textMuted} />
+          <Typography fontSize={14} fontWeight={700}
+            sx={{ color: value === opt.key ? opt.color : C.textSub }}>
+            {opt.label}
+          </Typography>
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
 export default function CreateQuotationPage() {
   const navigate = useNavigate();
   const loading = useLoading();
@@ -141,45 +173,47 @@ export default function CreateQuotationPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [activeStep, setActiveStep] = useState(0);
+  const [quotationType, setQuotationType] = useState('car'); // 'car' | 'property'
   const [companyProfile, setCompanyProfile] = useState(null);
   const [companyName, setCompanyName] = useState('PT. JAYAINDO ARTHA SUKSES');
   const [companySubtitle, setCompanySubtitle] = useState('INSURANCE AGENCY');
   const [companyCity, setCompanyCity] = useState('Jakarta');
-  const [customers, setCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [openCustomerDialog, setOpenCustomerDialog] = useState(false);
-  const [customerSearch, setCustomerSearch] = useState('');
+  const [cars, setCars] = useState([]);
+  const [properties, setProperties] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [openSelectDialog, setOpenSelectDialog] = useState(false);
+  const [selectSearch, setSelectSearch] = useState('');
   const [quotationNumber, setQuotationNumber] = useState('');
   const [tsi, setTsi] = useState('');
   const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
 
   const [coverages, setCoverages] = useState({
-    comprehensive:       { enabled: true,  percentage: 1.32, freeInclude: false },
-    flood:               { enabled: false, percentage: 0.1,  freeInclude: false },
-    earthquake:          { enabled: false, percentage: 0.12, freeInclude: false },
-    typhoonAndStorm:     { enabled: false, percentage: 0.05, freeInclude: false },
-    landslide:           { enabled: false, percentage: 0.05, freeInclude: false },
-    waterHammer:         { enabled: false, percentage: 0.05, freeInclude: true  },
-    thirdPartyLiability: { enabled: false, percentage: 0.5,  freeInclude: false },
-    authorizedWorkshop:  { enabled: false, percentage: 0.05, freeInclude: true  },
+    comprehensive: { enabled: true, percentage: 1.32, freeInclude: false },
+    flood: { enabled: false, percentage: 0.1, freeInclude: false },
+    earthquake: { enabled: false, percentage: 0.12, freeInclude: false },
+    typhoonAndStorm: { enabled: false, percentage: 0.05, freeInclude: false },
+    landslide: { enabled: false, percentage: 0.05, freeInclude: false },
+    waterHammer: { enabled: false, percentage: 0.05, freeInclude: true },
+    thirdPartyLiability: { enabled: false, percentage: 0.5, freeInclude: false },
+    authorizedWorkshop: { enabled: false, percentage: 0.05, freeInclude: true },
   });
 
   const coverageLabels = useMemo(() => ({
-    comprehensive:       'Comprehensive',
-    flood:               'Banjir',
-    earthquake:          'Gempa Bumi',
-    typhoonAndStorm:     'Angin Topan, Badai, Taifun, Hujan Es, Tornado',
-    landslide:           'Tanah Longsor',
-    waterHammer:         'Water Hammer',
+    comprehensive: 'Comprehensive',
+    flood: 'Banjir',
+    earthquake: 'Gempa Bumi',
+    typhoonAndStorm: 'Angin Topan, Badai, Taifun, Hujan Es, Tornado',
+    landslide: 'Tanah Longsor',
+    waterHammer: 'Water Hammer',
     thirdPartyLiability: 'Tanggung Jawab Hukum Pihak III',
-    authorizedWorkshop:  'Authorized Workshop',
+    authorizedWorkshop: 'Authorized Workshop',
   }), []);
 
   const [calculations, setCalculations] = useState({
     itemAmounts: {}, subtotal: 0, adminFee: 50000, stampDuty: 10000, totalPremium: 0,
   });
 
-  useEffect(() => { fetchCompanyProfile(); fetchCustomers(); generateQuotationNumber(); }, []); // eslint-disable-line
+  useEffect(() => { fetchCompanyProfile(); fetchData(); generateQuotationNumber(); }, []); // eslint-disable-line
   useEffect(() => { calculateTotals(); }, [tsi, coverages]); // eslint-disable-line
 
   const roundIDR = (n) => Math.round(Number(n) || 0);
@@ -199,14 +233,22 @@ export default function CreateQuotationPage() {
     } catch (e) { console.error(e); }
   };
 
-  const fetchCustomers = async () => {
+  const fetchData = async () => {
     try {
       loading.start();
-      const r = await CustomerDAO.getAllCustomers();
-      if (r.success) setCustomers(r.customers || []);
-      else message('Failed to load customers', 'error');
-    } catch (e) { console.error(e); message('Failed to load customers', 'error'); }
+      const [carRes, propRes] = await Promise.allSettled([
+        CarDAO.getAllCars(),
+        PropertyDAO.getAllProperties(),
+      ]);
+      if (carRes.status === 'fulfilled' && carRes.value?.cars) setCars(carRes.value.cars);
+      if (propRes.status === 'fulfilled' && propRes.value?.properties) setProperties(propRes.value.properties);
+    } catch (e) { console.error(e); message('Failed to load data', 'error'); }
     finally { loading.stop(); }
+  };
+
+  const handleTypeChange = (type) => {
+    setQuotationType(type);
+    setSelectedItem(null);
   };
 
   const generateQuotationNumber = () => {
@@ -252,7 +294,7 @@ export default function CreateQuotationPage() {
 
   const handleNext = () => {
     if (activeStep === 0) {
-      if (!selectedCustomer) { message('Please select a customer', 'error'); return; }
+      if (!selectedItem) { message(`Please select a ${quotationType === 'car' ? 'car' : 'property'}`, 'error'); return; }
       if (!tsi || Number(tsi) <= 0) { message('Please enter a valid TSI amount', 'error'); return; }
     }
     setActiveStep(s => s + 1);
@@ -260,22 +302,22 @@ export default function CreateQuotationPage() {
   const handleBack = () => setActiveStep(s => s - 1);
 
   const handleReset = () => {
-    setSelectedCustomer(null); setTsi(''); setActiveStep(0);
+    setSelectedItem(null); setTsi(''); setActiveStep(0);
     setCoverages({
-      comprehensive:       { enabled: true,  percentage: 1.32, freeInclude: false },
-      flood:               { enabled: false, percentage: 0.1,  freeInclude: false },
-      earthquake:          { enabled: false, percentage: 0.12, freeInclude: false },
-      typhoonAndStorm:     { enabled: false, percentage: 0.05, freeInclude: false },
-      landslide:           { enabled: false, percentage: 0.05, freeInclude: false },
-      waterHammer:         { enabled: false, percentage: 0.05, freeInclude: true  },
-      thirdPartyLiability: { enabled: false, percentage: 0.5,  freeInclude: false },
-      authorizedWorkshop:  { enabled: false, percentage: 0.05, freeInclude: true  },
+      comprehensive: { enabled: true, percentage: 1.32, freeInclude: false },
+      flood: { enabled: false, percentage: 0.1, freeInclude: false },
+      earthquake: { enabled: false, percentage: 0.12, freeInclude: false },
+      typhoonAndStorm: { enabled: false, percentage: 0.05, freeInclude: false },
+      landslide: { enabled: false, percentage: 0.05, freeInclude: false },
+      waterHammer: { enabled: false, percentage: 0.05, freeInclude: true },
+      thirdPartyLiability: { enabled: false, percentage: 0.5, freeInclude: false },
+      authorizedWorkshop: { enabled: false, percentage: 0.05, freeInclude: true },
     });
     generateQuotationNumber();
   };
 
   const handleDownload = () => {
-    if (!selectedCustomer || !tsi || Number(tsi) <= 0) { message('Please complete the form first', 'error'); return; }
+    if (!selectedItem || !tsi || Number(tsi) <= 0) { message('Please complete the form first', 'error'); return; }
     setOpenPreviewDialog(true);
   };
 
@@ -334,13 +376,13 @@ export default function CreateQuotationPage() {
       doc.text(String(value ?? ''), valueX, y);
     };
 
-    row(currentY, 'Nama', selectedCustomer?.name || 'TBA');
+    row(currentY, 'Nama', quotationType === 'car' ? (selectedItem?.carData?.ownerName || 'TBA') : (selectedItem?.ownerName || 'TBA'));
     currentY += 7;
-    row(currentY, 'Alamat', selectedCustomer?.address || 'TBA');
+    row(currentY, 'Alamat', quotationType === 'car' ? '-' : (selectedItem?.propertyData?.address || '-'));
     currentY += 7;
-    row(currentY, 'Perhitungan Premi', `${selectedCustomer.carData?.carBrand || ''} ${selectedCustomer.carData?.carModel || ''}`.trim());
+    row(currentY, 'Perhitungan Premi', quotationType === 'car' ? `${selectedItem?.carData?.carBrand || ''} ${selectedItem?.carData?.carModel || ''}`.trim() : `${selectedItem?.propertyData?.propertyType || ''}`.trim());
     currentY += 7;
-    row(currentY, 'No Polisi', selectedCustomer.carData?.plateNumber || 'TBA');
+    row(currentY, quotationType === 'car' ? 'No Polisi' : 'Kota', quotationType === 'car' ? (selectedItem?.carData?.plateNumber || 'TBA') : (selectedItem?.propertyData?.city || 'TBA'));
     currentY += 7;
     row(currentY, 'Harga TSI', `${fmtNum(Number(tsi) || 0)} (IDR)`);
     currentY += 12;
@@ -531,17 +573,43 @@ export default function CreateQuotationPage() {
     doc.save(`Quotation_${quotationNumber}.pdf`);
   };
 
-  const filteredCustomers = useMemo(() => {
-    const s = customerSearch.toLowerCase();
-    return customers.filter(c =>
-      c.name?.toLowerCase().includes(s) ||
-      c.phone?.toLowerCase().includes(s) ||
-      c.carData?.carBrand?.toLowerCase().includes(s) ||
-      c.carData?.plateNumber?.toLowerCase().includes(s)
-    );
-  }, [customers, customerSearch]);
+  const filteredList = useMemo(() => {
+    const s = selectSearch.toLowerCase();
+    if (quotationType === 'car') {
+      return cars.filter(c =>
+        !s ||
+        c.carData?.ownerName?.toLowerCase().includes(s) ||
+        c.carData?.carBrand?.toLowerCase().includes(s) ||
+        c.carData?.carModel?.toLowerCase().includes(s) ||
+        c.carData?.plateNumber?.toLowerCase().includes(s)
+      );
+    } else {
+      return properties.filter(p =>
+        !s ||
+        p.ownerName?.toLowerCase().includes(s) ||
+        p.propertyData?.propertyType?.toLowerCase().includes(s) ||
+        p.propertyData?.city?.toLowerCase().includes(s)
+      );
+    }
+  }, [quotationType, cars, properties, selectSearch]);
 
   const enabledKeys = Object.keys(coverages).filter(k => coverages[k].enabled);
+  const accentColor = quotationType === 'car' ? C.car : C.property;
+  const accentLight = quotationType === 'car' ? C.carLight : C.propertyLight;
+
+  const getSelectedLabel = () => {
+    if (!selectedItem) return '';
+    if (quotationType === 'car') {
+      return `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''} — ${selectedItem.carData?.plateNumber || 'No Plate'}`;
+    }
+    return `${selectedItem.propertyData?.propertyType || 'Property'} - ${selectedItem.propertyData?.city || ''}`;
+  };
+
+  const getOwnerName = () => {
+    if (!selectedItem) return '';
+    if (quotationType === 'car') return selectedItem.carData?.ownerName || '';
+    return selectedItem.ownerName || '';
+  };
 
   return (
     <Box sx={{ bgcolor: '#F4F5F7', minHeight: '100vh', py: 4 }}>
@@ -596,48 +664,66 @@ export default function CreateQuotationPage() {
               </Paper>
 
               <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
-                <Section title="Customer">
-                  <Field label="Select Customer" required>
+                <Section title="Jenis Quotation">
+                  <QuotationTypeTab value={quotationType} onChange={handleTypeChange} />
+
+                  <Field label={quotationType === 'car' ? 'Pilih Kendaraan' : 'Pilih Properti'} required>
                     <Box
-                      onClick={() => setOpenCustomerDialog(true)}
+                      onClick={() => setOpenSelectDialog(true)}
                       sx={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         px: 1.5, py: '9px',
-                        border: `1px solid ${selectedCustomer ? '#1971C2' : '#E4E6EA'}`,
+                        border: `1px solid ${selectedItem ? accentColor : '#E4E6EA'}`,
                         borderRadius: '8px',
-                        bgcolor: selectedCustomer ? '#EBF4FF' : '#FFFFFF',
+                        bgcolor: selectedItem ? accentLight : '#FFFFFF',
                         cursor: 'pointer', transition: 'all 0.15s',
-                        '&:hover': { borderColor: selectedCustomer ? '#1971C2' : '#B0B5BC' },
+                        '&:hover': { borderColor: selectedItem ? accentColor : '#B0B5BC' },
                       }}
                     >
                       <Box display="flex" alignItems="center" gap={1.25}>
-                        <Icon icon="mdi:account-search" width={18} color={selectedCustomer ? '#1971C2' : '#9EA8B3'} />
-                        <Typography fontSize={14} sx={{ color: selectedCustomer ? '#1C1E21' : '#9EA8B3' }}>
-                          {selectedCustomer ? `${selectedCustomer.name} — ${selectedCustomer.carData?.plateNumber || 'No Plate'}` : 'Search and select customer...'}
+                        <Icon icon={quotationType === 'car' ? 'mdi:car-search' : 'mdi:home-search'} width={18} color={selectedItem ? accentColor : '#9EA8B3'} />
+                        <Typography fontSize={14} sx={{ color: selectedItem ? '#1C1E21' : '#9EA8B3' }}>
+                          {selectedItem ? getSelectedLabel() : `Cari dan pilih ${quotationType === 'car' ? 'kendaraan' : 'properti'}...`}
                         </Typography>
                       </Box>
-                      {selectedCustomer
-                        ? <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSelectedCustomer(null); }} sx={{ p: 0.25 }}><Icon icon="mdi:close" width={15} color="#606770" /></IconButton>
+                      {selectedItem
+                        ? <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSelectedItem(null); }} sx={{ p: 0.25 }}><Icon icon="mdi:close" width={15} color="#606770" /></IconButton>
                         : <Icon icon="mdi:chevron-down" width={18} color="#9EA8B3" />
                       }
                     </Box>
                   </Field>
 
-                  {selectedCustomer && (
+                  {selectedItem && (
                     <Box sx={{ mt: -1.5, mb: 0.5, p: 2, borderRadius: '8px', bgcolor: '#F8F9FA', border: '1px solid #E4E6EA' }}>
-                      <Grid container spacing={1.5}>
-                        {[
-                          { label: 'Phone', value: selectedCustomer.phone },
-                          { label: 'Vehicle', value: `${selectedCustomer.carData?.carBrand || ''} ${selectedCustomer.carData?.carModel || ''}`.trim() },
-                          { label: 'Plate', value: selectedCustomer.carData?.plateNumber },
-                          { label: 'Address', value: selectedCustomer.address },
-                        ].map(({ label, value }) => (
-                          <Grid item xs={6} key={label}>
-                            <Typography fontSize={11} sx={{ color: '#9EA8B3', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
-                            <Typography fontSize={13} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || '—'}</Typography>
-                          </Grid>
-                        ))}
-                      </Grid>
+                      {quotationType === 'car' ? (
+                        <Grid container spacing={1.5}>
+                          {[
+                            { label: 'Pemilik', value: selectedItem.carData?.ownerName },
+                            { label: 'Kendaraan', value: `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''}`.trim() },
+                            { label: 'No. Rangka', value: selectedItem.carData?.chassisNumber },
+                            { label: 'Plate', value: selectedItem.carData?.plateNumber },
+                          ].map(({ label, value }) => (
+                            <Grid item xs={6} key={label}>
+                              <Typography fontSize={11} sx={{ color: '#9EA8B3', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
+                              <Typography fontSize={13} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || '—'}</Typography>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      ) : (
+                        <Grid container spacing={1.5}>
+                          {[
+                            { label: 'Pemilik', value: selectedItem.ownerName },
+                            { label: 'Tipe', value: selectedItem.propertyData?.propertyType },
+                            { label: 'Kota', value: selectedItem.propertyData?.city },
+                            { label: 'Alamat', value: selectedItem.propertyData?.address },
+                          ].map(({ label, value }) => (
+                            <Grid item xs={6} key={label}>
+                              <Typography fontSize={11} sx={{ color: '#9EA8B3', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
+                              <Typography fontSize={13} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || '—'}</Typography>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      )}
                     </Box>
                   )}
                 </Section>
@@ -809,16 +895,21 @@ export default function CreateQuotationPage() {
 
               {/* Customer */}
               <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
-                <Section title="Customer Details">
+                <Section title={quotationType === 'car' ? "Kendaraan Detail" : "Properti Detail"}>
                   <Grid container spacing={2}>
-                    {[
-                      { label: 'Name', value: selectedCustomer?.name },
-                      { label: 'Phone', value: selectedCustomer?.phone },
-                      { label: 'Address', value: selectedCustomer?.address },
-                      { label: 'Plate', value: selectedCustomer?.carData?.plateNumber },
-                      { label: 'Vehicle', value: `${selectedCustomer?.carData?.carBrand || ''} ${selectedCustomer?.carData?.carModel || ''}`.trim() },
+                    {(quotationType === 'car' ? [
+                      { label: 'Pemilik', value: selectedItem?.carData?.ownerName },
+                      { label: 'No. Rangka', value: selectedItem?.carData?.chassisNumber },
+                      { label: 'Plate', value: selectedItem?.carData?.plateNumber },
+                      { label: 'Kendaraan', value: `${selectedItem?.carData?.carBrand || ''} ${selectedItem?.carData?.carModel || ''}`.trim() },
                       { label: 'TSI', value: fmt(Number(tsi)) },
-                    ].map(({ label, value }) => (
+                    ] : [
+                      { label: 'Pemilik', value: selectedItem?.ownerName },
+                      { label: 'Tipe Properti', value: selectedItem?.propertyData?.propertyType },
+                      { label: 'Kota', value: selectedItem?.propertyData?.city },
+                      { label: 'Alamat', value: selectedItem?.propertyData?.address },
+                      { label: 'TSI', value: fmt(Number(tsi)) },
+                    ]).map(({ label, value }) => (
                       <Grid item xs={6} key={label}>
                         <Typography fontSize={11} sx={{ color: '#9EA8B3', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.3 }}>{label}</Typography>
                         <Typography fontSize={13.5} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || '—'}</Typography>
@@ -892,49 +983,58 @@ export default function CreateQuotationPage() {
 
       </Container>
 
-      {/* Customer Dialog */}
-      <Dialog open={openCustomerDialog} onClose={() => { setOpenCustomerDialog(false); setCustomerSearch(''); }}
+      {/* Selection Dialog */}
+      <Dialog open={openSelectDialog} onClose={() => { setOpenSelectDialog(false); setSelectSearch(''); }}
         maxWidth="xs" fullWidth fullScreen={isMobile}
         PaperProps={{ sx: { borderRadius: isMobile ? 0 : '12px', m: 2 } }}>
         <Box sx={{ p: 2.5 }}>
           <Box display="flex" alignItems="center" mb={2}>
-            <IconButton size="small" onClick={() => { setOpenCustomerDialog(false); setCustomerSearch(''); }} sx={{ mr: 1 }}>
+            <IconButton size="small" onClick={() => { setOpenSelectDialog(false); setSelectSearch(''); }} sx={{ mr: 1 }}>
               <Icon icon="mdi:arrow-left" width={20} color="#606770" />
             </IconButton>
-            <Typography fontSize={16} fontWeight={700} sx={{ color: '#1C1E21' }}>Select Customer</Typography>
+            <Typography fontSize={16} fontWeight={700} sx={{ color: '#1C1E21' }}>Pilih {quotationType === 'car' ? 'Kendaraan' : 'Properti'}</Typography>
           </Box>
-          <TextField fullWidth autoFocus size="small" placeholder="Search by name, phone, or plate..."
-            value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)}
+          <TextField fullWidth autoFocus size="small" placeholder={quotationType === 'car' ? 'Cari pemilik, merek, plat...' : 'Cari pemilik, tipe, kota...'}
+            value={selectSearch} onChange={(e) => setSelectSearch(e.target.value)}
             InputProps={{ startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" width={18} color="#9EA8B3" /></InputAdornment> }}
             sx={{ mb: 2, ...inputStyle }} />
           <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
-            {filteredCustomers.length === 0 ? (
+            {filteredList.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 5 }}>
-                <Icon icon="mdi:account-search" width={44} color="#C8CDD4" />
-                <Typography fontSize={14} sx={{ color: '#606770', mt: 1.5 }}>No customers found</Typography>
-                {customerSearch && <Button onClick={() => setCustomerSearch('')} sx={{ mt: 1, textTransform: 'none', fontSize: 12, color: '#1971C2' }}>Clear search</Button>}
+                <Icon icon={quotationType === 'car' ? "mdi:car-search" : "mdi:home-search"} width={44} color="#C8CDD4" />
+                <Typography fontSize={14} sx={{ color: '#606770', mt: 1.5 }}>Tidak ada {quotationType === 'car' ? 'kendaraan' : 'properti'} ditemukan</Typography>
+                {selectSearch && <Button onClick={() => setSelectSearch('')} sx={{ mt: 1, textTransform: 'none', fontSize: 12, color: '#1971C2' }}>Clear search</Button>}
               </Box>
             ) : (
               <Stack spacing={1}>
-                {filteredCustomers.map((customer) => {
-                  const sel = selectedCustomer?.id === customer.id;
+                {filteredList.map((item) => {
+                  const sel = selectedItem?.id === item.id;
+                  const title = quotationType === 'car'
+                    ? `${item.carData?.carBrand || ''} ${item.carData?.carModel || ''}`.trim()
+                    : item.propertyData?.propertyType || 'Property';
+                  const sub1 = quotationType === 'car'
+                    ? (item.carData?.ownerName || '—')
+                    : (item.ownerName || '—');
+                  const sub2 = quotationType === 'car'
+                    ? (item.carData?.plateNumber || 'No plate')
+                    : (item.propertyData?.city || '—');
                   return (
-                    <Box key={customer.id} onClick={() => { setSelectedCustomer(customer); setOpenCustomerDialog(false); setCustomerSearch(''); }}
+                    <Box key={item.id} onClick={() => { setSelectedItem(item); setOpenSelectDialog(false); setSelectSearch(''); }}
                       sx={{
                         display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: '8px', cursor: 'pointer',
-                        border: `1px solid ${sel ? '#1971C2' : '#E4E6EA'}`,
-                        bgcolor: sel ? '#EBF4FF' : '#FFFFFF', transition: 'all 0.15s',
-                        '&:hover': { borderColor: '#1971C2', bgcolor: sel ? '#EBF4FF' : '#FAFBFC' },
+                        border: `1px solid ${sel ? accentColor : '#E4E6EA'}`,
+                        bgcolor: sel ? accentLight : '#FFFFFF', transition: 'all 0.15s',
+                        '&:hover': { borderColor: accentColor, bgcolor: sel ? accentLight : '#FAFBFC' },
                       }}>
-                      <Avatar sx={{ width: 38, height: 38, bgcolor: '#1971C2', fontSize: 15, fontWeight: 700 }}>
-                        {customer.name?.charAt(0)?.toUpperCase() || 'C'}
+                      <Avatar sx={{ width: 38, height: 38, bgcolor: accentColor, fontSize: 15, fontWeight: 700 }}>
+                        <Icon icon={quotationType === 'car' ? 'mdi:car' : 'mdi:home'} width={20} />
                       </Avatar>
                       <Box flex={1} minWidth={0}>
-                        <Typography fontSize={13.5} fontWeight={600} sx={{ color: '#1C1E21' }}>{customer.name}</Typography>
-                        <Typography fontSize={12} sx={{ color: '#606770' }}>{customer.phone || '—'}</Typography>
-                        <Typography fontSize={12} sx={{ color: '#9EA8B3' }}>{customer.carData?.carBrand || 'No car'} · {customer.carData?.plateNumber || 'No plate'}</Typography>
+                        <Typography fontSize={13.5} fontWeight={600} sx={{ color: '#1C1E21' }}>{title}</Typography>
+                        <Typography fontSize={12} sx={{ color: '#606770' }}>{sub1}</Typography>
+                        <Typography fontSize={12} sx={{ color: '#9EA8B3' }}>{sub2}</Typography>
                       </Box>
-                      {sel && <Icon icon="mdi:check-circle" width={18} color="#1971C2" />}
+                      {sel && <Icon icon="mdi:check-circle" width={18} color={accentColor} />}
                     </Box>
                   );
                 })}
@@ -961,8 +1061,8 @@ export default function CreateQuotationPage() {
             </Box>
             <Divider sx={{ borderColor: '#E4E6EA', my: 1.5 }} />
             <Stack spacing={0.75}>
-              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Customer</Typography><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>{selectedCustomer?.name}</Typography></Box>
-              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Vehicle</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{selectedCustomer?.carData?.plateNumber}</Typography></Box>
+              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Pemilik</Typography><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>{getOwnerName() || '—'}</Typography></Box>
+              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>{quotationType === 'car' ? 'Kendaraan' : 'Properti'}</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{getSelectedLabel() || '—'}</Typography></Box>
               <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>TSI</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(Number(tsi))}</Typography></Box>
               <Divider sx={{ borderColor: '#E4E6EA', my: 0.5 }} />
               <Box display="flex" justifyContent="space-between"><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>Total Premium</Typography><Typography fontSize={15} fontWeight={700} sx={{ color: '#D32F2F' }}>{fmt(calculations.totalPremium)}</Typography></Box>
