@@ -17,6 +17,7 @@ import {
     InputAdornment,
     IconButton,
     CircularProgress,
+    Autocomplete,
 } from '@mui/material';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
@@ -61,36 +62,55 @@ const STEPS = [
 
 function WizardStepper({ active }) {
     return (
-        <Box display="flex" alignItems="flex-start" justifyContent="center" mb={4} sx={{ overflowX: 'auto', pb: 1 }}>
+        <Box
+            display="flex"
+            alignItems="flex-start"
+            mb={3}
+            sx={{ width: '100%', px: 0 }}
+        >
             {STEPS.map((step, i) => {
                 const done = i < active;
                 const current = i === active;
                 return (
-                    <Box key={i} display="flex" alignItems="flex-start">
-                        <Box display="flex" flexDirection="column" alignItems="center" sx={{ minWidth: 60 }}>
+                    <Box key={i} display="flex" alignItems="flex-start" sx={{ flex: i < STEPS.length - 1 ? 1 : 0 }}>
+                        {/* Step circle + label */}
+                        <Box display="flex" flexDirection="column" alignItems="center" sx={{ flexShrink: 0 }}>
                             <Box
                                 sx={{
-                                    width: 32, height: 32, borderRadius: '50%',
+                                    width: 28, height: 28, borderRadius: '50%',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     bgcolor: done || current ? '#1971C2' : '#FFFFFF',
                                     border: `2px solid ${done || current ? '#1971C2' : '#C8CDD4'}`,
-                                    boxShadow: current ? `0 0 0 4px ${alpha('#1971C2', 0.15)}` : 'none',
+                                    boxShadow: current ? `0 0 0 3px ${alpha('#1971C2', 0.15)}` : 'none',
                                     transition: 'all 0.25s',
-                                    flexShrink: 0,
                                 }}
                             >
                                 {done
-                                    ? <Icon icon="mdi:check" width={14} color="#fff" />
-                                    : <Typography fontSize={12} fontWeight={700} sx={{ color: current ? '#fff' : '#C8CDD4' }}>{step.icon}</Typography>
+                                    ? <Icon icon="mdi:check" width={13} color="#fff" />
+                                    : <Typography fontSize={11} fontWeight={700} sx={{ color: current ? '#fff' : '#C8CDD4' }}>{step.icon}</Typography>
                                 }
                             </Box>
-                            <Typography fontSize={11} fontWeight={current ? 700 : 500} mt={0.75} textAlign="center"
-                                sx={{ color: current ? '#1971C2' : done ? '#606770' : '#C8CDD4' }}>
+                            <Typography
+                                sx={{
+                                    fontSize: '9px', fontWeight: current ? 700 : 500, mt: 0.5, textAlign: 'center',
+                                    color: current ? '#1971C2' : done ? '#606770' : '#C8CDD4',
+                                    maxWidth: 40, lineHeight: 1.2
+                                }}
+                            >
                                 {step.label}
                             </Typography>
                         </Box>
+                        {/* Connector */}
                         {i < STEPS.length - 1 && (
-                            <Box sx={{ width: 40, height: 2, bgcolor: i < active ? '#1971C2' : '#C8CDD4', mt: '15px', transition: 'background-color 0.3s', flexShrink: 0 }} />
+                            <Box sx={{
+                                flex: 1,
+                                height: 2,
+                                minWidth: 8,
+                                bgcolor: i < active ? '#1971C2' : '#C8CDD4',
+                                mt: '13px',
+                                mx: 0.5,
+                                transition: 'background-color 0.3s',
+                            }} />
                         )}
                     </Box>
                 );
@@ -110,7 +130,7 @@ function Section({ title, children }) {
 
 function Field({ label, required, hint, children }) {
     return (
-        <Box mb={2.5}>
+        <Box mb={2.5} sx={{ width: '100%', flex: 1 }}>
             <Box display="flex" alignItems="baseline" gap={0.4} mb={0.75}>
                 <Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>{label}</Typography>
                 {required && <Typography fontSize={13} sx={{ color: '#D92B2B' }}>*</Typography>}
@@ -216,6 +236,8 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
     const [createdCarId, setCreatedCarId] = useState(null);
     const [uploading, setUploading] = useState(false);
 
+    const [carReferences, setCarReferences] = useState([]);
+
     const [formData, setFormData] = useState({
         carBrand: '',
         carModel: '',
@@ -239,11 +261,27 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
     const [docPhotoPreviews, setDocPhotoPreviews] = useState({ stnk: null, sim: null, ktp: null });
 
     React.useEffect(() => {
+        if (open) {
+            fetchCarReferences();
+        }
         if (open && !customerId) {
             fetchCustomers();
             setActiveStep(0);
         }
     }, [open, customerId]);
+
+    const fetchCarReferences = async () => {
+        try {
+            const res = await CarDAO.getCarReferences();
+            if (res && res.references) {
+                setCarReferences(res.references);
+            } else if (Array.isArray(res)) {
+                setCarReferences(res);
+            }
+        } catch (error) {
+            console.error('Failed to fetch car references:', error);
+        }
+    };
 
     const fetchCustomers = async () => {
         try {
@@ -426,6 +464,17 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
         );
     }, [customers, customerSearch]);
 
+    const brandOptions = useMemo(() => {
+        if (!Array.isArray(carReferences)) return [];
+        return carReferences.map(item => item.brand).filter(Boolean);
+    }, [carReferences]);
+
+    const modelOptions = useMemo(() => {
+        if (!Array.isArray(carReferences) || !formData.carBrand) return [];
+        const foundBrand = carReferences.find(item => item.brand === formData.carBrand);
+        return foundBrand?.models || [];
+    }, [carReferences, formData.carBrand]);
+
     const isLastStep = activeStep === STEPS.length - 1;
 
     return (
@@ -496,10 +545,32 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
                                 <Section title="Detail Kendaraan">
                                     <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>
                                         <Field label="Merek Mobil" required>
-                                            <TextField fullWidth size="small" name="carBrand" value={formData.carBrand} onChange={handleChange} placeholder="cth. Toyota" sx={inputStyle} />
+                                            <Autocomplete
+                                                fullWidth
+                                                freeSolo
+                                                options={brandOptions}
+                                                value={formData.carBrand}
+                                                onInputChange={(e, newInputValue) => {
+                                                    setFormData(prev => ({ ...prev, carBrand: newInputValue || '', carModel: '' }));
+                                                }}
+                                                renderInput={(params) => (
+                                                    <TextField {...params} fullWidth size="small" name="carBrand" placeholder="cth. Toyota" sx={inputStyle} />
+                                                )}
+                                            />
                                         </Field>
                                         <Field label="Model Mobil" required>
-                                            <TextField fullWidth size="small" name="carModel" value={formData.carModel} onChange={handleChange} placeholder="cth. Avanza" sx={inputStyle} />
+                                            <Autocomplete
+                                                fullWidth
+                                                freeSolo
+                                                options={modelOptions}
+                                                value={formData.carModel}
+                                                onInputChange={(e, newInputValue) => {
+                                                    setFormData(prev => ({ ...prev, carModel: newInputValue || '' }));
+                                                }}
+                                                renderInput={(params) => (
+                                                    <TextField {...params} fullWidth size="small" name="carModel" placeholder="cth. Avanza" sx={inputStyle} />
+                                                )}
+                                            />
                                         </Field>
                                     </Stack>
                                     <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>

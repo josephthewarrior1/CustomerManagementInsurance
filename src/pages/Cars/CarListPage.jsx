@@ -20,9 +20,12 @@ import {
     Menu,
     ListItemIcon,
     ListItemText,
-    CircularProgress
+    CircularProgress,
+    Drawer,
+    List,
+    ListItemButton
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
@@ -49,7 +52,31 @@ export default function CarListPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [selectedCar, setSelectedCar] = useState(null);
     const [deletingCar, setDeletingCar] = useState(false);
+    const [actionDrawerOpen, setActionDrawerOpen] = useState(false);
+    const [drawerCar, setDrawerCar] = useState(null);
     const [mobileSearchInput, setMobileSearchInput] = useState('');
+    const [mobileVisibleCount, setMobileVisibleCount] = useState(5);
+    const [mobileLoadingMore, setMobileLoadingMore] = useState(false);
+    const sentinelRef = useCallback((node) => {
+        if (!node) return;
+        // Small delay prevents firing on initial mount
+        const timer = setTimeout(() => {
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    if (entries[0].isIntersecting) {
+                        setMobileLoadingMore(true);
+                        setTimeout(() => {
+                            setMobileVisibleCount(prev => prev + 5);
+                            setMobileLoadingMore(false);
+                        }, 300);
+                    }
+                },
+                { threshold: 1.0, rootMargin: '0px 0px 0px 0px' }
+            );
+            observer.observe(node);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, []);
     const [dataSourceOptions, setDataSourceOptions] = useState({
         keyword: '', page: 0, limit: 10, total: 0, sortColumn: '', sortDirection: 'asc',
     });
@@ -151,6 +178,12 @@ export default function CarListPage() {
         fetchCars();
     }, [dataSourceOptions.page, dataSourceOptions.limit, dataSourceOptions.sortColumn, dataSourceOptions.sortDirection, dataSourceOptions.keyword, selectedStatus]);
 
+    // Reset infinite scroll when search/filter changes
+    useEffect(() => {
+        setMobileVisibleCount(5);
+        setMobileLoadingMore(false);
+    }, [dataSourceOptions.keyword, selectedStatus]);
+
     const handleDeleteCar = async () => {
         if (!selectedCar) return;
         try {
@@ -171,6 +204,17 @@ export default function CarListPage() {
             setIsDeleteDialogOpen(false);
             setSelectedCar(null);
         }
+    };
+
+    const handleOpenDrawer = (e, car) => {
+        e.stopPropagation();
+        setDrawerCar(car);
+        setActionDrawerOpen(true);
+    };
+
+    const handleCloseDrawer = () => {
+        setActionDrawerOpen(false);
+        setDrawerCar(null);
     };
 
     const getStatusColor = (status) => {
@@ -267,7 +311,7 @@ export default function CarListPage() {
     ];
 
     const renderMobileView = () => {
-        const mobileLimit = 5;
+        const BATCH = 5;
         let filtered = [...allCars];
         if (selectedStatus !== 'ALL') filtered = filtered.filter(c => c.displayStatus === selectedStatus);
         if (dataSourceOptions.keyword) {
@@ -278,12 +322,12 @@ export default function CarListPage() {
                 c.plateNumber.toLowerCase().includes(kw)
             );
         }
-        const start = dataSourceOptions.page * mobileLimit;
-        const paginated = filtered.slice(start, start + mobileLimit);
+        const paginated = filtered.slice(0, mobileVisibleCount);
+        const hasMore = mobileVisibleCount < filtered.length;
 
         return (
             <Box sx={{ p: 2, bgcolor: '#F8FAFC', minHeight: '100%' }}>
-                <Box sx={{ mb: 2 }}>
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
                     <TextField
                         fullWidth placeholder="Search cars..."
                         value={mobileSearchInput}
@@ -294,11 +338,18 @@ export default function CarListPage() {
                             sx: { borderRadius: '12px', bgcolor: '#fff', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' } }
                         }}
                     />
-                </Box>
-                <Button fullWidth variant="contained" onClick={() => setIsCreateDialogOpen(true)} startIcon={<Icon icon="heroicons:plus" />}
-                    sx={{ bgcolor: '#1E3A8A', color: '#fff', textTransform: 'none', fontWeight: 700, py: 1.5, borderRadius: '16px', mb: 3, '&:hover': { bgcolor: '#1e40af' } }}>
-                    Add Car
-                </Button>
+                    <IconButton
+                        onClick={() => setIsCreateDialogOpen(true)}
+                        sx={{
+                            bgcolor: '#1E3A8A', color: '#fff', borderRadius: '12px',
+                            width: 48, height: 48, flexShrink: 0,
+                            '&:hover': { bgcolor: '#1e40af' },
+                            boxShadow: '0 4px 12px rgba(30,58,138,0.3)'
+                        }}
+                    >
+                        <Icon icon="mdi:plus" width={24} />
+                    </IconButton>
+                </Stack>
                 <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 2, mb: 1 }}>
                     {sortedSummaries.map(s => (
                         <Chip key={s.status} label={`${s.status} (${s.total})`} onClick={() => setSelectedStatus(s.status)}
@@ -315,7 +366,9 @@ export default function CarListPage() {
                         {paginated.map(car => {
                             const colors = getStatusColor(car.displayStatus);
                             return (
-                                <Card key={car.id} sx={{ borderRadius: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
+                                <Card key={car.id} 
+                                      onClick={() => navigate(`/cars/${car.id}`)}
+                                      sx={{ borderRadius: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9', cursor: 'pointer' }}>
                                     <CardContent sx={{ p: '20px !important' }}>
                                         <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
                                             <Avatar sx={{ width: 48, height: 48, bgcolor: '#EFF6FF', color: '#1E40AF' }}>
@@ -326,9 +379,12 @@ export default function CarListPage() {
                                                 <Typography variant="body2" sx={{ color: '#64748B' }}>{car.ownerName}</Typography>
                                             </Box>
                                             <Chip label={car.displayStatus} size="small" sx={{ bgcolor: colors.bg, color: colors.color, fontWeight: 700, fontSize: '0.65rem' }} />
+                                            <IconButton size="small" onClick={(e) => handleOpenDrawer(e, car)}>
+                                                <Icon icon="mdi:dots-vertical" width={24} color="#64748B" />
+                                            </IconButton>
                                         </Stack>
                                         <Divider sx={{ mb: 2, borderStyle: 'dashed' }} />
-                                        <Grid container spacing={2} sx={{ mb: 2 }}>
+                                        <Grid container spacing={2}>
                                             <Grid item xs={6}>
                                                 <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>PLATE</Typography>
                                                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>{car.plateNumber}</Typography>
@@ -338,27 +394,25 @@ export default function CarListPage() {
                                                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>{formatDate(car.dueDate)}</Typography>
                                             </Grid>
                                         </Grid>
-                                        <Stack direction="row" spacing={1} justifyContent="flex-end">
-                                            <IconButton size="small" onClick={() => navigate(`/cars/${car.id}`)} sx={{ color: '#64748B' }}><Icon icon="mdi:eye-outline" width={22} /></IconButton>
-                                            <IconButton size="small" onClick={() => navigate(`/cars/edit/${car.id}`)} sx={{ color: '#1E40AF' }}><Icon icon="mdi:pencil-outline" width={22} /></IconButton>
-                                            <IconButton size="small" onClick={() => { setSelectedCar(car); setIsDeleteDialogOpen(true); }} sx={{ color: '#DC2626' }}><Icon icon="mdi:trash-can-outline" width={22} /></IconButton>
-                                        </Stack>
                                     </CardContent>
                                 </Card>
                             );
                         })}
                     </Stack>
                 )}
-                {filtered.length > 0 && (
-                    <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid #E2E8F0', pb: 4 }}>
-                        <Stack direction="row" spacing={2}>
-                            <Button fullWidth variant="outlined" disabled={dataSourceOptions.page === 0}
-                                onClick={() => setDataSourceOptions(p => ({ ...p, page: p.page - 1 }))}
-                                sx={{ borderRadius: '12px', py: 1.25, fontWeight: 700, textTransform: 'uppercase', borderColor: '#E2E8F0', color: '#64748B' }}>Prev</Button>
-                            <Button fullWidth variant="outlined" disabled={start + mobileLimit >= filtered.length}
-                                onClick={() => setDataSourceOptions(p => ({ ...p, page: p.page + 1 }))}
-                                sx={{ borderRadius: '12px', py: 1.25, fontWeight: 700, textTransform: 'uppercase', borderColor: '#1E3A8A', color: '#1E3A8A' }}>Next</Button>
-                        </Stack>
+                {/* Show loading spinner only when actively loading more */}
+                {mobileLoadingMore && (
+                    <Box sx={{ py: 3, display: 'flex', justifyContent: 'center' }}>
+                        <CircularProgress size={24} sx={{ color: '#1E3A8A' }} />
+                    </Box>
+                )}
+                {/* Invisible sentinel - only triggers when user scrolls to it */}
+                {hasMore && !mobileLoadingMore && (
+                    <Box ref={sentinelRef} sx={{ height: 1, width: '100%' }} />
+                )}
+                {!hasMore && filtered.length > BATCH && (
+                    <Box sx={{ py: 3, textAlign: 'center' }}>
+                        <Typography variant="body2" sx={{ color: '#94A3B8', fontWeight: 500 }}>All {filtered.length} cars loaded</Typography>
                     </Box>
                 )}
             </Box>
@@ -438,6 +492,37 @@ export default function CarListPage() {
                     </Stack>
                 </Box>
             </Dialog>
+            {/* Mobile Actions Drawer */}
+            <Drawer
+                anchor="bottom"
+                open={actionDrawerOpen}
+                onClose={handleCloseDrawer}
+                PaperProps={{
+                    sx: { borderTopLeftRadius: '24px', borderTopRightRadius: '24px', p: 2 }
+                }}
+            >
+                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+                    <Box sx={{ width: 40, height: 4, bgcolor: '#E2E8F0', borderRadius: 2 }} />
+                </Box>
+                {drawerCar && (
+                    <>
+                        <Box sx={{ mb: 2, px: 2 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 700 }}>{drawerCar.carBrand} {drawerCar.carModel}</Typography>
+                            <Typography variant="body2" color="text.secondary">{drawerCar.plateNumber}</Typography>
+                        </Box>
+                        <List sx={{ pb: 3 }}>
+                            <ListItemButton onClick={() => { handleCloseDrawer(); navigate(`/cars/edit/${drawerCar.id}`); }} sx={{ borderRadius: '12px', mb: 1 }}>
+                                <ListItemIcon><Icon icon="mdi:pencil-outline" width={24} color="#1E40AF" /></ListItemIcon>
+                                <ListItemText primary="Edit Car" primaryTypographyProps={{ fontWeight: 600, color: '#1E40AF' }} />
+                            </ListItemButton>
+                            <ListItemButton onClick={() => { handleCloseDrawer(); setSelectedCar(drawerCar); setIsDeleteDialogOpen(true); }} sx={{ borderRadius: '12px' }}>
+                                <ListItemIcon><Icon icon="mdi:trash-can-outline" width={24} color="#DC2626" /></ListItemIcon>
+                                <ListItemText primary="Delete Car" primaryTypographyProps={{ fontWeight: 600, color: '#DC2626' }} />
+                            </ListItemButton>
+                        </List>
+                    </>
+                )}
+            </Drawer>
         </>
     );
 }

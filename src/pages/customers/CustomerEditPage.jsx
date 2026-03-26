@@ -291,7 +291,7 @@ export default function CustomerEditPage() {
                             <Button
                                 variant="contained"
                                 onClick={handleSave}
-                                disabled={saving || compressing}
+                                disabled={saving}
                                 startIcon={<Icon icon="mdi:content-save" />}
                                 sx={{
                                     bgcolor: '#1E40AF',

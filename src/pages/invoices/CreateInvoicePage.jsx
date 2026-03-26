@@ -11,6 +11,7 @@ import { useAlert } from '../../hooks/SnackbarProvider';
 import CompanyDAO from '../../daos/CompanyDao';
 import CarDAO from '../../daos/CarDao';
 import PropertyDAO from '../../daos/propertyDao';
+import CustomerDAO from '../../daos/CustomerDao';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -155,6 +156,7 @@ export default function CreateInvoicePage() {
     // Data lists
     const [cars, setCars] = useState([]);
     const [properties, setProperties] = useState([]);
+    const [customers, setCustomers] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null); // selected car or property
     const [openSelectDialog, setOpenSelectDialog] = useState(false);
     const [selectSearch, setSelectSearch] = useState('');
@@ -174,6 +176,27 @@ export default function CreateInvoicePage() {
         fetchData();
         generateInvoiceNumber();
     }, []); // eslint-disable-line
+
+    useEffect(() => {
+        if (selectedItem) {
+            let custId = null;
+            if (invoiceType === 'car') {
+                custId = selectedItem.customerId || selectedItem.carData?.customerId;
+            } else {
+                custId = selectedItem.customerId || selectedItem.propertyData?.customerId;
+            }
+            if (custId) {
+                const cust = customers.find(c => c.id === custId);
+                if (cust && cust.address) {
+                    setOwnerAddress(cust.address);
+                } else {
+                    setOwnerAddress('');
+                }
+            } else {
+                setOwnerAddress('');
+            }
+        }
+    }, [selectedItem, customers, invoiceType]);
 
     // When invoice type changes, reset selected item
     const handleTypeChange = (type) => {
@@ -207,12 +230,14 @@ export default function CreateInvoicePage() {
     const fetchData = async () => {
         try {
             loading.start();
-            const [carRes, propRes] = await Promise.allSettled([
+            const [carRes, propRes, custRes] = await Promise.allSettled([
                 CarDAO.getAllCars(),
                 PropertyDAO.getAllProperties(),
+                CustomerDAO.getAllCustomers(),
             ]);
             if (carRes.status === 'fulfilled' && carRes.value?.cars) setCars(carRes.value.cars);
             if (propRes.status === 'fulfilled' && propRes.value?.properties) setProperties(propRes.value.properties);
+            if (custRes.status === 'fulfilled' && custRes.value?.customers) setCustomers(custRes.value.customers);
         } catch (e) { console.error(e); message('Failed to load data', 'error'); }
         finally { loading.stop(); }
     };
@@ -297,12 +322,12 @@ export default function CreateInvoicePage() {
         doc.setFont('times', 'bold');
         doc.setFontSize(22);
         doc.setTextColor(30, 30, 30);
-        doc.text(companyName.toUpperCase(), marginX, currentY, { align: 'left' });
+        doc.text(companyName.toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
 
-        currentY += 5;
+        currentY += 6;
         doc.setFont('times', 'normal');
         doc.setFontSize(10);
-        doc.text(companySubtitle.toUpperCase(), marginX + 115, currentY, { align: 'left' });
+        doc.text(companySubtitle.toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
 
         currentY += 10;
         doc.setFont('times', 'normal');
@@ -380,15 +405,6 @@ export default function CreateInvoicePage() {
             drawCarData('Alamat', selectedItem?.propertyData?.address);
             drawCarData('Struktur', selectedItem?.propertyData?.buildingStructure);
         }
-
-        leftY += 15;
-        doc.text('Transfer Premi :', marginX + 3, leftY);
-        leftY += 6;
-        doc.setFont('helvetica', 'bold');
-        doc.text('No.Rek BCA 1940818181', marginX + 3, leftY);
-        leftY += 6;
-        doc.text('PT Jayaindo Artha Sukses', marginX + 3, leftY);
-        doc.setFont('helvetica', 'normal');
 
         // Right Column Content
         let rightY = tableStartY + 12;

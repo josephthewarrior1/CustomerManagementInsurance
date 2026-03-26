@@ -1,6 +1,14 @@
 import ApiRequest from '../utils/ApiRequest';
 
 export default class CarDAO {
+    // Get car references (brands & models)
+    static getCarReferences = async () => {
+        return await ApiRequest.set(
+            `/api/cars/references`,
+            ApiRequest.HTTP_METHOD.GET,
+        );
+    };
+
     // Get all cars (admin or user specific based on backend logic)
     static getAllCars = async () => {
         return await ApiRequest.set(

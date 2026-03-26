@@ -1,7 +1,7 @@
 import { Icon } from '@iconify/react';
 import {
     Box, Container, Typography, Button, Grid, Paper, Tabs, Tab,
-    Stack, Avatar, Chip, Dialog, useTheme, useMediaQuery, CircularProgress, Divider
+    Stack, Avatar, Chip, Dialog, useTheme, useMediaQuery, CircularProgress, Divider, IconButton
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -39,11 +39,40 @@ function InfoRow({ label, value, icon, fullWidth }) {
 
 /* ─── IMAGE PREVIEW DIALOG ─── */
 function ImagePreviewDialog({ open, images, currentIndex, onClose, onIndexChange }) {
+    const handleDownload = async () => {
+        try {
+            const url = images[currentIndex];
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = `photo_${Date.now()}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback for direct download if fetch fails (CORS)
+            const link = document.createElement('a');
+            link.href = images[currentIndex];
+            link.download = `photo_${Date.now()}.jpg`;
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
+
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ style: { background: '#000', borderRadius: 0 } }}>
             <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, p: 2 }}>
-                <Button onClick={onClose} sx={{ position: 'absolute', top: 8, right: 8, color: '#fff', minWidth: 0 }}>
+                <Button onClick={onClose} sx={{ position: 'absolute', top: 8, right: 8, color: '#fff', minWidth: 0, zIndex: 10 }}>
                     <Icon icon="mdi:close" width={28} />
+                </Button>
+                <Button onClick={handleDownload} sx={{ position: 'absolute', top: 8, right: 56, color: '#fff', minWidth: 0, zIndex: 10 }}>
+                    <Icon icon="mdi:download" width={24} />
                 </Button>
                 {images.length > 0 && (
                     <img src={images[currentIndex]} alt="preview" style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain' }} />
@@ -51,11 +80,11 @@ function ImagePreviewDialog({ open, images, currentIndex, onClose, onIndexChange
                 {images.length > 1 && (
                     <>
                         <Button onClick={() => onIndexChange((currentIndex - 1 + images.length) % images.length)}
-                            sx={{ position: 'absolute', left: 8, color: '#fff', minWidth: 0 }}>
+                            sx={{ position: 'absolute', left: 8, color: '#fff', minWidth: 0, zIndex: 10 }}>
                             <Icon icon="mdi:chevron-left" width={32} />
                         </Button>
                         <Button onClick={() => onIndexChange((currentIndex + 1) % images.length)}
-                            sx={{ position: 'absolute', right: 8, color: '#fff', minWidth: 0 }}>
+                            sx={{ position: 'absolute', right: 8, color: '#fff', minWidth: 0, zIndex: 10 }}>
                             <Icon icon="mdi:chevron-right" width={32} />
                         </Button>
                     </>
@@ -176,42 +205,37 @@ export default function CarDetailPage() {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#F8FAFC', pb: 8 }}>
             <Container maxWidth="lg" sx={{ pt: 4 }}>
-
+                <Box sx={{ mb: 2 }}>
+                    <Button onClick={() => navigate('/cars')} startIcon={<Icon icon="mdi:arrow-left" />} sx={{ color: '#475569', fontWeight: 600, textTransform: 'none', '&:hover': { bgcolor: 'transparent', color: '#1E293B' } }}>
+                        Back to Cars
+                    </Button>
+                </Box>
                 {/* ── Header Card ── */}
-                <Paper elevation={0} sx={{ p: 4, mb: 4, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between">
-                        <Stack direction="row" spacing={3} alignItems="center">
-                            <Avatar sx={{ width: 72, height: 72, bgcolor: '#EFF6FF', color: '#1E40AF', fontSize: '2rem' }}>
-                                <Icon icon="mdi:car" width={40} />
-                            </Avatar>
-                            <Box>
-                                <Typography variant="h5" sx={{ fontWeight: 800, color: '#1E293B', mb: 0.5 }}>
-                                    {carBrand} {carModel}
-                                </Typography>
-                                <Typography variant="body1" sx={{ color: '#64748B', fontWeight: 500, mb: 1 }}>
-                                    {plateNumber}
-                                </Typography>
-                                <Chip label={car.status || 'Active'} size="small"
-                                    sx={{ bgcolor: statusColors.bg, color: statusColors.color, fontWeight: 700, fontSize: '0.75rem', borderRadius: '8px' }} />
-                            </Box>
+                <Paper elevation={0} sx={{ p: 4, mb: 4, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff', position: 'relative' }}>
+                    <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+                        <Stack direction="row" spacing={1}>
+                            <IconButton onClick={() => navigate(`/cars/edit/${id}`)} sx={{ color: '#1E40AF', bgcolor: '#EFF6FF', borderRadius: 2 }}>
+                                <Icon icon="mdi:pencil" width={22} />
+                            </IconButton>
+                            <IconButton onClick={() => setIsDeleteDialogOpen(true)} sx={{ color: '#DC2626', bgcolor: '#FEF2F2', borderRadius: 2 }}>
+                                <Icon icon="mdi:trash-can" width={22} />
+                            </IconButton>
                         </Stack>
-                        <Stack direction="row" spacing={2}>
-                            <Button variant="outlined" onClick={() => navigate('/cars')}
-                                startIcon={<Icon icon="mdi:arrow-left" />}
-                                sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#E2E8F0', color: '#475569' }}>
-                                Back
-                            </Button>
-                            <Button variant="outlined" onClick={() => navigate(`/cars/edit/${id}`)}
-                                startIcon={<Icon icon="mdi:pencil" />}
-                                sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#1E40AF', color: '#1E40AF' }}>
-                                Edit
-                            </Button>
-                            <Button variant="contained" onClick={() => setIsDeleteDialogOpen(true)}
-                                startIcon={<Icon icon="mdi:trash-can" />}
-                                sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>
-                                Delete
-                            </Button>
-                        </Stack>
+                    </Box>
+                    <Stack direction="row" spacing={3} alignItems="center">
+                        <Avatar sx={{ width: 72, height: 72, bgcolor: '#EFF6FF', color: '#1E40AF', fontSize: '2rem' }}>
+                            <Icon icon="mdi:car" width={40} />
+                        </Avatar>
+                        <Box>
+                            <Typography variant="h5" sx={{ fontWeight: 800, color: '#1E293B', mb: 0.5 }}>
+                                {carBrand} {carModel}
+                            </Typography>
+                            <Typography variant="body1" sx={{ color: '#64748B', fontWeight: 500, mb: 1 }}>
+                                {plateNumber}
+                            </Typography>
+                            <Chip label={car.status || 'Active'} size="small"
+                                sx={{ bgcolor: statusColors.bg, color: statusColors.color, fontWeight: 700, fontSize: '0.75rem', borderRadius: '8px' }} />
+                        </Box>
                     </Stack>
                 </Paper>
 
@@ -263,45 +287,26 @@ export default function CarDetailPage() {
                     <Grid container spacing={3}>
                         <Grid item xs={12}>
                             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Icon icon="mdi:file-check" width={20} color="#1E40AF" /> Document Status
-                                </Typography>
-                                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4 }}>
-                                    {[
-                                        { label: 'STNK', has: car.documentStatus?.hasSTNK },
-                                        { label: 'SIM', has: car.documentStatus?.hasSIM },
-                                        { label: 'KTP', has: car.documentStatus?.hasKTP },
-                                    ].map(doc => (
-                                        <Box key={doc.label} sx={{ flex: 1, p: 2, borderRadius: 2, border: '1px solid', borderColor: doc.has ? '#86EFAC' : '#FCA5A5', bgcolor: doc.has ? '#F0FDF4' : '#FFF1F2', display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <Icon icon={doc.has ? 'mdi:check-circle' : 'mdi:close-circle'} width={24} color={doc.has ? '#16A34A' : '#DC2626'} />
-                                            <Box>
-                                                <Typography variant="body2" sx={{ fontWeight: 700, color: doc.has ? '#15803D' : '#B91C1C' }}>{doc.label}</Typography>
-                                                <Typography variant="caption" sx={{ color: '#64748B' }}>{doc.has ? 'Available' : 'Not available'}</Typography>
-                                            </Box>
-                                        </Box>
-                                    ))}
-                                </Stack>
-                                <Divider sx={{ mb: 3 }} />
                                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E293B', mb: 2 }}>Document Photos</Typography>
-                                <Grid container spacing={2}>
+                                <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
                                     {docPhotos.map(doc => (
-                                        <Grid item xs={12} sm={4} key={doc.key}>
-                                            <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>{doc.label}</Typography>
+                                        <Box key={doc.key} sx={{ flexShrink: 0, width: 90 }}>
+                                            <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 0.5, display: 'block' }}>{doc.label}</Typography>
                                             {doc.url ? (
                                                 <Box
                                                     component="img" src={doc.url} alt={doc.label}
                                                     onClick={() => openPhotoPreview([doc.url])}
-                                                    sx={{ display: 'block', width: '100%', height: 150, objectFit: 'cover', borderRadius: 2, mt: 1, cursor: 'pointer', border: '1px solid #E2E8F0', '&:hover': { opacity: 0.85 } }}
+                                                    sx={{ display: 'block', width: 90, height: 90, objectFit: 'cover', borderRadius: 2, cursor: 'pointer', border: '1px solid #E2E8F0', '&:hover': { opacity: 0.85 } }}
                                                 />
                                             ) : (
-                                                <Box sx={{ width: '100%', height: 150, borderRadius: 2, mt: 1, border: '2px dashed #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC', gap: 1 }}>
-                                                    <Icon icon="mdi:camera" width={32} color="#CBD5E1" />
-                                                    <Typography variant="caption" sx={{ color: '#94A3B8' }}>No photo</Typography>
+                                                <Box sx={{ width: 90, height: 90, borderRadius: 2, border: '1px dashed #CBD5E1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC', opacity: 0.7 }}>
+                                                    <Icon icon="mdi:camera-off" width={20} color="#94A3B8" />
+                                                    <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '10px', mt: 0.5 }}>Empty</Typography>
                                                 </Box>
                                             )}
-                                        </Grid>
+                                        </Box>
                                     ))}
-                                </Grid>
+                                </Box>
                             </Paper>
                         </Grid>
                     </Grid>
@@ -313,25 +318,25 @@ export default function CarDetailPage() {
                         <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Icon icon="mdi:camera" width={20} color="#1E40AF" /> Car Photos
                         </Typography>
-                        <Grid container spacing={2}>
+                        <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
                             {carPhotos.map(photo => (
-                                <Grid item xs={12} sm={6} key={photo.label}>
-                                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>{photo.label}</Typography>
+                                <Box key={photo.label} sx={{ flexShrink: 0, width: 90 }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 0.5, display: 'block' }}>{photo.label}</Typography>
                                     {photo.url ? (
                                         <Box
                                             component="img" src={photo.url} alt={photo.label}
                                             onClick={() => openPhotoPreview(carPhotos.filter(p => p.url).map(p => p.url))}
-                                            sx={{ display: 'block', width: '100%', height: 220, objectFit: 'cover', borderRadius: 2, mt: 1, cursor: 'pointer', border: '1px solid #E2E8F0', '&:hover': { opacity: 0.85 } }}
+                                            sx={{ display: 'block', width: 90, height: 90, objectFit: 'cover', borderRadius: 2, cursor: 'pointer', border: '1px solid #E2E8F0', '&:hover': { opacity: 0.85 } }}
                                         />
                                     ) : (
-                                        <Box sx={{ width: '100%', height: 220, borderRadius: 2, mt: 1, border: '2px dashed #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC', gap: 1 }}>
-                                            <Icon icon="mdi:camera" width={40} color="#CBD5E1" />
-                                            <Typography variant="caption" sx={{ color: '#94A3B8' }}>No photo</Typography>
+                                        <Box sx={{ width: 90, height: 90, borderRadius: 2, border: '1px dashed #CBD5E1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC', opacity: 0.7 }}>
+                                            <Icon icon="mdi:camera-off" width={20} color="#94A3B8" />
+                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '10px', mt: 0.5 }}>Empty</Typography>
                                         </Box>
                                     )}
-                                </Grid>
+                                </Box>
                             ))}
-                        </Grid>
+                        </Box>
                     </Paper>
                 </TabPanel>
 

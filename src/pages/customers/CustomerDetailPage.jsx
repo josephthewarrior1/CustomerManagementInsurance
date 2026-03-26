@@ -328,59 +328,29 @@ export default function CustomerDetailPage() {
             <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 5 } }}>
 
                 {/* ── HEADER ── */}
-                <Box sx={{ mb: 5 }}>
-                    <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
-                        justifyContent="space-between"
-                        alignItems={{ xs: 'stretch', sm: 'flex-start' }}
-                        spacing={3}
-                        sx={{ mb: 4 }}
+                <Box sx={{ mb: 3 }}>
+                    <Button
+                        onClick={() => navigate('/customers')}
+                        startIcon={<Icon icon="mdi:arrow-left" />}
+                        sx={{
+                            color: '#64748B', fontWeight: 600, textTransform: 'none',
+                            fontSize: '0.9375rem', px: 1,
+                            '&:hover': { bgcolor: 'transparent', color: '#1E40AF' }
+                        }}
                     >
-                        <Box>
-                            <Typography variant="h4" sx={{ fontWeight: 700, color: '#1E293B', mb: 1, fontSize: { xs: '1.75rem', sm: '2.125rem' } }}>
-                                Customer Details
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#64748B', fontSize: '0.875rem', fontWeight: 500 }}>
-                                Customer ID: <Box component="span" sx={{ color: '#475569' }}>{id}</Box>
-                            </Typography>
-                        </Box>
-
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-                            <Button
-                                variant="outlined"
-                                startIcon={<Icon icon="mdi:arrow-left" />}
-                                onClick={() => navigate('/customers')}
-                                sx={{
-                                    borderColor: '#E2E8F0', color: '#475569', fontWeight: 600,
-                                    px: 3, py: 1.25, textTransform: 'none', fontSize: '0.9375rem',
-                                    borderRadius: 2,
-                                    '&:hover': { borderColor: '#CBD5E1', bgcolor: '#F8FAFC' }
-                                }}
-                            >
-                                Back to List
-                            </Button>
-                            <Button
-                                variant="contained"
-                                startIcon={<Icon icon="mdi:pencil" />}
-                                onClick={() => navigate(`/customers/edit/${id}`)}
-                                sx={{
-                                    bgcolor: '#1E40AF', color: '#fff', fontWeight: 600,
-                                    px: 3, py: 1.25, textTransform: 'none', fontSize: '0.9375rem',
-                                    borderRadius: 2, boxShadow: '0 1px 3px 0 rgba(0,0,0,0.1)',
-                                    '&:hover': { bgcolor: '#1E3A8A' }
-                                }}
-                            >
-                                Edit Customer
-                            </Button>
-                        </Stack>
-                    </Stack>
-
-                    <Divider sx={{ borderColor: '#E2E8F0' }} />
+                        Back to Customers
+                    </Button>
                 </Box>
 
                 {/* ── PROFILE CARD ── */}
-                <Paper elevation={0} sx={{ p: 3, mb: 4, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'center', sm: 'flex-start' }}>
+                <Paper elevation={0} sx={{ p: 4, mb: 4, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff', position: 'relative' }}>
+                    <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+                        <IconButton onClick={() => navigate(`/customers/edit/${id}`)} sx={{ color: '#1E40AF', bgcolor: '#EFF6FF', borderRadius: 2 }}>
+                            <Icon icon="mdi:pencil" width={22} />
+                        </IconButton>
+                    </Box>
+
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems="center">
                         <Avatar sx={{
                             width: 80, height: 80, bgcolor: '#1E40AF',
                             fontSize: '2rem', fontWeight: 700,
@@ -390,17 +360,17 @@ export default function CustomerDetailPage() {
                         </Avatar>
 
                         <Box flex={1} sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-                            <Typography variant="h4" sx={{ fontWeight: 700, color: '#1E293B', mb: 1, fontSize: { xs: '1.5rem', sm: '1.75rem' } }}>
+                            <Typography variant="h4" sx={{ fontWeight: 800, color: '#1E293B', mb: 0.5, fontSize: { xs: '1.5rem', sm: '1.75rem' } }}>
                                 {customer.name}
                             </Typography>
-                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'center', sm: 'flex-start' }} sx={{ mb: 1 }}>
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center" justifyContent={{ xs: 'center', sm: 'flex-start' }} sx={{ mt: 1 }}>
                                 <Chip
                                     label={customer.status || 'Active'}
-                                    size="medium"
+                                    size="small"
                                     sx={{
                                         bgcolor: statusBgColor(customer.status || 'Active'),
                                         color: statusColor(customer.status || 'Active'),
-                                        fontWeight: 600, fontSize: '0.875rem', height: 32, borderRadius: 2
+                                        fontWeight: 700, fontSize: '0.75rem', borderRadius: '8px'
                                     }}
                                 />
                                 <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -477,31 +447,30 @@ export default function CustomerDetailPage() {
                         <Grid container spacing={3}>
                             {cars.map((car) => (
                                 <Grid item xs={12} md={6} key={car.id}>
-                                    <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff', position: 'relative' }}>
-                                        <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
-                                            <IconButton onClick={() => navigate(`/cars/${car.id}`)} size="small" sx={{ color: '#1E40AF', bgcolor: '#EFF6FF' }}>
-                                                <Icon icon="mdi:eye" width={20} />
-                                            </IconButton>
-                                        </Box>
-                                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                                            <Avatar sx={{ bgcolor: '#EFF6FF', color: '#1E40AF', width: 48, height: 48 }}>
-                                                <Icon icon="mdi:car" width={24} />
+                                    <Paper 
+                                        elevation={0} 
+                                        onClick={() => navigate(`/cars/${car.id}`)}
+                                        sx={{ 
+                                            p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', 
+                                            bgcolor: '#fff', cursor: 'pointer', transition: 'all 0.2s',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            '&:hover': { borderColor: '#CBD5E1', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' } 
+                                        }}
+                                    >
+                                        <Stack direction="row" spacing={2} alignItems="center" sx={{ overflow: 'hidden' }}>
+                                            <Avatar sx={{ bgcolor: '#EFF6FF', color: '#1E40AF', width: 44, height: 44, flexShrink: 0 }}>
+                                                <Icon icon="mdi:car" width={22} />
                                             </Avatar>
-                                            <Box>
-                                                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B', fontSize: '1.1rem' }}>
+                                            <Box sx={{ overflow: 'hidden' }}>
+                                                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B', fontSize: '1.05rem' }} noWrap>
                                                     {car.carData?.carBrand} {car.carData?.carModel}
                                                 </Typography>
-                                                <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 500 }}>
+                                                <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 500 }} noWrap>
                                                     {car.carData?.plateNumber}
                                                 </Typography>
                                             </Box>
                                         </Stack>
-                                        <Divider sx={{ my: 2, borderColor: '#F1F5F9' }} />
-                                        <Stack spacing={1.5}>
-                                            <InfoRow label="Owner" value={car.carData?.ownerName || customer.name} icon="mdi:account" />
-                                            <InfoRow label="Price" value={formatCurrency(car.carData?.carPrice)} icon="mdi:cash" />
-                                            <InfoRow label="Insurance Due" value={car.carData?.dueDate || 'Not set'} icon="mdi:calendar" />
-                                        </Stack>
+                                        <Icon icon="mdi:chevron-right" width={24} color="#CBD5E1" style={{ flexShrink: 0 }} />
                                     </Paper>
                                 </Grid>
                             ))}
@@ -538,27 +507,33 @@ export default function CustomerDetailPage() {
                         <Grid container spacing={3}>
                             {properties.map((property) => (
                                 <Grid item xs={12} md={6} key={property.id}>
-                                    <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff', position: 'relative' }}>
-                                        <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
-                                            <IconButton onClick={() => navigate(`/properties/${property.id}`)} size="small" sx={{ color: '#1E40AF', bgcolor: '#EFF6FF' }}>
-                                                <Icon icon="mdi:eye" width={20} />
-                                            </IconButton>
-                                        </Box>
-                                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                                            <Avatar sx={{ bgcolor: '#EFF6FF', color: '#1E40AF', width: 48, height: 48 }}>
-                                                <Icon icon="mdi:home" width={24} />
-                                            </Avatar>
-                                            <Box>
-                                                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B', fontSize: '1.1rem' }}>
-                                                    {property.propertyData?.propertyType || 'Property'}
-                                                </Typography>
-                                                <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 500 }} noWrap>
-                                                    {property.propertyData?.address}
-                                                </Typography>
-                                            </Box>
+                                    <Paper 
+                                        elevation={0} 
+                                        onClick={() => navigate(`/properties/${property.id}`)}
+                                        sx={{ 
+                                            p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', 
+                                            bgcolor: '#fff', cursor: 'pointer', transition: 'all 0.2s',
+                                            '&:hover': { borderColor: '#CBD5E1', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' } 
+                                        }}
+                                    >
+                                        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                                            <Stack direction="row" spacing={2} alignItems="center" sx={{ overflow: 'hidden' }}>
+                                                <Avatar sx={{ bgcolor: '#EFF6FF', color: '#1E40AF', width: 44, height: 44, flexShrink: 0 }}>
+                                                    <Icon icon="mdi:home" width={22} />
+                                                </Avatar>
+                                                <Box sx={{ overflow: 'hidden' }}>
+                                                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B', fontSize: '1.05rem' }} noWrap>
+                                                        {property.propertyData?.propertyType || 'Property'}
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 500 }} noWrap>
+                                                        {property.propertyData?.address}
+                                                    </Typography>
+                                                </Box>
+                                            </Stack>
+                                            <Icon icon="mdi:chevron-right" width={24} color="#CBD5E1" style={{ flexShrink: 0 }} />
                                         </Stack>
-                                        <Divider sx={{ my: 2, borderColor: '#F1F5F9' }} />
-                                        <Stack spacing={1.5}>
+                                        <Divider sx={{ my: 1.5, borderColor: '#F1F5F9' }} />
+                                        <Stack spacing={1}>
                                             <InfoRow label="Value" value={formatCurrency(property.propertyData?.propertyValue)} icon="mdi:cash" />
                                             <InfoRow label="Insurance Ends" value={property.insuranceData?.endDate ? new Date(property.insuranceData.endDate).toLocaleDateString('id-ID') : 'Not set'} icon="mdi:calendar" />
                                         </Stack>

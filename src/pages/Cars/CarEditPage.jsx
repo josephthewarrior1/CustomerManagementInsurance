@@ -2,9 +2,9 @@ import { Icon } from '@iconify/react';
 import {
     Box, Container, Typography, Button, Grid, Paper, Tabs, Tab,
     Stack, TextField, InputAdornment,
-    IconButton, CircularProgress, useTheme, useMediaQuery,
+    IconButton, CircularProgress, useTheme, useMediaQuery, Autocomplete,
 } from '@mui/material';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
@@ -147,6 +147,8 @@ export default function CarEditPage() {
     const [uploadingDocs, setUploadingDocs] = useState(false);
     const [tabValue, setTabValue] = useState(0);
 
+    const [carReferences, setCarReferences] = useState([]);
+
     const [formData, setFormData] = useState({
         carBrand: '',
         carModel: '',
@@ -170,7 +172,21 @@ export default function CarEditPage() {
 
     useEffect(() => {
         fetchCar();
+        fetchCarReferences();
     }, [id]);
+
+    const fetchCarReferences = async () => {
+        try {
+            const res = await CarDAO.getCarReferences();
+            if (res && res.references) {
+                setCarReferences(res.references);
+            } else if (Array.isArray(res)) {
+                setCarReferences(res);
+            }
+        } catch (error) {
+            console.error('Failed to fetch car references:', error);
+        }
+    };
 
     const fetchCar = async () => {
         try {
@@ -333,6 +349,17 @@ export default function CarEditPage() {
     const hasNewCarPhotos = Object.values(carPhotos).some(Boolean);
     const hasNewDocPhotos = Object.values(docPhotos).some(Boolean);
 
+    const brandOptions = useMemo(() => {
+        if (!Array.isArray(carReferences)) return [];
+        return carReferences.map(item => item.brand).filter(Boolean);
+    }, [carReferences]);
+
+    const modelOptions = useMemo(() => {
+        if (!Array.isArray(carReferences) || !formData.carBrand) return [];
+        const foundBrand = carReferences.find(item => item.brand === formData.carBrand);
+        return foundBrand?.models || [];
+    }, [carReferences, formData.carBrand]);
+
     return (
         <Box sx={{ bgcolor: '#F8FAFC', minHeight: '100vh', pb: 8 }}>
             <Container maxWidth="lg" sx={{ pt: 4 }}>
@@ -381,11 +408,33 @@ export default function CarEditPage() {
                                 <Grid container spacing={2}>
                                     <Grid item xs={12} sm={6}>
                                         <FieldLabel label="Merek Mobil" required />
-                                        <TextField fullWidth size="small" name="carBrand" value={formData.carBrand} onChange={handleChange} placeholder="cth. Toyota" sx={inputStyle} />
+                                        <Autocomplete
+                                            fullWidth
+                                            freeSolo
+                                            options={brandOptions}
+                                            value={formData.carBrand}
+                                            onInputChange={(e, newInputValue) => {
+                                                setFormData(prev => ({ ...prev, carBrand: newInputValue || '', carModel: '' }));
+                                            }}
+                                            renderInput={(params) => (
+                                                <TextField {...params} fullWidth size="small" name="carBrand" placeholder="cth. Toyota" sx={inputStyle} />
+                                            )}
+                                        />
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
                                         <FieldLabel label="Model Mobil" required />
-                                        <TextField fullWidth size="small" name="carModel" value={formData.carModel} onChange={handleChange} placeholder="cth. Avanza" sx={inputStyle} />
+                                        <Autocomplete
+                                            fullWidth
+                                            freeSolo
+                                            options={modelOptions}
+                                            value={formData.carModel}
+                                            onInputChange={(e, newInputValue) => {
+                                                setFormData(prev => ({ ...prev, carModel: newInputValue || '' }));
+                                            }}
+                                            renderInput={(params) => (
+                                                <TextField {...params} fullWidth size="small" name="carModel" placeholder="cth. Avanza" sx={inputStyle} />
+                                            )}
+                                        />
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
                                         <FieldLabel label="Tahun" />
