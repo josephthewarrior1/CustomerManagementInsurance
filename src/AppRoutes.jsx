@@ -12,6 +12,7 @@ import CustomerListPage from './pages/customers/CustomerListPage';
 import CustomerEditPage from './pages/customers/CustomerEditPage';
 import CustomerDetailPage from './pages/customers/CustomerDetailPage';
 import PropertyListPage from './pages/Property/PropertyList';
+import PropertyDetailPage from './pages/Property/PropertyDetailPage';
 import CarListPage from './pages/Cars/CarListPage';
 import CarDetailPage from './pages/Cars/CarDetailPage';
 import CarEditPage from './pages/Cars/CarEditPage';
@@ -41,6 +42,7 @@ export default function AppRoutes() {
                 {/* Properties Routes */}
                 <Route path="properties">
                     <Route index element={<PropertyListPage />} />
+                    <Route path=":id" element={<PropertyDetailPage />} />
                 </Route>
 
                 {/* Cars Routes */}

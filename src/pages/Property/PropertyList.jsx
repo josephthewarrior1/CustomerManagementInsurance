@@ -18,6 +18,7 @@ import IconButton from '@mui/material/IconButton';
 import MenuItem from '@mui/material/MenuItem';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 import PropertyDAO from '../../daos/propertyDao';
 import { useLoading } from '../../hooks/LoadingProvider.jsx';
 import { useAlert } from '../../hooks/SnackbarProvider.jsx';
@@ -62,6 +63,7 @@ const STATUS_LABELS = {
 const getPropertyOwnerName = (property) => property?.ownerName || property?.customerName || '-';
 
 export default function PropertyListPage() {
+    const navigate = useNavigate();
     const [openCreateDialog, setOpenCreateDialog] = useState(false);
     const [selectedDetail, setSelectedDetail] = useState(null);
     const [dataSource, setDataSource] = useState([]);
@@ -377,6 +379,13 @@ export default function PropertyListPage() {
                         <IconButton
                             size={'small'}
                             sx={{ borderRadius: 0.8 }}
+                            onClick={() => navigate(`/properties/${object.id}`)}
+                        >
+                            <Icon icon={'mdi:eye-outline'} />
+                        </IconButton>
+                        <IconButton
+                            size={'small'}
+                            sx={{ borderRadius: 0.8 }}
                             onClick={() => {
                                 setSelectedDetail(object);
                                 setOpenCreateDialog(true);
@@ -595,6 +604,7 @@ export default function PropertyListPage() {
                                     </Grid>
 
                                     <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1, borderTop: '1px solid #F8FAFC' }}>
+                                        <IconButton size="small" onClick={() => navigate(`/properties/${property.id}`)} sx={{ color: '#64748B' }}><Icon icon="mdi:eye-outline" width={22} /></IconButton>
                                         <IconButton size="small" onClick={() => { setSelectedDetail(property); setOpenCreateDialog(true); }} sx={{ color: '#64748B' }}><Icon icon="mdi:pencil-outline" width={22} /></IconButton>
                                         <IconButton size="small" onClick={() => { if (window.confirm('Hapus properti ini?')) handleDelete(property.id); }} sx={{ color: '#64748B' }}><Icon icon="mdi:trash-can-outline" width={22} /></IconButton>
                                     </Stack>
