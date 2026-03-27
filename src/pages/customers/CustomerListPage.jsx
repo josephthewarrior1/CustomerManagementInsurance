@@ -146,9 +146,9 @@ export default function CustomerListPage() {
             if (response.success) {
                 const customers = response.customers.map(customer => ({
                     id: customer.id,
-                    name: customer.name || 'No Name',
-                    phone: customer.phone || 'No Phone',
-                    address: customer.address || 'No Address',
+                    name: customer.name || 'Tanpa Nama',
+                    phone: customer.phone || 'Tanpa Nomor',
+                    address: customer.address || 'Tanpa Alamat',
                     createdAt: customer.createdAt,
                     updatedAt: customer.updatedAt,
                     carBrand: '-',
@@ -207,11 +207,11 @@ export default function CustomerListPage() {
                     total: filteredData.length,
                 }));
             } else {
-                message(response.error || 'Failed to fetch customers', 'error');
+                message(response.error || 'Gagal mengambil data pelanggan', 'error');
             }
         } catch (error) {
             console.error('Error fetching customers:', error);
-            message('Failed to fetch customers', 'error');
+            message('Gagal mengambil data pelanggan', 'error');
         } finally {
             loading.stop();
         }
@@ -225,10 +225,10 @@ export default function CustomerListPage() {
     };
 
     const statusLabels = {
-        "ALL": "All",
-        "Active": "Active",
-        "Expired": "Expired",
-        "Cancelled": "Cancelled"
+        "ALL": "Semua",
+        "Active": "Aktif",
+        "Expired": "Kedaluwarsa",
+        "Cancelled": "Dibatalkan"
     };
 
     const sortedSummaries = [...summaries].sort((a, b) => {
@@ -273,14 +273,14 @@ export default function CustomerListPage() {
             const response = await CustomerDAO.deleteCustomer(selectedCustomer.id);
 
             if (response.success) {
-                message('Customer deleted successfully', 'success');
+                message('Pelanggan berhasil dihapus', 'success');
                 fetchCustomers();
             } else {
-                message(response.error || 'Failed to delete customer', 'error');
+                message(response.error || 'Gagal menghapus pelanggan', 'error');
             }
         } catch (error) {
             console.error('Error deleting customer:', error);
-            message('Failed to delete customer', 'error');
+            message('Gagal menghapus pelanggan', 'error');
         } finally {
             loading.stop();
             closeDeleteDialog();
@@ -319,7 +319,7 @@ export default function CustomerListPage() {
 
     // Format date
     const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
+        if (!dateString) return '-';
         const date = new Date(dateString);
         return date.toLocaleDateString('id-ID', {
             day: '2-digit',
@@ -351,13 +351,13 @@ export default function CustomerListPage() {
             });
 
             if (response.success) {
-                message('Status updated successfully', 'success');
+                message('Status berhasil diperbarui', 'success');
                 fetchCustomers();
             } else {
-                throw new Error(response.error || 'Failed to update status');
+                throw new Error(response.error || 'Gagal memperbarui status');
             }
         } catch (error) {
-            message(error.message || 'Failed to update status', 'error');
+            message(error.message || 'Gagal memperbarui status', 'error');
         } finally {
             loading.stop();
             setUpdatingStatus(false);
@@ -390,7 +390,7 @@ export default function CustomerListPage() {
     // Desktop Table Columns
     const columns = [
         {
-            title: 'Customer Name',
+            title: 'Nama Pelanggan',
             dataIndex: 'name',
             key: 'name',
             sortable: true,
@@ -401,10 +401,10 @@ export default function CustomerListPage() {
                     </Avatar>
                     <Box>
                         <Typography variant="body2" fontWeight="medium">
-                            {value || 'No Name'}
+                            {value || 'Tanpa Nama'}
                         </Typography>
                         <Typography variant="caption" color="textSecondary">
-                            {row.phone || 'No Phone'}
+                            {row.phone || 'Tanpa Nomor'}
                         </Typography>
                     </Box>
                 </Box>
@@ -417,7 +417,7 @@ export default function CustomerListPage() {
             sortable: true,
             render: (value, row) => (
                 <Chip
-                    label={value || '-'}
+                    label={statusLabels[value] || value || '-'}
                     size="small"
                     onClick={(e) => handleStatusClick(e, row)}
                     sx={{
@@ -435,7 +435,7 @@ export default function CustomerListPage() {
             )
         },
         {
-            title: 'Actions',
+            title: 'Aksi',
             dataIndex: 'actions',
             key: 'actions',
             sortable: false,
@@ -494,7 +494,7 @@ export default function CustomerListPage() {
                 <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
                     <TextField
                         fullWidth
-                        placeholder="Search customers..."
+                        placeholder="Cari pelanggan..."
                         value={mobileSearchInput}
                         onChange={(e) => setMobileSearchInput(e.target.value)}
                         onKeyPress={(e) => {
@@ -553,7 +553,7 @@ export default function CustomerListPage() {
                 {paginatedData.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 8 }}>
                         <Icon icon="mdi:account-off-outline" width={64} color="#CBD5E1" />
-                        <Typography variant="body1" sx={{ mt: 2, color: '#94A3B8', fontWeight: 500 }}>No customers found</Typography>
+                        <Typography variant="body1" sx={{ mt: 2, color: '#94A3B8', fontWeight: 500 }}>Tidak ada pelanggan ditemukan</Typography>
                     </Box>
                 ) : (
                     <Stack spacing={2}>
@@ -575,7 +575,7 @@ export default function CustomerListPage() {
                                             </Typography>
                                         </Box>
                                         <Chip
-                                            label={customer.status.toUpperCase()}
+                                            label={(statusLabels[customer.status] || customer.status || '-').toUpperCase()}
                                             size="small"
                                             sx={{
                                                 bgcolor: customer.status === 'Active' ? '#D1FAE5' : customer.status === 'Expired' ? '#FEE2E2' : '#F1F5F9',
@@ -601,7 +601,7 @@ export default function CustomerListPage() {
                 {!hasMore && totalRecords > 10 && (
                     <Box sx={{ py: 3, textAlign: 'center' }}>
                         <Typography variant="body2" sx={{ color: '#94A3B8', fontWeight: 500 }}>
-                            All {totalRecords} customers loaded
+                            Semua {totalRecords} pelanggan sudah dimuat
                         </Typography>
                     </Box>
                 )}
@@ -620,7 +620,7 @@ export default function CustomerListPage() {
                                 handleFilterChange('keyword', e.target.value);
                             }
                         }}
-                        placeholder={'Search customers...'}
+                        placeholder={'Cari pelanggan...'}
                         searchIcon={true}
                     />
                     <CustomRow className={'justify-center gap-x-4'}>
@@ -637,7 +637,7 @@ export default function CustomerListPage() {
                             }}
                             color="secondary"
                         >
-                            New Customer
+                            Tambah Pelanggan
                         </CustomButton>
                     </CustomRow>
                 </CustomRow>
@@ -729,7 +729,7 @@ export default function CustomerListPage() {
                     <ListItemIcon>
                         <Icon icon="mdi:check-circle" color="#2E7D32" width={20} />
                     </ListItemIcon>
-                    <ListItemText primary="Set Active / Reset" secondary="Uses Due Date" secondaryTypographyProps={{ fontSize: 10 }} />
+                    <ListItemText primary="Set Aktif / Reset" secondary="Mengikuti jatuh tempo" secondaryTypographyProps={{ fontSize: 10 }} />
                 </MenuItem>
                 <MenuItem
                     onClick={() => handleStatusUpdate('Cancelled')}
@@ -738,7 +738,7 @@ export default function CustomerListPage() {
                     <ListItemIcon>
                         <Icon icon="mdi:cancel" color="#616161" width={20} />
                     </ListItemIcon>
-                    <ListItemText primary="Set Cancelled" />
+                    <ListItemText primary="Set Dibatalkan" />
                 </MenuItem>
             </Menu>
 
@@ -753,7 +753,7 @@ export default function CustomerListPage() {
                 <Box sx={{ p: { xs: 2, sm: 3 } }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant={isMobile ? "h6" : "h5"} fontWeight="bold">
-                            Confirm Delete
+                            Konfirmasi Hapus
                         </Typography>
                         <IconButton onClick={closeDeleteDialog} size="small">
                             <Icon icon="mdi:close" />
@@ -761,10 +761,10 @@ export default function CustomerListPage() {
                     </Box>
                     <Box sx={{ mt: 2 }}>
                         <Typography variant="body1" sx={{ mb: 2 }}>
-                            Are you sure you want to delete customer <b>{selectedCustomer?.name}</b>?
+                            Yakin ingin menghapus pelanggan <b>{selectedCustomer?.name}</b>?
                         </Typography>
                         <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-                            This action cannot be undone. All customer data including car photos will be permanently deleted.
+                            Tindakan ini tidak dapat dibatalkan. Semua data pelanggan termasuk foto kendaraan akan dihapus permanen.
                         </Typography>
                         <Box sx={{
                             display: 'flex',
@@ -777,7 +777,7 @@ export default function CustomerListPage() {
                                 onClick={closeDeleteDialog}
                                 fullWidth={isMobile}
                             >
-                                Cancel
+                                Batal
                             </Button>
                             <Button
                                 variant="contained"
@@ -786,7 +786,7 @@ export default function CustomerListPage() {
                                 startIcon={<Icon icon="mdi:delete" />}
                                 fullWidth={isMobile}
                             >
-                                Delete Customer
+                                Hapus Pelanggan
                             </Button>
                         </Box>
                     </Box>
@@ -820,14 +820,14 @@ export default function CustomerListPage() {
                                 sx={{ borderRadius: '12px', mb: 1 }}
                             >
                                 <ListItemIcon><Icon icon="mdi:pencil-outline" width={24} color="#1E40AF" /></ListItemIcon>
-                                <ListItemText primary="Edit Customer" primaryTypographyProps={{ fontWeight: 600, color: '#1E40AF' }} />
+                                <ListItemText primary="Edit Pelanggan" primaryTypographyProps={{ fontWeight: 600, color: '#1E40AF' }} />
                             </ListItemButton>
                             <ListItemButton
                                 onClick={() => { handleCloseDrawer(); openDeleteDialog(drawerCustomer); }}
                                 sx={{ borderRadius: '12px' }}
                             >
                                 <ListItemIcon><Icon icon="mdi:trash-can-outline" width={24} color="#DC2626" /></ListItemIcon>
-                                <ListItemText primary="Delete Customer" primaryTypographyProps={{ fontWeight: 600, color: '#DC2626' }} />
+                                <ListItemText primary="Hapus Pelanggan" primaryTypographyProps={{ fontWeight: 600, color: '#DC2626' }} />
                             </ListItemButton>
                         </List>
                     </>

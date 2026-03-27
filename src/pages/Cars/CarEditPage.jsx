@@ -213,12 +213,12 @@ export default function CarEditPage() {
                     color: c.carData?.color || c.color || '' // Added color
                 });
             } else {
-                message(response.error || 'Car not found', 'error');
+                message(response.error || 'Kendaraan tidak ditemukan', 'error');
                 navigate('/cars');
             }
         } catch (err) {
             console.error(err);
-            message('Failed to load car', 'error');
+            message('Gagal memuat data kendaraan', 'error');
             navigate('/cars');
         } finally {
             loadingProvider.stop();
@@ -233,9 +233,9 @@ export default function CarEditPage() {
 
     // ── Save Info ──────────────────────────────────────────────────────────
     const handleSaveInfo = async () => {
-        if (!formData.carBrand.trim()) { message('Car brand is required', 'error'); return; }
-        if (!formData.carModel.trim()) { message('Car model is required', 'error'); return; }
-        if (!formData.plateNumber.trim()) { message('Plate number is required', 'error'); return; }
+        if (!formData.carBrand.trim()) { message('Merek mobil wajib diisi', 'error'); return; }
+        if (!formData.carModel.trim()) { message('Model mobil wajib diisi', 'error'); return; }
+        if (!formData.plateNumber.trim()) { message('Nomor polisi wajib diisi', 'error'); return; }
 
         try {
             setSaving(true);
@@ -256,12 +256,12 @@ export default function CarEditPage() {
                 color: formData.color // Added color
             };
             const res = await CarDAO.updateCar(id, payload);
-            if (!res.success) throw new Error(res.error || 'Failed to update car');
-            message('Car info updated!', 'success');
+            if (!res.success) throw new Error(res.error || 'Gagal memperbarui kendaraan');
+            message('Info kendaraan berhasil diperbarui!', 'success');
             setCar(res.car || car);
         } catch (err) {
             console.error(err);
-            message(err.message || 'Failed to update car', 'error');
+            message(err.message || 'Gagal memperbarui kendaraan', 'error');
         } finally {
             loadingProvider.stop();
             setSaving(false);
@@ -271,7 +271,7 @@ export default function CarEditPage() {
     // ── Upload Car Photos ──────────────────────────────────────────────────
     const handleUploadCarPhotos = async () => {
         const hasAny = Object.values(carPhotos).some(Boolean);
-        if (!hasAny) { message('No new photos selected', 'warning'); return; }
+        if (!hasAny) { message('Belum ada foto baru yang dipilih', 'warning'); return; }
         try {
             setUploadingPhotos(true);
             const fd = new FormData();
@@ -280,8 +280,8 @@ export default function CarEditPage() {
             if (carPhotos.leftSide) fd.append('leftSide', carPhotos.leftSide);
             if (carPhotos.rightSide) fd.append('rightSide', carPhotos.rightSide);
             const res = await CarDAO.uploadCarPhotos(id, fd);
-            if (!res.success) throw new Error(res.error || 'Upload failed');
-            message('Car photos uploaded!', 'success');
+            if (!res.success) throw new Error(res.error || 'Gagal mengunggah foto');
+            message('Foto kendaraan berhasil diunggah!', 'success');
             // Refresh car data to show new URLs
             const refreshed = await CarDAO.getCarById(id);
             if (refreshed.success || refreshed.car) setCar(refreshed.car || refreshed);
@@ -290,7 +290,7 @@ export default function CarEditPage() {
             setCarPhotoPreviews({ front: null, back: null, leftSide: null, rightSide: null });
         } catch (err) {
             console.error(err);
-            message(err.message || 'Failed to upload car photos', 'error');
+            message(err.message || 'Gagal mengunggah foto kendaraan', 'error');
         } finally {
             setUploadingPhotos(false);
         }
@@ -299,7 +299,7 @@ export default function CarEditPage() {
     // ── Upload Document Photos ─────────────────────────────────────────────
     const handleUploadDocPhotos = async () => {
         const hasAny = Object.values(docPhotos).some(Boolean);
-        if (!hasAny) { message('No new documents selected', 'warning'); return; }
+        if (!hasAny) { message('Belum ada dokumen baru yang dipilih', 'warning'); return; }
         try {
             setUploadingDocs(true);
             const fd = new FormData();
@@ -307,15 +307,15 @@ export default function CarEditPage() {
             if (docPhotos.sim) fd.append('sim', docPhotos.sim);
             if (docPhotos.ktp) fd.append('ktp', docPhotos.ktp);
             const res = await CarDAO.uploadDocuments(id, fd);
-            if (!res.success) throw new Error(res.error || 'Upload failed');
-            message('Documents uploaded!', 'success');
+            if (!res.success) throw new Error(res.error || 'Gagal mengunggah dokumen');
+            message('Dokumen berhasil diunggah!', 'success');
             const refreshed = await CarDAO.getCarById(id);
             if (refreshed.success || refreshed.car) setCar(refreshed.car || refreshed);
             setDocPhotos({ stnk: null, sim: null, ktp: null });
             setDocPhotoPreviews({ stnk: null, sim: null, ktp: null });
         } catch (err) {
             console.error(err);
-            message(err.message || 'Failed to upload documents', 'error');
+            message(err.message || 'Gagal mengunggah dokumen', 'error');
         } finally {
             setUploadingDocs(false);
         }
@@ -371,7 +371,7 @@ export default function CarEditPage() {
                             Edit Mobil
                         </Typography>
                         <Typography fontSize={13} sx={{ color: '#64748B' }}>
-                            {formData.carBrand} {formData.carModel} · {formData.plateNumber || 'No plate'}
+                            {formData.carBrand} {formData.carModel} · {formData.plateNumber || 'Tanpa plat'}
                         </Typography>
                     </Box>
                     <Stack direction="row" spacing={1.5}>
@@ -453,11 +453,11 @@ export default function CarEditPage() {
                                         <TextField fullWidth size="small" name="ownerName" value={formData.ownerName} onChange={handleChange} placeholder="cth. Budi Santoso" sx={inputStyle} />
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
-                                        <FieldLabel label="No. Rangka (Chassis Number)" />
+                                        <FieldLabel label="No. Rangka" />
                                         <TextField fullWidth size="small" name="chassisNumber" value={formData.chassisNumber} onChange={handleChange} placeholder="cth. MHF..." sx={inputStyle} />
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
-                                        <FieldLabel label="No. Mesin (Engine Number)" />
+                                        <FieldLabel label="No. Mesin" />
                                         <TextField fullWidth size="small" name="engineNumber" value={formData.engineNumber} onChange={handleChange} placeholder="cth. 1TR..." sx={inputStyle} />
                                     </Grid>
                                 </Grid>
@@ -512,7 +512,7 @@ export default function CarEditPage() {
                                                     : { borderColor: '#E4E6EA', color: '#64748B' }
                                                 ),
                                             }}>
-                                            {s}
+                                            {s === 'Active' ? 'Aktif' : s === 'Expired' ? 'Kedaluwarsa' : 'Dibatalkan'}
                                         </Button>
                                     ))}
                                 </Stack>

@@ -28,7 +28,6 @@ import {
   Fade,
 } from '@mui/material';
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CompanyDAO from '../../daos/CompanyDao';
@@ -166,7 +165,6 @@ function QuotationTypeTab({ value, onChange }) {
 }
 
 export default function CreateQuotationPage() {
-  const navigate = useNavigate();
   const loading = useLoading();
   const message = useAlert();
   const theme = useTheme();
@@ -617,13 +615,6 @@ export default function CreateQuotationPage() {
 
         {/* Title */}
         <Box mb={3}>
-          <Button
-            startIcon={<Icon icon="mdi:arrow-left" width={16} />}
-            onClick={() => navigate(-1)}
-            sx={{ textTransform: 'none', fontSize: 13, fontWeight: 500, color: '#606770', mb: 1.5, pl: 0, '&:hover': { bgcolor: 'transparent', color: '#1C1E21' } }}
-          >
-            Back
-          </Button>
           <Typography variant="h5" fontWeight={700} align="center" sx={{ color: '#1C1E21' }}>
             New Quotation
           </Typography>

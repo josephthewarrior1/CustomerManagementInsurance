@@ -30,7 +30,7 @@ function InfoRow({ label, value, icon, fullWidth }) {
                     {label}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#1E293B', fontWeight: 500, wordBreak: 'break-word' }}>
-                    {value || <span style={{ color: '#CBD5E1', fontStyle: 'italic' }}>Not available</span>}
+                    {value || <span style={{ color: '#CBD5E1', fontStyle: 'italic' }}>Tidak tersedia</span>}
                 </Typography>
             </Box>
         </Stack>
@@ -95,7 +95,7 @@ function ImagePreviewDialog({ open, images, currentIndex, onClose, onIndexChange
 }
 
 const formatCurrency = (value) => {
-    if (!value) return 'Not available';
+    if (!value) return 'Tidak tersedia';
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
 };
 
@@ -134,12 +134,12 @@ export default function CarDetailPage() {
             if (response.success || response.car) {
                 setCar(response.car || response);
             } else {
-                message(response.error || 'Car not found', 'error');
+                message(response.error || 'Kendaraan tidak ditemukan', 'error');
                 navigate('/cars');
             }
         } catch (err) {
             console.error(err);
-            message('Failed to fetch car data', 'error');
+            message('Gagal memuat data kendaraan', 'error');
             navigate('/cars');
         } finally {
             loadingProvider.stop();
@@ -153,13 +153,13 @@ export default function CarDetailPage() {
             loadingProvider.start();
             const response = await CarDAO.deleteCar(id);
             if (response.success) {
-                message('Car deleted successfully', 'success');
+                message('Kendaraan berhasil dihapus', 'success');
                 navigate('/cars');
             } else {
-                message(response.error || 'Failed to delete car', 'error');
+                message(response.error || 'Gagal menghapus kendaraan', 'error');
             }
         } catch (err) {
-            message('Failed to delete car', 'error');
+            message('Gagal menghapus kendaraan', 'error');
         } finally {
             loadingProvider.stop();
             setDeleting(false);
@@ -196,10 +196,10 @@ export default function CarDetailPage() {
     ];
 
     const carPhotos = [
-        { label: 'Front', url: car.carPhotos?.front },
-        { label: 'Back', url: car.carPhotos?.back },
-        { label: 'Left', url: car.carPhotos?.leftSide },
-        { label: 'Right', url: car.carPhotos?.rightSide },
+        { label: 'Depan', url: car.carPhotos?.front },
+        { label: 'Belakang', url: car.carPhotos?.back },
+        { label: 'Kiri', url: car.carPhotos?.leftSide },
+        { label: 'Kanan', url: car.carPhotos?.rightSide },
     ];
 
     return (
@@ -207,7 +207,7 @@ export default function CarDetailPage() {
             <Container maxWidth="lg" sx={{ pt: 4 }}>
                 <Box sx={{ mb: 2 }}>
                     <Button onClick={() => navigate('/cars')} startIcon={<Icon icon="mdi:arrow-left" />} sx={{ color: '#475569', fontWeight: 600, textTransform: 'none', '&:hover': { bgcolor: 'transparent', color: '#1E293B' } }}>
-                        Back to Cars
+                        Kembali ke Kendaraan
                     </Button>
                 </Box>
                 {/* ── Header Card ── */}
@@ -247,9 +247,9 @@ export default function CarDetailPage() {
                         scrollButtons="auto"
                         sx={{ borderBottom: '1px solid #E2E8F0', '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 56 }, '& .Mui-selected': { color: '#1E40AF' }, '& .MuiTabs-indicator': { bgcolor: '#1E40AF', height: 3 } }}
                     >
-                        <Tab label="Car Info" icon={<Icon icon="mdi:car-info" width={20} />} iconPosition="start" />
-                        <Tab label="Documents" icon={<Icon icon="mdi:file-document" width={20} />} iconPosition="start" />
-                        <Tab label="Photos" icon={<Icon icon="mdi:camera" width={20} />} iconPosition="start" />
+                        <Tab label="Info Kendaraan" icon={<Icon icon="mdi:car-info" width={20} />} iconPosition="start" />
+                        <Tab label="Dokumen" icon={<Icon icon="mdi:file-document" width={20} />} iconPosition="start" />
+                        <Tab label="Foto" icon={<Icon icon="mdi:camera" width={20} />} iconPosition="start" />
                     </Tabs>
                 </Paper>
 
@@ -259,24 +259,24 @@ export default function CarDetailPage() {
                         <Grid item xs={12} md={6}>
                             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
                                 <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Icon icon="mdi:account" width={20} color="#1E40AF" /> Vehicle Information
+                                    <Icon icon="mdi:account" width={20} color="#1E40AF" /> Informasi Kendaraan
                                 </Typography>
-                                <InfoRow label="Owner Name" value={car.carData?.ownerName} icon="mdi:account" />
-                                <InfoRow label="Car Brand" value={car.carData?.carBrand} icon="mdi:car" />
-                                <InfoRow label="Car Model" value={car.carData?.carModel} icon="mdi:car-info" />
-                                <InfoRow label="Plate Number" value={car.carData?.plateNumber} icon="mdi:numeric" />
-                                <InfoRow label="Chassis Number" value={car.carData?.chassisNumber} icon="mdi:barcode" />
-                                <InfoRow label="Engine Number" value={car.carData?.engineNumber} icon="mdi:engine" />
+                                <InfoRow label="Nama Pemilik" value={car.carData?.ownerName} icon="mdi:account" />
+                                <InfoRow label="Merek Mobil" value={car.carData?.carBrand} icon="mdi:car" />
+                                <InfoRow label="Model Mobil" value={car.carData?.carModel} icon="mdi:car-info" />
+                                <InfoRow label="Nomor Polisi" value={car.carData?.plateNumber} icon="mdi:numeric" />
+                                <InfoRow label="Nomor Rangka" value={car.carData?.chassisNumber} icon="mdi:barcode" />
+                                <InfoRow label="Nomor Mesin" value={car.carData?.engineNumber} icon="mdi:engine" />
                             </Paper>
                         </Grid>
                         <Grid item xs={12} md={6}>
                             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
                                 <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Icon icon="mdi:cash" width={20} color="#1E40AF" /> Financial & Insurance
+                                    <Icon icon="mdi:cash" width={20} color="#1E40AF" /> Finansial & Asuransi
                                 </Typography>
-                                <InfoRow label="Vehicle Price" value={formatCurrency(car.carData?.carPrice)} icon="mdi:cash" />
-                                <InfoRow label="Insurance Due Date" value={car.carData?.dueDate} icon="mdi:calendar" />
-                                <InfoRow label="Notes" value={car.notes} icon="mdi:note-text" fullWidth />
+                                <InfoRow label="Harga Kendaraan" value={formatCurrency(car.carData?.carPrice)} icon="mdi:cash" />
+                                <InfoRow label="Jatuh Tempo Asuransi" value={car.carData?.dueDate} icon="mdi:calendar" />
+                                <InfoRow label="Catatan" value={car.notes} icon="mdi:note-text" fullWidth />
                             </Paper>
                         </Grid>
                     </Grid>
@@ -287,7 +287,7 @@ export default function CarDetailPage() {
                     <Grid container spacing={3}>
                         <Grid item xs={12}>
                             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E293B', mb: 2 }}>Document Photos</Typography>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E293B', mb: 2 }}>Foto Dokumen</Typography>
                                 <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
                                     {docPhotos.map(doc => (
                                         <Box key={doc.key} sx={{ flexShrink: 0, width: 90 }}>
@@ -301,7 +301,7 @@ export default function CarDetailPage() {
                                             ) : (
                                                 <Box sx={{ width: 90, height: 90, borderRadius: 2, border: '1px dashed #CBD5E1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC', opacity: 0.7 }}>
                                                     <Icon icon="mdi:camera-off" width={20} color="#94A3B8" />
-                                                    <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '10px', mt: 0.5 }}>Empty</Typography>
+                                                    <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '10px', mt: 0.5 }}>Kosong</Typography>
                                                 </Box>
                                             )}
                                         </Box>
@@ -316,7 +316,7 @@ export default function CarDetailPage() {
                 <TabPanel value={tabValue} index={2}>
                     <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Icon icon="mdi:camera" width={20} color="#1E40AF" /> Car Photos
+                            <Icon icon="mdi:camera" width={20} color="#1E40AF" /> Foto Kendaraan
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
                             {carPhotos.map(photo => (
@@ -331,7 +331,7 @@ export default function CarDetailPage() {
                                     ) : (
                                         <Box sx={{ width: 90, height: 90, borderRadius: 2, border: '1px dashed #CBD5E1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC', opacity: 0.7 }}>
                                             <Icon icon="mdi:camera-off" width={20} color="#94A3B8" />
-                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '10px', mt: 0.5 }}>Empty</Typography>
+                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '10px', mt: 0.5 }}>Kosong</Typography>
                                         </Box>
                                     )}
                                 </Box>
@@ -354,16 +354,16 @@ export default function CarDetailPage() {
             {/* Delete Confirmation Dialog */}
             <Dialog open={isDeleteDialogOpen} onClose={() => setIsDeleteDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ style: { borderRadius: '16px' } }}>
                 <Box sx={{ p: 3 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Delete Car</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Hapus Kendaraan</Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                        Are you sure you want to delete <b>{carBrand} {carModel}</b> ({plateNumber})? This action cannot be undone.
+                        Yakin ingin menghapus <b>{carBrand} {carModel}</b> ({plateNumber})? Tindakan ini tidak dapat dibatalkan.
                     </Typography>
                     <Stack direction="row" spacing={2} justifyContent="flex-end">
                         <Button variant="outlined" onClick={() => setIsDeleteDialogOpen(false)}
-                            sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#E2E8F0', color: '#475569' }}>Cancel</Button>
+                            sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#E2E8F0', color: '#475569' }}>Batal</Button>
                         <Button variant="contained" onClick={handleDelete} disabled={deleting}
                             sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>
-                            {deleting ? <CircularProgress size={20} color="inherit" /> : 'Delete'}
+                            {deleting ? <CircularProgress size={20} color="inherit" /> : 'Hapus'}
                         </Button>
                     </Stack>
                 </Box>

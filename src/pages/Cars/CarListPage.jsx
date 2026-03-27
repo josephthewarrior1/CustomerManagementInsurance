@@ -164,11 +164,11 @@ export default function CarListPage() {
                 setDataSource(filtered.slice(start, start + dataSourceOptions.limit));
                 setDataSourceOptions(prev => ({ ...prev, total: filtered.length }));
             } else {
-                message(response.error || 'Failed to fetch cars', 'error');
+                message(response.error || 'Gagal memuat data kendaraan', 'error');
             }
         } catch (err) {
             console.error(err);
-            message('Failed to fetch cars', 'error');
+            message('Gagal memuat data kendaraan', 'error');
         } finally {
             loading.stop();
         }
@@ -191,13 +191,13 @@ export default function CarListPage() {
             loading.start();
             const response = await CarDAO.deleteCar(selectedCar.id);
             if (response.success) {
-                message('Car deleted successfully', 'success');
+                message('Kendaraan berhasil dihapus', 'success');
                 fetchCars();
             } else {
-                message(response.error || 'Failed to delete car', 'error');
+                message(response.error || 'Gagal menghapus kendaraan', 'error');
             }
         } catch (err) {
-            message('Failed to delete car', 'error');
+            message('Gagal menghapus kendaraan', 'error');
         } finally {
             loading.stop();
             setDeletingCar(false);
@@ -236,7 +236,7 @@ export default function CarListPage() {
 
     const columns = [
         {
-            title: 'Owner Name',
+            title: 'Nama Pemilik',
             dataIndex: 'ownerName',
             key: 'ownerName',
             sortable: true,
@@ -253,7 +253,7 @@ export default function CarListPage() {
             )
         },
         {
-            title: 'Car',
+            title: 'Kendaraan',
             dataIndex: 'carBrand',
             key: 'carBrand',
             sortable: true,
@@ -262,7 +262,7 @@ export default function CarListPage() {
             )
         },
         {
-            title: 'Plate Number',
+            title: 'Nomor Polisi',
             dataIndex: 'plateNumber',
             key: 'plateNumber',
             sortable: false,
@@ -271,7 +271,7 @@ export default function CarListPage() {
             )
         },
         {
-            title: 'Insurance Due',
+            title: 'Jatuh Tempo Asuransi',
             dataIndex: 'dueDate',
             key: 'dueDate',
             sortable: false,
@@ -290,7 +290,7 @@ export default function CarListPage() {
             }
         },
         {
-            title: 'Actions',
+            title: 'Aksi',
             dataIndex: 'actions',
             key: 'actions',
             sortable: false,
@@ -329,7 +329,7 @@ export default function CarListPage() {
             <Box sx={{ p: 2, bgcolor: '#F8FAFC', minHeight: '100%' }}>
                 <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
                     <TextField
-                        fullWidth placeholder="Search cars..."
+                        fullWidth placeholder="Cari kendaraan..."
                         value={mobileSearchInput}
                         onChange={(e) => setMobileSearchInput(e.target.value)}
                         onKeyPress={(e) => { if (e.key === 'Enter') setDataSourceOptions(p => ({ ...p, keyword: mobileSearchInput, page: 0 })); }}
@@ -359,7 +359,7 @@ export default function CarListPage() {
                 {paginated.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 8 }}>
                         <Icon icon="mdi:car-off" width={64} color="#CBD5E1" />
-                        <Typography variant="body1" sx={{ mt: 2, color: '#94A3B8', fontWeight: 500 }}>No cars found</Typography>
+                        <Typography variant="body1" sx={{ mt: 2, color: '#94A3B8', fontWeight: 500 }}>Tidak ada kendaraan ditemukan</Typography>
                     </Box>
                 ) : (
                     <Stack spacing={2}>
@@ -386,11 +386,11 @@ export default function CarListPage() {
                                         <Divider sx={{ mb: 2, borderStyle: 'dashed' }} />
                                         <Grid container spacing={2}>
                                             <Grid item xs={6}>
-                                                <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>PLATE</Typography>
+                                                <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>PLAT</Typography>
                                                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>{car.plateNumber}</Typography>
                                             </Grid>
                                             <Grid item xs={6}>
-                                                <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>DUE DATE</Typography>
+                                                <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>JATUH TEMPO</Typography>
                                                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>{formatDate(car.dueDate)}</Typography>
                                             </Grid>
                                         </Grid>
@@ -412,7 +412,7 @@ export default function CarListPage() {
                 )}
                 {!hasMore && filtered.length > BATCH && (
                     <Box sx={{ py: 3, textAlign: 'center' }}>
-                        <Typography variant="body2" sx={{ color: '#94A3B8', fontWeight: 500 }}>All {filtered.length} cars loaded</Typography>
+                        <Typography variant="body2" sx={{ color: '#94A3B8', fontWeight: 500 }}>Semua {filtered.length} kendaraan sudah dimuat</Typography>
                     </Box>
                 )}
             </Box>
@@ -424,12 +424,12 @@ export default function CarListPage() {
             <CustomRow className="gap-x-4">
                 <CustomTextInput
                     onKeyPress={(e) => { if (e.key === 'Enter') setDataSourceOptions(p => ({ ...p, keyword: e.target.value, page: 0 })); }}
-                    placeholder="Search cars..."
+                    placeholder="Cari kendaraan..."
                     searchIcon={true}
                 />
                 <CustomRow className="justify-center gap-x-4">
                     <CustomButton startIcon={<CustomIcon icon="heroicons:plus" />} onClick={() => setIsCreateDialogOpen(true)} color="secondary">
-                        Add Car
+                        Tambah Kendaraan
                     </CustomButton>
                 </CustomRow>
             </CustomRow>
@@ -478,16 +478,16 @@ export default function CarListPage() {
             <Dialog open={isDeleteDialogOpen} onClose={() => setIsDeleteDialogOpen(false)} maxWidth="xs" fullWidth
                 PaperProps={{ style: { borderRadius: '16px' } }}>
                 <Box sx={{ p: 3 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Delete Car</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Hapus Kendaraan</Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                        Are you sure you want to delete <b>{selectedCar?.carBrand} {selectedCar?.carModel}</b> ({selectedCar?.plateNumber})? This action cannot be undone.
+                        Yakin ingin menghapus <b>{selectedCar?.carBrand} {selectedCar?.carModel}</b> ({selectedCar?.plateNumber})? Tindakan ini tidak dapat dibatalkan.
                     </Typography>
                     <Stack direction="row" spacing={2} justifyContent="flex-end">
                         <Button variant="outlined" onClick={() => setIsDeleteDialogOpen(false)}
-                            sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#E2E8F0', color: '#475569' }}>Cancel</Button>
+                            sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#E2E8F0', color: '#475569' }}>Batal</Button>
                         <Button variant="contained" onClick={handleDeleteCar} disabled={deletingCar}
                             sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>
-                            {deletingCar ? <CircularProgress size={20} color="inherit" /> : 'Delete'}
+                            {deletingCar ? <CircularProgress size={20} color="inherit" /> : 'Hapus'}
                         </Button>
                     </Stack>
                 </Box>
@@ -513,11 +513,11 @@ export default function CarListPage() {
                         <List sx={{ pb: 3 }}>
                             <ListItemButton onClick={() => { handleCloseDrawer(); navigate(`/cars/edit/${drawerCar.id}`); }} sx={{ borderRadius: '12px', mb: 1 }}>
                                 <ListItemIcon><Icon icon="mdi:pencil-outline" width={24} color="#1E40AF" /></ListItemIcon>
-                                <ListItemText primary="Edit Car" primaryTypographyProps={{ fontWeight: 600, color: '#1E40AF' }} />
+                                <ListItemText primary="Edit Kendaraan" primaryTypographyProps={{ fontWeight: 600, color: '#1E40AF' }} />
                             </ListItemButton>
                             <ListItemButton onClick={() => { handleCloseDrawer(); setSelectedCar(drawerCar); setIsDeleteDialogOpen(true); }} sx={{ borderRadius: '12px' }}>
                                 <ListItemIcon><Icon icon="mdi:trash-can-outline" width={24} color="#DC2626" /></ListItemIcon>
-                                <ListItemText primary="Delete Car" primaryTypographyProps={{ fontWeight: 600, color: '#DC2626' }} />
+                                <ListItemText primary="Hapus Kendaraan" primaryTypographyProps={{ fontWeight: 600, color: '#DC2626' }} />
                             </ListItemButton>
                         </List>
                     </>

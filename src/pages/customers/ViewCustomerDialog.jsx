@@ -106,10 +106,10 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                   hour: '2-digit',
                   minute: '2-digit'
               })
-            : 'Not available';
+            : 'Tidak tersedia';
 
     const formatCurrency = (value) => {
-        if (!value) return 'Not available';
+        if (!value) return 'Tidak tersedia';
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
             currency: 'IDR',
@@ -130,6 +130,15 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
             case 'Active': return '#D1FAE5';
             case 'Expired': return '#FEE2E2';
             default: return '#F1F5F9';
+        }
+    };
+
+    const statusLabel = (s) => {
+        switch (s) {
+            case 'Active': return 'Aktif';
+            case 'Expired': return 'Kedaluwarsa';
+            case 'Cancelled': return 'Dibatalkan';
+            default: return s || '-';
         }
     };
 
@@ -172,7 +181,7 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                                 fontSize: { xs: '1.25rem', sm: '1.5rem' }
                             }}
                         >
-                            Customer Details
+                            Detail Pelanggan
                         </Typography>
                         <IconButton 
                             onClick={onClose}
@@ -238,7 +247,7 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                                     sx={{ mb: 1 }}
                                 >
                                     <Chip
-                                        label={customer.status || 'Active'}
+                                        label={statusLabel(customer.status || 'Active')}
                                         size="medium"
                                         sx={{
                                             bgcolor: statusBgColor(customer.status || 'Active'),
@@ -302,17 +311,17 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                             }}
                         >
                             <Tab 
-                                label="Personal Info" 
+                                label="Info Pribadi" 
                                 icon={<Icon icon="mdi:account" width={20} />}
                                 iconPosition="start"
                             />
                             <Tab 
-                                label="Vehicle" 
+                                label="Kendaraan" 
                                 icon={<Icon icon="mdi:car" width={20} />}
                                 iconPosition="start"
                             />
                             <Tab 
-                                label="Photos" 
+                                label="Foto" 
                                 icon={<Icon icon="mdi:camera" width={20} />}
                                 iconPosition="start"
                             />
@@ -325,14 +334,14 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                     <TabPanel value={tabValue} index={0}>
                         <Grid container spacing={3}>
                             <Grid item xs={12}>
-                                <InfoCard title="Contact Information">
+                                <InfoCard title="Informasi Kontak">
                                     <InfoRow 
-                                        label="Phone Number" 
+                                        label="Nomor Telepon" 
                                         value={customer.phone} 
                                         icon="mdi:phone"
                                     />
                                     <InfoRow 
-                                        label="Address" 
+                                        label="Alamat" 
                                         value={customer.address} 
                                         icon="mdi:map-marker"
                                     />
@@ -340,20 +349,20 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                             </Grid>
                             
                             <Grid item xs={12}>
-                                <InfoCard title="Additional Information">
+                                <InfoCard title="Informasi Tambahan">
                                     <InfoRow 
-                                        label="Notes" 
+                                        label="Catatan" 
                                         value={customer.notes} 
                                         icon="mdi:note-text"
                                         fullWidth
                                     />
                                     <InfoRow 
-                                        label="Registration Date" 
+                                        label="Tanggal Pendaftaran" 
                                         value={formatDate(customer.createdAt)} 
                                         icon="mdi:calendar-plus"
                                     />
                                     <InfoRow 
-                                        label="Last Updated" 
+                                        label="Terakhir Diperbarui" 
                                         value={formatDate(customer.updatedAt)} 
                                         icon="mdi:calendar-edit"
                                     />
@@ -366,9 +375,9 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                     <TabPanel value={tabValue} index={1}>
                         <Grid container spacing={3}>
                             <Grid item xs={12} md={6}>
-                                <InfoCard title="Owner Details">
+                                <InfoCard title="Informasi Pemilik">
                                     <InfoRow 
-                                        label="Owner Name" 
+                                        label="Nama Pemilik" 
                                         value={customer.carData?.ownerName} 
                                         icon="mdi:account-circle"
                                     />
@@ -376,9 +385,9 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                             </Grid>
 
                             <Grid item xs={12} md={6}>
-                                <InfoCard title="Vehicle Identity">
+                                <InfoCard title="Identitas Kendaraan">
                                     <InfoRow 
-                                        label="Plate Number" 
+                                        label="Nomor Polisi" 
                                         value={customer.carData?.plateNumber} 
                                         icon="mdi:numeric"
                                     />
@@ -386,11 +395,11 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                             </Grid>
 
                             <Grid item xs={12}>
-                                <InfoCard title="Vehicle Specifications">
+                                <InfoCard title="Spesifikasi Kendaraan">
                                     <Grid container spacing={2}>
                                         <Grid item xs={12} sm={6}>
                                             <InfoRow 
-                                                label="Brand" 
+                                                label="Merek" 
                                                 value={customer.carData?.carBrand} 
                                                 icon="mdi:car"
                                             />
@@ -404,14 +413,14 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
                                             <InfoRow 
-                                                label="Chassis Number" 
+                                                label="Nomor Rangka" 
                                                 value={customer.carData?.chassisNumber} 
                                                 icon="mdi:barcode"
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
                                             <InfoRow 
-                                                label="Engine Number" 
+                                                label="Nomor Mesin" 
                                                 value={customer.carData?.engineNumber} 
                                                 icon="mdi:engine"
                                             />
@@ -421,19 +430,19 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                             </Grid>
 
                             <Grid item xs={12}>
-                                <InfoCard title="Financial & Insurance">
+                                <InfoCard title="Finansial & Asuransi">
                                     <Grid container spacing={2}>
                                         <Grid item xs={12} sm={6}>
                                             <InfoRow 
-                                                label="Vehicle Price" 
+                                                label="Harga Kendaraan" 
                                                 value={formatCurrency(customer.carData?.carPrice)} 
                                                 icon="mdi:cash"
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
                                             <InfoRow 
-                                                label="Insurance Due Date" 
-                                                value={customer.carData?.dueDate || 'Not set'} 
+                                                label="Jatuh Tempo Asuransi" 
+                                                value={customer.carData?.dueDate || 'Belum diatur'} 
                                                 icon="mdi:calendar-clock"
                                             />
                                         </Grid>
@@ -518,7 +527,7 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                                         fontWeight: 600
                                     }}
                                 >
-                                    No photos uploaded
+                                    Belum ada foto
                                 </Typography>
                                 <Typography 
                                     variant="body2"
@@ -527,7 +536,7 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                                         color: '#94A3B8'
                                     }}
                                 >
-                                    Vehicle photos will appear here once uploaded
+                                    Foto kendaraan akan muncul di sini setelah diunggah
                                 </Typography>
                             </Paper>
                         )}
@@ -561,7 +570,7 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                             }
                         }}
                     >
-                        Delete
+                        Hapus
                     </Button>
                     
                     <Box flex={1} />
@@ -583,7 +592,7 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                             }
                         }}
                     >
-                        Close
+                        Tutup
                     </Button>
                     
                     <Button
@@ -604,7 +613,7 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                             }
                         }}
                     >
-                        Edit Customer
+                        Edit Pelanggan
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -698,7 +707,7 @@ function InfoRow({ label, value, icon, fullWidth }) {
                             wordBreak: fullWidth ? 'break-word' : 'normal'
                         }}
                     >
-                        {value || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Not available</span>}
+                        {value || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Tidak tersedia</span>}
                     </Typography>
                 </Box>
             </Stack>

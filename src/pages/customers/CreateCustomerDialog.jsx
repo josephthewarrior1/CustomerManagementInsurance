@@ -30,7 +30,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
 
     const validateForm = () => {
         const newErrors = {};
-        if (!formData.name.trim()) newErrors.name = 'Customer name is required';
+        if (!formData.name.trim()) newErrors.name = 'Nama pelanggan wajib diisi';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -63,14 +63,14 @@ export default function CreateCustomerDialog({ open, onClose }) {
             };
 
             const customerResponse = await CustomerDAO.createCustomer(customerData);
-            if (!customerResponse.success) throw new Error(customerResponse.error || 'Failed to create customer');
+            if (!customerResponse.success) throw new Error(customerResponse.error || 'Gagal membuat pelanggan');
 
-            message('Customer created successfully!', 'success');
+            message('Pelanggan berhasil dibuat!', 'success');
             onClose(true);
             resetForm();
         } catch (error) {
             console.error(error);
-            message(error.message || 'Failed to create customer', 'error');
+            message(error.message || 'Gagal membuat pelanggan', 'error');
         } finally {
             loadingProvider.stop();
         }
@@ -89,7 +89,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
         >
             {/* Header */}
             <div className={`flex items-center justify-between ${isMobile ? 'px-4 py-3' : 'px-6 py-4'} border-b border-gray-100`}>
-                <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-gray-800`}>Create New Customer</h2>
+                <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-gray-800`}>Tambah Pelanggan Baru</h2>
                 <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
                     <Icon icon="mdi:close" width="24" />
                 </button>
@@ -99,9 +99,9 @@ export default function CreateCustomerDialog({ open, onClose }) {
             <div className={`${isMobile ? 'p-4' : 'p-8'} overflow-y-auto`}>
                 <div className="space-y-5 animate-fadeIn">
                     <FormInput
-                        label="Customer Name"
+                        label="Nama Pelanggan"
                         name="name"
-                        placeholder="John Doe"
+                        placeholder="Michael Santoso"
                         icon="lucide:user"
                         required
                         value={formData.name}
@@ -111,7 +111,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <FormInput
-                            label="Email (Optional)"
+                            label="Email (Opsional)"
                             name="email"
                             type="email"
                             placeholder="john@example.com"
@@ -121,7 +121,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
                             error={errors.email}
                         />
                         <FormInput
-                            label="Phone Number"
+                            label="Nomor Telepon"
                             name="phone"
                             placeholder="+62 812 3456 7890"
                             icon="lucide:phone"
@@ -132,9 +132,9 @@ export default function CreateCustomerDialog({ open, onClose }) {
                     </div>
 
                     <FormInput
-                        label="Address"
+                        label="Alamat"
                         name="address"
-                        placeholder="1234 Main St, Springfield, IL"
+                        placeholder="Jl. Pademangan III Raya No. 14"
                         icon="lucide:map-pin"
                         value={formData.address}
                         onChange={handleChange}
@@ -142,9 +142,9 @@ export default function CreateCustomerDialog({ open, onClose }) {
                     />
 
                     <FormInput
-                        label="Notes"
+                        label="Catatan"
                         name="notes"
-                        placeholder="Add any additional details regarding the customer..."
+                        placeholder="Tambahkan keterangan tambahan mengenai pelanggan..."
                         icon="lucide:file-text"
                         multiline
                         value={formData.notes}
@@ -160,14 +160,14 @@ export default function CreateCustomerDialog({ open, onClose }) {
                     onClick={handleClose}
                     className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-white hover:border-gray-400 transition-colors"
                 >
-                    Cancel
+                    Batal
                 </button>
 
                 <button
                     onClick={handleSubmit}
                     className="px-6 py-2 bg-[#002D5B] text-white text-sm font-medium rounded-md hover:bg-[#001f40] transition-colors shadow-sm flex items-center gap-2"
                 >
-                    Create Customer
+                    Buat Pelanggan
                 </button>
             </div>
         </Dialog>

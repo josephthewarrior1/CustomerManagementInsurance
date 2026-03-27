@@ -136,12 +136,12 @@ export default function CustomerEditPage() {
                     notes: response.customer.notes || '',
                 });
             } else {
-                message(response.error || 'Customer not found', 'error');
+                message(response.error || 'Pelanggan tidak ditemukan', 'error');
                 navigate('/customers');
             }
         } catch (error) {
             console.error('Error fetching customer:', error);
-            message('Failed to fetch customer', 'error');
+            message('Gagal mengambil data pelanggan', 'error');
             navigate('/customers');
         } finally {
             loadingProvider.stop();
@@ -166,7 +166,7 @@ export default function CustomerEditPage() {
     const validateForm = () => {
         const newErrors = {};
 
-        if (!formData.name.trim()) newErrors.name = 'Name is required';
+        if (!formData.name.trim()) newErrors.name = 'Nama wajib diisi';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -191,19 +191,19 @@ export default function CustomerEditPage() {
             const response = await CustomerDAO.updateCustomer(id, updateData);
 
             if (!response.success) {
-                throw new Error(response.error || 'Failed to update customer');
+                throw new Error(response.error || 'Gagal memperbarui pelanggan');
             }
 
             console.log('✅ Customer data updated successfully');
 
 
 
-            message('Customer updated successfully!', 'success');
+            message('Pelanggan berhasil diperbarui!', 'success');
             navigate(`/customers/${id}`);
 
         } catch (error) {
             console.error('❌ Error updating customer:', error);
-            message(error.error || 'Failed to update customer', 'error');
+            message(error.error || 'Gagal memperbarui pelanggan', 'error');
         } finally {
             loadingProvider.stop();
             setSaving(false);
@@ -215,7 +215,7 @@ export default function CustomerEditPage() {
     if (loading) {
         return (
             <Container sx={{ py: 8, textAlign: 'center' }}>
-                <Typography variant="h6" color="text.secondary">Loading customer data...</Typography>
+                <Typography variant="h6" color="text.secondary">Memuat data pelanggan...</Typography>
             </Container>
         );
     }
@@ -248,7 +248,7 @@ export default function CustomerEditPage() {
                                     fontSize: { xs: '1.75rem', sm: '2.125rem' }
                                 }}
                             >
-                                Edit Customer
+                                Edit Pelanggan
                             </Typography>
                             <Typography
                                 variant="body2"
@@ -258,7 +258,7 @@ export default function CustomerEditPage() {
                                     fontWeight: 500
                                 }}
                             >
-                                Customer ID: <Box component="span" sx={{ color: '#475569' }}>{id}</Box>
+                                ID Pelanggan: <Box component="span" sx={{ color: '#475569' }}>{id}</Box>
                             </Typography>
                         </Box>
 
@@ -286,7 +286,7 @@ export default function CustomerEditPage() {
                                     }
                                 }}
                             >
-                                View Details
+                                Lihat Detail
                             </Button>
                             <Button
                                 variant="contained"
@@ -313,7 +313,7 @@ export default function CustomerEditPage() {
                                     }
                                 }}
                             >
-                                {saving ? 'Saving...' : 'Save Changes'}
+                                {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
                             </Button>
                         </Stack>
                     </Stack>
@@ -337,19 +337,19 @@ export default function CustomerEditPage() {
                     <Grid container spacing={3}>
                         <Grid size={12}>
                             <FormInput
-                                label="Full Name"
+                                label="Nama Lengkap"
                                 name="name"
                                 value={formData.name}
                                 onChange={handleChange}
                                 error={errors.name}
                                 required
                                 icon="lucide:user"
-                                placeholder="John Doe"
+                                placeholder="Michael Santoso"
                             />
                         </Grid>
                         <Grid size={{ xs: 12, md: 6 }}>
                             <FormInput
-                                label="Phone Number"
+                                label="Nomor Telepon"
                                 name="phone"
                                 value={formData.phone}
                                 onChange={handleChange}
@@ -359,24 +359,24 @@ export default function CustomerEditPage() {
                         </Grid>
                         <Grid size={{ xs: 12, md: 6 }}>
                             <FormInput
-                                label="Address"
+                                label="Alamat"
                                 name="address"
                                 value={formData.address}
                                 onChange={handleChange}
                                 icon="lucide:map-pin"
-                                placeholder="1234 Main St"
+                                placeholder="Jl. Pademangan III Raya No. 14"
                             />
                         </Grid>
                         <Grid size={12}>
                             <FormInput
-                                label="Additional Notes"
+                                label="Catatan Tambahan"
                                 name="notes"
                                 value={formData.notes}
                                 onChange={handleChange}
                                 multiline
                                 rows={4}
                                 icon="lucide:file-text"
-                                placeholder="Add any additional details..."
+                                placeholder="Tambahkan keterangan tambahan..."
                             />
                         </Grid>
                     </Grid>

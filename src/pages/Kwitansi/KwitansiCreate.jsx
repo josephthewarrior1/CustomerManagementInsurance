@@ -24,7 +24,6 @@ import {
   Fade,
 } from "@mui/material";
 import { Icon } from "@iconify/react";
-import { useNavigate } from "react-router";
 import { useLoading } from "../../hooks/LoadingProvider";
 import { useAlert } from "../../hooks/SnackbarProvider";
 import CustomerDAO from "../../daos/CustomerDao";
@@ -134,7 +133,6 @@ function WizardStepper({ active }) {
 
 // ═════════════════════════════════════════════════════════════════════════════
 export default function KwitansiCreate() {
-  const navigate = useNavigate();
   const loading = useLoading();
   const message = useAlert();
   const theme = useTheme();
@@ -434,10 +432,6 @@ export default function KwitansiCreate() {
 
         {/* Title */}
         <Box mb={3}>
-          <Button startIcon={<Icon icon="mdi:arrow-left" width={16} />} onClick={() => navigate(-1)}
-            sx={{ textTransform: "none", fontSize: 13, fontWeight: 500, color: C.textSub, mb: 1.5, pl: 0, "&:hover": { bgcolor: "transparent", color: C.text } }}>
-            Back
-          </Button>
           <Typography variant="h5" fontWeight={700} align="center" sx={{ color: C.text }}>
             New Kwitansi
           </Typography>

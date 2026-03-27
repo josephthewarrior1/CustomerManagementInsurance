@@ -321,10 +321,10 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
 
     const handleNext = async () => {
         if (activeStep === 0) {
-            if (!customerId && !selectedCustomer) { message('Please select a customer', 'error'); return; }
-            if (!formData.carBrand.trim()) { message('Car brand is required', 'error'); return; }
-            if (!formData.carModel.trim()) { message('Car model is required', 'error'); return; }
-            if (!formData.plateNumber.trim()) { message('Plate number is required', 'error'); return; }
+            if (!customerId && !selectedCustomer) { message('Silakan pilih pelanggan', 'error'); return; }
+            if (!formData.carBrand.trim()) { message('Merek mobil wajib diisi', 'error'); return; }
+            if (!formData.carModel.trim()) { message('Model mobil wajib diisi', 'error'); return; }
+            if (!formData.plateNumber.trim()) { message('Nomor polisi wajib diisi', 'error'); return; }
         }
 
         if (activeStep === 2) {
@@ -386,13 +386,13 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
                 color: formData.color,
             };
             const response = await CarDAO.createCar(submitData);
-            if (!response.success) throw new Error(response.error || 'Failed to create car');
+            if (!response.success) throw new Error(response.error || 'Gagal membuat kendaraan');
             setCreatedCarId(response.car.id);
-            message('Car created! Now upload photos.', 'success');
+            message('Kendaraan berhasil dibuat! Sekarang unggah foto.', 'success');
             setActiveStep(3);
         } catch (error) {
             console.error(error);
-            message(error.message || 'Failed to create car', 'error');
+            message(error.message || 'Gagal membuat kendaraan', 'error');
         } finally {
             loadingProvider.stop();
         }
@@ -414,12 +414,12 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
             if (carPhotos.leftSide) fd.append('leftSide', carPhotos.leftSide);
             if (carPhotos.rightSide) fd.append('rightSide', carPhotos.rightSide);
             const res = await CarDAO.uploadCarPhotos(createdCarId, fd);
-            if (!res.success) throw new Error(res.error || 'Failed to upload photos');
-            message('Car photos uploaded!', 'success');
+            if (!res.success) throw new Error(res.error || 'Gagal mengunggah foto');
+            message('Foto kendaraan berhasil diunggah!', 'success');
             setActiveStep(4);
         } catch (error) {
             console.error(error);
-            message(error.message || 'Failed to upload car photos', 'error');
+            message(error.message || 'Gagal mengunggah foto kendaraan', 'error');
         } finally {
             setUploading(false);
         }
@@ -436,13 +436,13 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
                 if (docPhotos.sim) fd.append('sim', docPhotos.sim);
                 if (docPhotos.ktp) fd.append('ktp', docPhotos.ktp);
                 const res = await CarDAO.uploadDocuments(createdCarId, fd);
-                if (!res.success) throw new Error(res.error || 'Failed to upload documents');
-                message('Documents uploaded!', 'success');
+                if (!res.success) throw new Error(res.error || 'Gagal mengunggah dokumen');
+                message('Dokumen berhasil diunggah!', 'success');
                 // Trigger parent refresh then get final car data
                 if (res.car) onCarCreated(res.car);
             } catch (error) {
                 console.error(error);
-                message(error.message || 'Failed to upload documents', 'error');
+                message(error.message || 'Gagal mengunggah dokumen', 'error');
             } finally {
                 setUploading(false);
             }

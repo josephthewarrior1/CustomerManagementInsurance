@@ -217,7 +217,7 @@ function InfoRow({ label, value, icon, fullWidth }) {
                         color: '#1E293B', fontSize: '0.9375rem', fontWeight: 500,
                         lineHeight: 1.6, wordBreak: fullWidth ? 'break-word' : 'normal'
                     }}>
-                        {value || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Not available</span>}
+                        {value || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Tidak tersedia</span>}
                     </Typography>
                 </Box>
             </Stack>
@@ -255,12 +255,12 @@ export default function CustomerDetailPage() {
                 setCars(response.cars || []);
                 setProperties(response.properties || []);
             } else {
-                message(response.error || 'Customer not found', 'error');
+                message(response.error || 'Pelanggan tidak ditemukan', 'error');
                 navigate('/customers');
             }
         } catch (error) {
             console.error('Error fetching customer:', error);
-            message('Failed to fetch customer data', 'error');
+            message('Gagal mengambil data pelanggan', 'error');
             navigate('/customers');
         } finally {
             loadingProvider.stop();
@@ -282,10 +282,10 @@ export default function CustomerDetailPage() {
                 day: '2-digit', month: 'long', year: 'numeric',
                 hour: '2-digit', minute: '2-digit'
             })
-            : 'Not available';
+            : 'Tidak tersedia';
 
     const formatCurrency = (value) => {
-        if (!value) return 'Not available';
+        if (!value) return 'Tidak tersedia';
         return new Intl.NumberFormat('id-ID', {
             style: 'currency', currency: 'IDR', minimumFractionDigits: 0
         }).format(value);
@@ -304,6 +304,15 @@ export default function CustomerDetailPage() {
             case 'Active': return '#D1FAE5';
             case 'Expired': return '#FEE2E2';
             default: return '#F1F5F9';
+        }
+    };
+
+    const statusLabel = (s) => {
+        switch (s) {
+            case 'Active': return 'Aktif';
+            case 'Expired': return 'Kedaluwarsa';
+            case 'Cancelled': return 'Dibatalkan';
+            default: return s || '-';
         }
     };
 
@@ -338,7 +347,7 @@ export default function CustomerDetailPage() {
                             '&:hover': { bgcolor: 'transparent', color: '#1E40AF' }
                         }}
                     >
-                        Back to Customers
+                        Kembali ke Pelanggan
                     </Button>
                 </Box>
 
@@ -365,7 +374,7 @@ export default function CustomerDetailPage() {
                             </Typography>
                             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center" justifyContent={{ xs: 'center', sm: 'flex-start' }} sx={{ mt: 1 }}>
                                 <Chip
-                                    label={customer.status || 'Active'}
+                                    label={statusLabel(customer.status || 'Active')}
                                     size="small"
                                     sx={{
                                         bgcolor: statusBgColor(customer.status || 'Active'),
@@ -399,9 +408,9 @@ export default function CustomerDetailPage() {
                             '& .MuiTabs-indicator': { height: 3, bgcolor: '#1E40AF', borderRadius: '3px 3px 0 0' }
                         }}
                     >
-                        <Tab label="Personal Info" icon={<Icon icon="mdi:account" width={20} />} iconPosition="start" />
-                        <Tab label={`Cars (${cars.length})`} icon={<Icon icon="mdi:car" width={20} />} iconPosition="start" />
-                        <Tab label={`Properties (${properties.length})`} icon={<Icon icon="mdi:home" width={20} />} iconPosition="start" />
+                        <Tab label="Info Pribadi" icon={<Icon icon="mdi:account" width={20} />} iconPosition="start" />
+                        <Tab label={`Kendaraan (${cars.length})`} icon={<Icon icon="mdi:car" width={20} />} iconPosition="start" />
+                        <Tab label={`Properti (${properties.length})`} icon={<Icon icon="mdi:home" width={20} />} iconPosition="start" />
                     </Tabs>
                 </Paper>
 
@@ -409,16 +418,16 @@ export default function CustomerDetailPage() {
                 <TabPanel value={tabValue} index={0}>
                     <Grid container spacing={3}>
                         <Grid item xs={12}>
-                            <InfoCard title="Contact Information">
-                                <InfoRow label="Phone Number" value={customer.phone} icon="mdi:phone" />
-                                <InfoRow label="Address" value={customer.address} icon="mdi:map-marker" />
+                            <InfoCard title="Informasi Kontak">
+                                <InfoRow label="Nomor Telepon" value={customer.phone} icon="mdi:phone" />
+                                <InfoRow label="Alamat" value={customer.address} icon="mdi:map-marker" />
                             </InfoCard>
                         </Grid>
                         <Grid item xs={12}>
-                            <InfoCard title="Additional Information">
-                                <InfoRow label="Notes" value={customer.notes} icon="mdi:note-text" fullWidth />
-                                <InfoRow label="Registration Date" value={formatDate(customer.createdAt)} icon="mdi:calendar-plus" />
-                                <InfoRow label="Last Updated" value={formatDate(customer.updatedAt)} icon="mdi:calendar-edit" />
+                            <InfoCard title="Informasi Tambahan">
+                                <InfoRow label="Catatan" value={customer.notes} icon="mdi:note-text" fullWidth />
+                                <InfoRow label="Tanggal Pendaftaran" value={formatDate(customer.createdAt)} icon="mdi:calendar-plus" />
+                                <InfoRow label="Terakhir Diperbarui" value={formatDate(customer.updatedAt)} icon="mdi:calendar-edit" />
                             </InfoCard>
                         </Grid>
                     </Grid>
@@ -428,7 +437,7 @@ export default function CustomerDetailPage() {
                 <TabPanel value={tabValue} index={1}>
                     <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B' }}>
-                            Associated Cars
+                            Kendaraan Terkait
                         </Typography>
                         <Button
                             variant="contained"
@@ -439,7 +448,7 @@ export default function CustomerDetailPage() {
                                 borderRadius: 2, '&:hover': { bgcolor: '#1E3A8A' }
                             }}
                         >
-                            Add Car
+                            Tambah Kendaraan
                         </Button>
                     </Box>
 
@@ -478,8 +487,8 @@ export default function CustomerDetailPage() {
                     ) : (
                         <Paper elevation={0} sx={{ p: 8, textAlign: 'center', borderRadius: 3, border: '2px dashed #E2E8F0', bgcolor: '#F8FAFC' }}>
                             <Icon icon="mdi:car-off" width={64} color="#CBD5E1" />
-                            <Typography variant="h6" sx={{ mt: 2, color: '#64748B', fontWeight: 600 }}>No cars found</Typography>
-                            <Typography variant="body2" sx={{ mt: 1, color: '#94A3B8' }}>This customer doesn't have any registered cars yet.</Typography>
+                            <Typography variant="h6" sx={{ mt: 2, color: '#64748B', fontWeight: 600 }}>Belum ada kendaraan</Typography>
+                            <Typography variant="body2" sx={{ mt: 1, color: '#94A3B8' }}>Pelanggan ini belum memiliki kendaraan terdaftar.</Typography>
                         </Paper>
                     )}
                 </TabPanel>
@@ -488,7 +497,7 @@ export default function CustomerDetailPage() {
                 <TabPanel value={tabValue} index={2}>
                     <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B' }}>
-                            Associated Properties
+                            Properti Terkait
                         </Typography>
                         <Button
                             variant="contained"
@@ -499,7 +508,7 @@ export default function CustomerDetailPage() {
                                 borderRadius: 2, '&:hover': { bgcolor: '#1E3A8A' }
                             }}
                         >
-                            Add Property
+                            Tambah Properti
                         </Button>
                     </Box>
 
@@ -523,7 +532,7 @@ export default function CustomerDetailPage() {
                                                 </Avatar>
                                                 <Box sx={{ overflow: 'hidden' }}>
                                                     <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B', fontSize: '1.05rem' }} noWrap>
-                                                        {property.propertyData?.propertyType || 'Property'}
+                                                        {property.propertyData?.propertyType || 'Properti'}
                                                     </Typography>
                                                     <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 500 }} noWrap>
                                                         {property.propertyData?.address}
@@ -534,8 +543,8 @@ export default function CustomerDetailPage() {
                                         </Stack>
                                         <Divider sx={{ my: 1.5, borderColor: '#F1F5F9' }} />
                                         <Stack spacing={1}>
-                                            <InfoRow label="Value" value={formatCurrency(property.propertyData?.propertyValue)} icon="mdi:cash" />
-                                            <InfoRow label="Insurance Ends" value={property.insuranceData?.endDate ? new Date(property.insuranceData.endDate).toLocaleDateString('id-ID') : 'Not set'} icon="mdi:calendar" />
+                                            <InfoRow label="Nilai Properti" value={formatCurrency(property.propertyData?.propertyValue)} icon="mdi:cash" />
+                                            <InfoRow label="Asuransi Berakhir" value={property.insuranceData?.endDate ? new Date(property.insuranceData.endDate).toLocaleDateString('id-ID') : 'Belum diatur'} icon="mdi:calendar" />
                                         </Stack>
                                     </Paper>
                                 </Grid>
@@ -544,8 +553,8 @@ export default function CustomerDetailPage() {
                     ) : (
                         <Paper elevation={0} sx={{ p: 8, textAlign: 'center', borderRadius: 3, border: '2px dashed #E2E8F0', bgcolor: '#F8FAFC' }}>
                             <Icon icon="mdi:home-off" width={64} color="#CBD5E1" />
-                            <Typography variant="h6" sx={{ mt: 2, color: '#64748B', fontWeight: 600 }}>No properties found</Typography>
-                            <Typography variant="body2" sx={{ mt: 1, color: '#94A3B8' }}>This customer doesn't have any registered properties yet.</Typography>
+                            <Typography variant="h6" sx={{ mt: 2, color: '#64748B', fontWeight: 600 }}>Belum ada properti</Typography>
+                            <Typography variant="body2" sx={{ mt: 1, color: '#94A3B8' }}>Pelanggan ini belum memiliki properti terdaftar.</Typography>
                         </Paper>
                     )}
                 </TabPanel>
