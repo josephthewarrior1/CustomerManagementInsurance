@@ -376,7 +376,7 @@ export default function CreateQuotationPage() {
       doc.text(String(value ?? ''), valueX, y);
     };
 
-    row(currentY, 'Nama', quotationType === 'car' ? (selectedItem?.carData?.ownerName || 'TBA') : (selectedItem?.ownerName || 'TBA'));
+    row(currentY, 'Nama', quotationType === 'car' ? (selectedItem?.carData?.ownerName || 'TBA') : (selectedItem?.ownerName || selectedItem?.customerName || 'TBA'));
     currentY += 7;
     row(currentY, 'Alamat', quotationType === 'car' ? '-' : (selectedItem?.propertyData?.address || '-'));
     currentY += 7;
@@ -586,7 +586,7 @@ export default function CreateQuotationPage() {
     } else {
       return properties.filter(p =>
         !s ||
-        p.ownerName?.toLowerCase().includes(s) ||
+        (p.ownerName || p.customerName || '').toLowerCase().includes(s) ||
         p.propertyData?.propertyType?.toLowerCase().includes(s) ||
         p.propertyData?.city?.toLowerCase().includes(s)
       );
@@ -608,7 +608,7 @@ export default function CreateQuotationPage() {
   const getOwnerName = () => {
     if (!selectedItem) return '';
     if (quotationType === 'car') return selectedItem.carData?.ownerName || '';
-    return selectedItem.ownerName || '';
+    return selectedItem.ownerName || selectedItem.customerName || '';
   };
 
   return (
@@ -712,7 +712,7 @@ export default function CreateQuotationPage() {
                       ) : (
                         <Grid container spacing={1.5}>
                           {[
-                            { label: 'Pemilik', value: selectedItem.ownerName },
+                            { label: 'Pemilik', value: selectedItem.ownerName || selectedItem.customerName },
                             { label: 'Tipe', value: selectedItem.propertyData?.propertyType },
                             { label: 'Kota', value: selectedItem.propertyData?.city },
                             { label: 'Alamat', value: selectedItem.propertyData?.address },
@@ -904,7 +904,7 @@ export default function CreateQuotationPage() {
                       { label: 'Kendaraan', value: `${selectedItem?.carData?.carBrand || ''} ${selectedItem?.carData?.carModel || ''}`.trim() },
                       { label: 'TSI', value: fmt(Number(tsi)) },
                     ] : [
-                      { label: 'Pemilik', value: selectedItem?.ownerName },
+                      { label: 'Pemilik', value: selectedItem?.ownerName || selectedItem?.customerName },
                       { label: 'Tipe Properti', value: selectedItem?.propertyData?.propertyType },
                       { label: 'Kota', value: selectedItem?.propertyData?.city },
                       { label: 'Alamat', value: selectedItem?.propertyData?.address },
@@ -1014,7 +1014,7 @@ export default function CreateQuotationPage() {
                     : item.propertyData?.propertyType || 'Property';
                   const sub1 = quotationType === 'car'
                     ? (item.carData?.ownerName || '—')
-                    : (item.ownerName || '—');
+                    : (item.ownerName || item.customerName || '—');
                   const sub2 = quotationType === 'car'
                     ? (item.carData?.plateNumber || 'No plate')
                     : (item.propertyData?.city || '—');

@@ -972,6 +972,7 @@ function VehicleTab({ cars }) {
 function PropertyTab({ properties }) {
   const [search, setSearch] = useState("");
   const { isMobile } = useBreakpoint();
+  const getPropertyOwnerName = useCallback((p) => p.ownerName || p.customerName || "—", []);
 
   const getPropertyStatus = useCallback((p) => {
     if (p.status === "Cancelled") return "Cancelled";
@@ -1040,13 +1041,13 @@ function PropertyTab({ properties }) {
     return properties
       .filter(p =>
         !q ||
-        p.ownerName?.toLowerCase().includes(q) ||
+        getPropertyOwnerName(p)?.toLowerCase().includes(q) ||
         p.propertyData?.propertyType?.toLowerCase().includes(q) ||
         p.propertyData?.city?.toLowerCase().includes(q)
       )
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, 10);
-  }, [properties, search]);
+  }, [properties, search, getPropertyOwnerName]);
 
   if (!stats) return (
     <div className="empty-state">
@@ -1172,10 +1173,10 @@ function PropertyTab({ properties }) {
                 border: `1px solid ${urgent ? "#bfdbfe" : "#bae6fd"}`,
               }}>
                 <div className="avatar" style={{ background: urgent ? "#1d4ed8" : "#0ea5e9", color: "#fff" }}>
-                  {p.ownerName?.[0]?.toUpperCase() || "?"}
+                  {getPropertyOwnerName(p)?.[0]?.toUpperCase() || "?"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontWeight: 700, fontSize: 12.5, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.ownerName}</p>
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: 12.5, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getPropertyOwnerName(p)}</p>
                   <p style={{ margin: 0, fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.propertyData?.propertyType} · {p.propertyData?.city}</p>
                 </div>
                 <div style={{ backgroundColor: urgent ? "#1d4ed8" : "#0ea5e9", color: "#fff", borderRadius: 20, padding: "3px 9px", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
@@ -1221,10 +1222,10 @@ function PropertyTab({ properties }) {
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div className="avatar" style={{ background: "#dbeafe", color: "#1d4ed8" }}>
-                          {p.ownerName?.[0]?.toUpperCase() || "?"}
+                          {getPropertyOwnerName(p)?.[0]?.toUpperCase() || "?"}
                         </div>
                         <div>
-                          <p style={{ margin: 0, fontWeight: 700, fontSize: 13 }}>{p.ownerName}</p>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: 13 }}>{getPropertyOwnerName(p)}</p>
                           <p style={{ margin: 0, fontSize: 11, color: "#94a3b8" }}>{p.ownerPhone || "—"}</p>
                         </div>
                       </div>
@@ -1309,7 +1310,7 @@ export default function DashboardPage() {
               ? Number(p.propertyData.propertyValue).toLocaleString("id-ID")
               : "-";
             return [
-              p.ownerName || "-",
+              p.ownerName || p.customerName || "-",
               p.ownerPhone || "-",
               p.propertyData?.propertyType || "-",
               p.propertyData?.city || "-",

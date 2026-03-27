@@ -52,8 +52,22 @@ const inputStyle = {
     },
 };
 
-const PROPERTY_TYPES = ['House', 'Apartment', 'Office', 'Warehouse', 'Shop', 'Land'];
-const COVERAGE_TYPES = ['Fire', 'Earthquake', 'Flood', 'All Risk', 'Basic'];
+const PROPERTY_TYPES = [
+    { value: 'House', label: 'Rumah' },
+    { value: 'Apartment', label: 'Apartemen' },
+    { value: 'Office', label: 'Kantor' },
+    { value: 'Warehouse', label: 'Gudang' },
+    { value: 'Shop', label: 'Ruko' },
+    { value: 'Land', label: 'Tanah' },
+];
+
+const COVERAGE_TYPES = [
+    { value: 'Fire', label: 'Kebakaran' },
+    { value: 'Earthquake', label: 'Gempa Bumi' },
+    { value: 'Flood', label: 'Banjir' },
+    { value: 'All Risk', label: 'Semua Risiko (All Risk)' },
+    { value: 'Basic', label: 'Dasar' },
+];
 
 const formatNumberInput = (value) => {
     if (!value) return '';
@@ -61,10 +75,10 @@ const formatNumberInput = (value) => {
 };
 
 const STEPS = [
-    { label: 'Details', icon: '1' },
-    { label: 'Specifications', icon: '2' },
-    { label: 'Insurance', icon: '3' },
-    { label: 'Uploads', icon: '4' }
+    { label: 'Detail', icon: '1' },
+    { label: 'Spesifikasi', icon: '2' },
+    { label: 'Asuransi', icon: '3' },
+    { label: 'Unggahan', icon: '4' }
 ];
 
 function WizardStepper({ active }) {
@@ -224,7 +238,7 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
 
                 if (selectedDetail.customerId) {
                     // Temporarily set a mock customer name using the ID if real data hasn't loaded yet
-                    setSelectedCustomer({ id: selectedDetail.customerId, name: `Customer ID: ${selectedDetail.customerId}` });
+                    setSelectedCustomer({ id: selectedDetail.customerId, name: `ID Pelanggan: ${selectedDetail.customerId}` });
                 }
             } else {
                 setFormData(emptyForm);
@@ -266,19 +280,19 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
 
     const handlePhotoUpload = (key, file) => {
         if (!file) { setPropertyPhotos(prev => ({ ...prev, [key]: null })); return; }
-        if (file.size > 5 * 1024 * 1024) { message('File too large. Max 5MB', 'error'); return; }
+        if (file.size > 5 * 1024 * 1024) { message('Ukuran file terlalu besar. Maksimal 5MB', 'error'); return; }
         setPropertyPhotos(prev => ({ ...prev, [key]: file }));
     };
 
     const handleDocUpload = (key, file) => {
         if (!file) { setPropertyDocuments(prev => ({ ...prev, [key]: null })); return; }
-        if (file.size > 10 * 1024 * 1024) { message('File too large. Max 10MB', 'error'); return; }
+        if (file.size > 10 * 1024 * 1024) { message('Ukuran file terlalu besar. Maksimal 10MB', 'error'); return; }
         setPropertyDocuments(prev => ({ ...prev, [key]: file }));
     };
 
     const validateStep = () => {
         if (activeStep === 0 && isNewRecord && !selectedCustomer) {
-            message('Please select a customer first.', 'error');
+            message('Silakan pilih pelanggan terlebih dahulu.', 'error');
             return false;
         }
         return true;
@@ -304,8 +318,15 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
         try {
             loadingProvider.start();
 
+            const ownerName = selectedCustomer?.name || selectedCustomer?.username || '';
+            const ownerPhone = selectedCustomer?.phone || selectedCustomer?.phoneNumber || '';
+            const ownerEmail = selectedCustomer?.email || '';
+
             const submitData = {
                 customerId: selectedCustomer?.id,
+                ownerName,
+                ownerPhone,
+                ownerEmail,
                 propertyData: {
                     propertyType: formData.propertyType, address: formData.address, city: formData.city, province: formData.province,
                     postalCode: formData.postalCode, buildingArea: formData.buildingArea, landArea: formData.landArea,
@@ -326,11 +347,11 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
             if (isNewRecord) {
                 const result = await PropertyDAO.createProperty(submitData);
                 propertyId = result.property?.id || result.id;
-                message('Property created successfully', 'success');
+                message('Properti berhasil ditambahkan', 'success');
             } else {
                 await PropertyDAO.updateProperty(selectedDetail.id, submitData);
                 propertyId = selectedDetail.id;
-                message('Property updated successfully', 'success');
+                message('Properti berhasil diperbarui', 'success');
             }
 
             // Upload photos if any newly selected
@@ -340,7 +361,7 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
                     const photoFormData = new FormData();
                     Object.entries(propertyPhotos).forEach(([key, file]) => { if (file) photoFormData.append(key, file); });
                     await PropertyDAO.uploadPropertyPhotos(propertyId, photoFormData);
-                } catch (photoError) { console.error('Photo error:', photoError); message('Property saved but photos upload failed', 'warning'); }
+                } catch (photoError) { console.error('Photo error:', photoError); message('Properti tersimpan, tetapi unggah foto gagal', 'warning'); }
             }
 
             // Upload docs if any newly selected
@@ -350,14 +371,14 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
                     const docFormData = new FormData();
                     Object.entries(propertyDocuments).forEach(([key, file]) => { if (file) docFormData.append(key, file); });
                     await PropertyDAO.uploadPropertyDocuments(propertyId, docFormData);
-                } catch (docError) { console.error('Doc error:', docError); message('Property saved but documents upload failed', 'warning'); }
+                } catch (docError) { console.error('Doc error:', docError); message('Properti tersimpan, tetapi unggah dokumen gagal', 'warning'); }
             }
 
             if (onPropertySuccess) onPropertySuccess();
             handleClose();
         } catch (err) {
             console.error('Error saving property:', err);
-            message(err.error || 'Failed to save property', 'error');
+            message(err.error || 'Gagal menyimpan properti', 'error');
         } finally {
             loadingProvider.stop();
         }
@@ -374,7 +395,7 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
             {/* Header */}
             <Box px={3} py={2} display="flex" justifyContent="space-between" alignItems="center" borderBottom="1px solid #E4E6EA" bgcolor="#FFFFFF">
                 <Typography variant="h6" fontWeight={700} color="#1C1E21">
-                    {isNewRecord ? 'Add New Property' : 'Edit Property'}
+                    {isNewRecord ? 'Tambah Properti Baru' : 'Edit Properti'}
                 </Typography>
                 <IconButton onClick={handleClose} size="small"><Icon icon="mdi:close" /></IconButton>
             </Box>
@@ -387,9 +408,9 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
                     <Fade in key="s1">
                         <Box>
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
-                                <Section title="Customer Assignment">
+                                <Section title="Penugasan Pelanggan">
                                     {isNewRecord ? (
-                                        <Field label="Select Customer" required hint="Choose the owner of the property">
+                                        <Field label="Pilih Pelanggan" required hint="Pilih pemilik properti">
                                             <Box
                                                 onClick={() => setOpenCustomerDialog(true)}
                                                 sx={{
@@ -436,24 +457,24 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
                             </Paper>
 
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
-                                <Section title="Property Details">
-                                    <Field label="Property Type" required>
+                                <Section title="Detail Properti">
+                                    <Field label="Tipe Properti" required>
                                         <TextField select fullWidth size="small" name="propertyType" value={formData.propertyType} onChange={handleChange} sx={inputStyle} SelectProps={{ IconComponent: () => <Icon icon="mdi:chevron-down" width={20} color="#9EA8B3" style={{ marginRight: 12, pointerEvents: 'none' }} /> }}>
-                                            {PROPERTY_TYPES.map(pt => <MenuItem key={pt} value={pt}>{pt}</MenuItem>)}
+                                            {PROPERTY_TYPES.map((pt) => <MenuItem key={pt.value} value={pt.value}>{pt.label}</MenuItem>)}
                                         </TextField>
                                     </Field>
-                                    <Field label="Address" required>
-                                        <TextField fullWidth multiline rows={2} size="small" name="address" value={formData.address} onChange={handleChange} placeholder="Full property address" sx={inputStyle} />
+                                    <Field label="Alamat" required>
+                                        <TextField fullWidth multiline rows={2} size="small" name="address" value={formData.address} onChange={handleChange} placeholder="Alamat lengkap properti" sx={inputStyle} />
                                     </Field>
                                     <Grid container spacing={2}>
                                         <Grid item xs={12} sm={4}>
-                                            <Field label="City"><TextField fullWidth size="small" name="city" value={formData.city} onChange={handleChange} sx={inputStyle} /></Field>
+                                            <Field label="Kota"><TextField fullWidth size="small" name="city" value={formData.city} onChange={handleChange} sx={inputStyle} /></Field>
                                         </Grid>
                                         <Grid item xs={12} sm={4}>
-                                            <Field label="Province"><TextField fullWidth size="small" name="province" value={formData.province} onChange={handleChange} sx={inputStyle} /></Field>
+                                            <Field label="Provinsi"><TextField fullWidth size="small" name="province" value={formData.province} onChange={handleChange} sx={inputStyle} /></Field>
                                         </Grid>
                                         <Grid item xs={12} sm={4}>
-                                            <Field label="Postal Code"><TextField fullWidth size="small" name="postalCode" value={formData.postalCode} onChange={handleChange} sx={inputStyle} /></Field>
+                                            <Field label="Kode Pos"><TextField fullWidth size="small" name="postalCode" value={formData.postalCode} onChange={handleChange} sx={inputStyle} /></Field>
                                         </Grid>
                                     </Grid>
                                 </Section>
@@ -461,7 +482,7 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
 
                             <Button fullWidth variant="contained" onClick={handleNext} endIcon={<Icon icon="mdi:arrow-right" width={16} />}
                                 sx={{ borderRadius: '8px', py: 1.4, textTransform: 'none', fontSize: 14, fontWeight: 600, bgcolor: C.primary, boxShadow: 'none', '&:hover': { bgcolor: '#145EA8' } }}>
-                                Continue to Specifications
+                                Lanjut ke Spesifikasi
                             </Button>
                         </Box>
                     </Fade>
@@ -472,40 +493,40 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
                     <Fade in key="s2">
                         <Box>
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
-                                <Section title="Physical Specifications">
+                                <Section title="Spesifikasi Fisik">
                                     <Grid container spacing={2}>
                                         <Grid item xs={12} sm={6}>
-                                            <Field label="Building Area (m²)">
+                                            <Field label="Luas Bangunan (m²)">
                                                 <TextField fullWidth size="small" name="buildingArea" value={formData.buildingArea} onChange={handleNumberChange} sx={inputStyle} />
                                             </Field>
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
-                                            <Field label="Land Area (m²)">
+                                            <Field label="Luas Tanah (m²)">
                                                 <TextField fullWidth size="small" name="landArea" value={formData.landArea} onChange={handleNumberChange} sx={inputStyle} />
                                             </Field>
                                         </Grid>
                                     </Grid>
                                     <Grid container spacing={2}>
                                         <Grid item xs={12} sm={6}>
-                                            <Field label="Number of Floors">
+                                            <Field label="Jumlah Lantai">
                                                 <TextField fullWidth size="small" name="numberOfFloors" value={formData.numberOfFloors} onChange={handleNumberChange} sx={inputStyle} />
                                             </Field>
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
-                                            <Field label="Year Built">
+                                            <Field label="Tahun Dibangun">
                                                 <TextField fullWidth size="small" name="yearBuilt" value={formData.yearBuilt} onChange={handleNumberChange} sx={inputStyle} />
                                             </Field>
                                         </Grid>
                                     </Grid>
-                                    <Field label="Building Structure" hint="e.g. Concrete, Wood, Steel">
+                                    <Field label="Struktur Bangunan" hint="contoh: Beton, Kayu, Baja">
                                         <TextField fullWidth size="small" name="buildingStructure" value={formData.buildingStructure} onChange={handleChange} sx={inputStyle} />
                                     </Field>
                                 </Section>
                             </Paper>
 
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
-                                <Section title="Valuation">
-                                    <Field label="Property Market Value (IDR)">
+                                <Section title="Penilaian">
+                                    <Field label="Nilai Pasar Properti (IDR)">
                                         <TextField fullWidth size="small" name="propertyValue" type="number" value={formData.propertyValue} onChange={handleNumberChange} sx={inputStyle}
                                             InputProps={{ startAdornment: <InputAdornment position="start">Rp</InputAdornment> }} />
                                     </Field>
@@ -513,8 +534,8 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
                             </Paper>
 
                             <Box display="flex" gap={1.5}>
-                                <Button fullWidth variant="outlined" onClick={handleBack} startIcon={<Icon icon="mdi:arrow-left" width={16} />} sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: C.border, color: C.textSub }}>Back</Button>
-                                <Button fullWidth variant="contained" onClick={handleNext} endIcon={<Icon icon="mdi:arrow-right" width={16} />} sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, bgcolor: C.primary, boxShadow: 'none' }}>Continue to Insurance</Button>
+                                <Button fullWidth variant="outlined" onClick={handleBack} startIcon={<Icon icon="mdi:arrow-left" width={16} />} sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: C.border, color: C.textSub }}>Kembali</Button>
+                                <Button fullWidth variant="contained" onClick={handleNext} endIcon={<Icon icon="mdi:arrow-right" width={16} />} sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, bgcolor: C.primary, boxShadow: 'none' }}>Lanjut ke Asuransi</Button>
                             </Box>
                         </Box>
                     </Fade>
@@ -525,57 +546,57 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
                     <Fade in key="s3">
                         <Box>
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
-                                <Section title="Insurance Details">
+                                <Section title="Detail Asuransi">
                                     <Grid container spacing={2}>
                                         <Grid item xs={12} sm={6}>
-                                            <Field label="Policy Number">
+                                            <Field label="Nomor Polis">
                                                 <TextField fullWidth size="small" name="policyNumber" value={formData.policyNumber} onChange={handleChange} sx={inputStyle} />
                                             </Field>
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
-                                            <Field label="Insurance Company">
+                                            <Field label="Perusahaan Asuransi">
                                                 <TextField fullWidth size="small" name="insuranceCompany" value={formData.insuranceCompany} onChange={handleChange} sx={inputStyle} />
                                             </Field>
                                         </Grid>
                                     </Grid>
-                                    <Field label="Coverage Type">
+                                    <Field label="Jenis Pertanggungan">
                                         <TextField select fullWidth size="small" name="coverageType" value={formData.coverageType} onChange={handleChange} sx={inputStyle} SelectProps={{ IconComponent: () => <Icon icon="mdi:chevron-down" width={20} color="#9EA8B3" style={{ marginRight: 12, pointerEvents: 'none' }} /> }}>
-                                            {COVERAGE_TYPES.map(ct => <MenuItem key={ct} value={ct}>{ct}</MenuItem>)}
+                                            {COVERAGE_TYPES.map((ct) => <MenuItem key={ct.value} value={ct.value}>{ct.label}</MenuItem>)}
                                         </TextField>
                                     </Field>
                                     <Grid container spacing={2}>
                                         <Grid item xs={12} sm={6}>
-                                            <Field label="Insurance Value (IDR)">
+                                            <Field label="Nilai Asuransi (IDR)">
                                                 <TextField fullWidth size="small" name="insuranceValue" value={formData.insuranceValue} onChange={handleNumberChange} sx={inputStyle} InputProps={{ startAdornment: <InputAdornment position="start">Rp</InputAdornment> }} />
                                             </Field>
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
-                                            <Field label="Premium (IDR)">
+                                            <Field label="Premi (IDR)">
                                                 <TextField fullWidth size="small" name="premium" value={formData.premium} onChange={handleNumberChange} sx={inputStyle} InputProps={{ startAdornment: <InputAdornment position="start">Rp</InputAdornment> }} />
                                             </Field>
                                         </Grid>
                                     </Grid>
                                     <Grid container spacing={2}>
                                         <Grid item xs={12} sm={6}>
-                                            <Field label="Start Date">
+                                            <Field label="Tanggal Mulai">
                                                 <TextField fullWidth size="small" type="date" name="startDate" value={formData.startDate} onChange={handleChange} sx={inputStyle} />
                                             </Field>
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
-                                            <Field label="End Date">
+                                            <Field label="Tanggal Berakhir">
                                                 <TextField fullWidth size="small" type="date" name="endDate" value={formData.endDate} onChange={handleChange} sx={inputStyle} />
                                             </Field>
                                         </Grid>
                                     </Grid>
-                                    <Field label="Deductible (IDR)">
+                                    <Field label="Risiko Sendiri">
                                         <TextField fullWidth size="small" name="deductible" value={formData.deductible} onChange={handleNumberChange} sx={inputStyle} InputProps={{ startAdornment: <InputAdornment position="start">Rp</InputAdornment> }} />
                                     </Field>
                                 </Section>
                             </Paper>
 
                             <Box display="flex" gap={1.5}>
-                                <Button fullWidth variant="outlined" onClick={handleBack} startIcon={<Icon icon="mdi:arrow-left" width={16} />} sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: C.border, color: C.textSub }}>Back</Button>
-                                <Button fullWidth variant="contained" onClick={handleNext} endIcon={<Icon icon="mdi:arrow-right" width={16} />} sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, bgcolor: C.primary, boxShadow: 'none' }}>Continue to Uploads</Button>
+                                <Button fullWidth variant="outlined" onClick={handleBack} startIcon={<Icon icon="mdi:arrow-left" width={16} />} sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: C.border, color: C.textSub }}>Kembali</Button>
+                                <Button fullWidth variant="contained" onClick={handleNext} endIcon={<Icon icon="mdi:arrow-right" width={16} />} sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, bgcolor: C.primary, boxShadow: 'none' }}>Lanjut ke Unggahan</Button>
                             </Box>
                         </Box>
                     </Fade>
@@ -586,27 +607,27 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
                     <Fade in key="s4">
                         <Box>
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
-                                <Section title="Documents">
+                                <Section title="Dokumen">
                                     <Grid container spacing={2}>
-                                        <Grid item xs={12} sm={6}><FileUploadBox label="Certificate (SHM/HGB)" file={propertyDocuments.certificate} onClick={() => document.getElementById('doc-certificate').click()} onRemove={() => handleDocUpload('certificate', null)} /></Grid>
-                                        <Grid item xs={12} sm={6}><FileUploadBox label="Building Permit (IMB)" file={propertyDocuments.imb} onClick={() => document.getElementById('doc-imb').click()} onRemove={() => handleDocUpload('imb', null)} /></Grid>
-                                        <Grid item xs={12} sm={6}><FileUploadBox label="Property Tax (PBB)" file={propertyDocuments.pbb} onClick={() => document.getElementById('doc-pbb').click()} onRemove={() => handleDocUpload('pbb', null)} /></Grid>
-                                        <Grid item xs={12} sm={6}><FileUploadBox label="Other Documents" file={propertyDocuments.other} onClick={() => document.getElementById('doc-other').click()} onRemove={() => handleDocUpload('other', null)} /></Grid>
+                                        <Grid item xs={12} sm={6}><FileUploadBox label="Sertifikat (SHM/HGB)" file={propertyDocuments.certificate} onClick={() => document.getElementById('doc-certificate').click()} onRemove={() => handleDocUpload('certificate', null)} /></Grid>
+                                        <Grid item xs={12} sm={6}><FileUploadBox label="Izin Mendirikan Bangunan (IMB)" file={propertyDocuments.imb} onClick={() => document.getElementById('doc-imb').click()} onRemove={() => handleDocUpload('imb', null)} /></Grid>
+                                        <Grid item xs={12} sm={6}><FileUploadBox label="Pajak Bumi dan Bangunan (PBB)" file={propertyDocuments.pbb} onClick={() => document.getElementById('doc-pbb').click()} onRemove={() => handleDocUpload('pbb', null)} /></Grid>
+                                        <Grid item xs={12} sm={6}><FileUploadBox label="Dokumen Lainnya" file={propertyDocuments.other} onClick={() => document.getElementById('doc-other').click()} onRemove={() => handleDocUpload('other', null)} /></Grid>
                                     </Grid>
                                 </Section>
                             </Paper>
 
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
-                                <Section title="Exterior Photos">
+                                <Section title="Foto Eksterior">
                                     <Grid container spacing={2}>
                                         {['front', 'back', 'left', 'right'].map(pos => (
                                             <Grid item xs={12} sm={3} key={pos}>
-                                                <FileUploadBox label={`${pos.charAt(0).toUpperCase() + pos.slice(1)} View`} file={propertyPhotos[pos]} onClick={() => document.getElementById(`photo-${pos}`).click()} onRemove={() => handlePhotoUpload(pos, null)} />
+                                                <FileUploadBox label={`Tampak ${pos === 'front' ? 'Depan' : pos === 'back' ? 'Belakang' : pos === 'left' ? 'Kiri' : 'Kanan'}`} file={propertyPhotos[pos]} onClick={() => document.getElementById(`photo-${pos}`).click()} onRemove={() => handlePhotoUpload(pos, null)} />
                                             </Grid>
                                         ))}
                                     </Grid>
                                 </Section>
-                                <Section title="Interior Photos">
+                                <Section title="Foto Interior">
                                     <Grid container spacing={2}>
                                         {[1, 2, 3, 4].map(num => (
                                             <Grid item xs={12} sm={3} key={`int${num}`}>
@@ -615,7 +636,7 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
                                         ))}
                                     </Grid>
                                 </Section>
-                                <Field label="Notes" hint="Additional remarks about this property">
+                                <Field label="Catatan" hint="Keterangan tambahan mengenai properti ini">
                                     <TextField fullWidth multiline rows={2} size="small" name="notes" value={formData.notes} onChange={handleChange} sx={inputStyle} />
                                 </Field>
                             </Paper>
@@ -634,9 +655,9 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
                             ))}
 
                             <Box display="flex" gap={1.5}>
-                                <Button fullWidth variant="outlined" onClick={handleBack} startIcon={<Icon icon="mdi:arrow-left" width={16} />} sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: C.border, color: C.textSub }}>Back</Button>
+                                <Button fullWidth variant="outlined" onClick={handleBack} startIcon={<Icon icon="mdi:arrow-left" width={16} />} sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: C.border, color: C.textSub }}>Kembali</Button>
                                 <Button fullWidth variant="contained" onClick={handleSubmit} startIcon={<Icon icon="mdi:check" width={16} />} sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, bgcolor: C.success, boxShadow: 'none', '&:hover': { bgcolor: '#166E32' } }}>
-                                    {isNewRecord ? 'Create' : 'Save Changes'}
+                                    {isNewRecord ? 'Simpan' : 'Simpan Perubahan'}
                                 </Button>
                             </Box>
                         </Box>
@@ -651,12 +672,12 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
                 PaperProps={{ style: { borderRadius: '12px' } }}
             >
                 <Box p={2} borderBottom="1px solid #E4E6EA" display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography fontWeight={700} fontSize={15}>Select Customer</Typography>
+                    <Typography fontWeight={700} fontSize={15}>Pilih Pelanggan</Typography>
                     <IconButton size="small" onClick={() => setOpenCustomerDialog(false)}><Icon icon="mdi:close" /></IconButton>
                 </Box>
                 <Box p={2} borderBottom="1px solid #E4E6EA">
                     <TextField
-                        fullWidth size="small" autoFocus placeholder="Search name or phone..."
+                        fullWidth size="small" autoFocus placeholder="Cari nama atau nomor telepon..."
                         value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)}
                         InputProps={{
                             startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" width={18} /></InputAdornment>
@@ -666,7 +687,7 @@ export default function PropertyComponent({ open, onClose, selectedDetail, isNew
                 </Box>
                 <Box p={0} sx={{ maxHeight: 300, overflowY: 'auto' }}>
                     {filteredCustomers.length === 0 ? (
-                        <Typography p={3} textAlign="center" fontSize={13} color="#9EA8B3">No customers found</Typography>
+                        <Typography p={3} textAlign="center" fontSize={13} color="#9EA8B3">Pelanggan tidak ditemukan</Typography>
                     ) : (
                         filteredCustomers.map(c => (
                             <Box

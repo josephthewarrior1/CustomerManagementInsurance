@@ -43,6 +43,24 @@ const PROPERTY_TYPES = {
     LAND: 'Land'
 };
 
+const PROPERTY_TYPE_LABELS = {
+    House: 'Rumah',
+    Apartment: 'Apartemen',
+    Office: 'Kantor',
+    Warehouse: 'Gudang',
+    Shop: 'Ruko',
+    Land: 'Tanah',
+};
+
+const STATUS_LABELS = {
+    ALL: 'Semua',
+    Active: 'Aktif',
+    Expired: 'Kedaluwarsa',
+    Cancelled: 'Dibatalkan',
+};
+
+const getPropertyOwnerName = (property) => property?.ownerName || property?.customerName || '-';
+
 export default function PropertyListPage() {
     const [openCreateDialog, setOpenCreateDialog] = useState(false);
     const [selectedDetail, setSelectedDetail] = useState(null);
@@ -112,7 +130,7 @@ export default function PropertyListPage() {
                 console.log('🔎 Filtering with keyword:', keyword);
 
                 filteredData = filteredData.filter(property => {
-                    const matchOwnerName = property.ownerName?.toLowerCase().includes(keyword);
+                    const matchOwnerName = getPropertyOwnerName(property)?.toLowerCase().includes(keyword);
                     const matchOwnerPhone = property.ownerPhone?.includes(keyword);
                     const matchOwnerEmail = property.ownerEmail?.toLowerCase().includes(keyword);
                     const matchAddress = property.propertyData?.address?.toLowerCase().includes(keyword);
@@ -140,8 +158,8 @@ export default function PropertyListPage() {
                     let bVal = b[dataSourceOptions.sortColumn] || '';
 
                     if (dataSourceOptions.sortColumn === 'ownerName') {
-                        aVal = a.ownerName || '';
-                        bVal = b.ownerName || '';
+                        aVal = getPropertyOwnerName(a);
+                        bVal = getPropertyOwnerName(b);
                     }
 
                     if (dataSourceOptions.sortDirection === 'asc') {
@@ -168,7 +186,7 @@ export default function PropertyListPage() {
             console.log('✅ Data source updated with', paginatedData.length, 'items');
         } catch (err) {
             console.error('❌ Error fetching properties:', err);
-            message('Failed to fetch properties', 'error');
+            message('Gagal memuat data properti', 'error');
         } finally {
             loading.stop();
         }
@@ -213,12 +231,7 @@ export default function PropertyListPage() {
         "Cancelled": 3
     };
 
-    const statusLabels = {
-        "ALL": "All",
-        "Active": "Active",
-        "Expired": "Expired",
-        "Cancelled": "Cancelled"
-    };
+    const statusLabels = STATUS_LABELS;
 
     const sortedSummaries = [...summaries].sort((a, b) => {
         return statusOrder[a.status] - statusOrder[b.status];
@@ -228,12 +241,12 @@ export default function PropertyListPage() {
         try {
             loading.start();
             await PropertyDAO.deleteProperty(propertyId);
-            message('Property deleted successfully', 'success');
+            message('Properti berhasil dihapus', 'success');
             fetchProperties();
             getPropertiesSummary();
         } catch (err) {
             console.error('Error deleting property:', err);
-            message('Failed to delete property', 'error');
+            message('Gagal menghapus properti', 'error');
         } finally {
             loading.stop();
         }
@@ -241,35 +254,41 @@ export default function PropertyListPage() {
 
     const columns = [
         {
-            title: 'Owner',
+            title: 'Pemilik',
             key: 'ownerName',
             sortable: true,
             render: (value, object) => {
+                const ownerEmail = object?.ownerEmail;
+                const ownerPhone = object?.ownerPhone;
                 return (
                     <>
                         <div className="typography-4">
-                            {object?.ownerName || '-'}
+                            {getPropertyOwnerName(object)}
                         </div>
-                        <div className="typography-6 text-gray-500">
-                            {object?.ownerEmail || '-'}
-                        </div>
-                        <div className="typography-6 text-gray-500">
-                            {object?.ownerPhone || '-'}
-                        </div>
+                        {ownerEmail ? (
+                            <div className="typography-6 text-gray-500">
+                                {ownerEmail}
+                            </div>
+                        ) : null}
+                        {ownerPhone ? (
+                            <div className="typography-6 text-gray-500">
+                                {ownerPhone}
+                            </div>
+                        ) : null}
                     </>
                 );
             },
         },
         {
-            title: 'Property Type',
+            title: 'Tipe Properti',
             key: 'propertyType',
             sortable: true,
             render: (value, object) => {
-                return object?.propertyData?.propertyType || '-';
+                return PROPERTY_TYPE_LABELS[object?.propertyData?.propertyType] || object?.propertyData?.propertyType || '-';
             },
         },
         {
-            title: 'Address',
+            title: 'Alamat',
             key: 'address',
             sortable: false,
             render: (value, object) => {
@@ -287,7 +306,7 @@ export default function PropertyListPage() {
             },
         },
         {
-            title: 'Insurance Company',
+            title: 'Perusahaan Asuransi',
             key: 'insuranceCompany',
             sortable: false,
             render: (value, object) => {
@@ -295,7 +314,7 @@ export default function PropertyListPage() {
             },
         },
         {
-            title: 'Policy Number',
+            title: 'Nomor Polis',
             key: 'policyNumber',
             sortable: false,
             render: (value, object) => {
@@ -303,7 +322,7 @@ export default function PropertyListPage() {
             },
         },
         {
-            title: 'End Date',
+            title: 'Tanggal Berakhir',
             key: 'endDate',
             sortable: false,
             render: (value, object) => {
@@ -333,7 +352,7 @@ export default function PropertyListPage() {
 
                 return (
                     <Chip
-                        label={status || '-'}
+                        label={STATUS_LABELS[status] || status || '-'}
                         sx={{
                             fontWeight: 'bold',
                             fontSize: '12px',
@@ -368,7 +387,7 @@ export default function PropertyListPage() {
                         <IconButton
                             size={'small'}
                             onClick={() => {
-                                if (window.confirm('Are you sure you want to delete this property?')) {
+                                if (window.confirm('Yakin ingin menghapus properti ini?')) {
                                     handleDelete(object.id);
                                 }
                             }}
@@ -460,7 +479,7 @@ export default function PropertyListPage() {
                 <Box sx={{ mb: 2 }}>
                     <TextField
                         fullWidth
-                        placeholder="Search properties..."
+                        placeholder="Cari properti..."
                         value={dataSourceOptions.keyword}
                         onChange={(e) => handleFilterChange('keyword', e.target.value)}
                         InputProps={{
@@ -497,7 +516,7 @@ export default function PropertyListPage() {
                         '&:hover': { bgcolor: '#1e40af' }
                     }}
                 >
-                    Add Property
+                    Tambah Properti
                 </Button>
 
                 {/* Status Filters */}
@@ -526,7 +545,7 @@ export default function PropertyListPage() {
                 {dataSource.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 8 }}>
                         <Icon icon="mdi:home-off-outline" width={64} color="#CBD5E1" />
-                        <Typography variant="body1" sx={{ mt: 2, color: '#94A3B8', fontWeight: 500 }}>No properties found</Typography>
+                        <Typography variant="body1" sx={{ mt: 2, color: '#94A3B8', fontWeight: 500 }}>Tidak ada properti ditemukan</Typography>
                     </Box>
                 ) : (
                     <Stack spacing={2}>
@@ -535,18 +554,18 @@ export default function PropertyListPage() {
                                 <CardContent sx={{ p: '20px !important' }}>
                                     <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2.5 }}>
                                         <Avatar sx={{ width: 48, height: 48, bgcolor: '#EFF6FF', color: '#1E40AF', fontWeight: 700 }}>
-                                            {property.ownerName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'P'}
+                                            {getPropertyOwnerName(property)?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'P'}
                                         </Avatar>
                                         <Box sx={{ flex: 1 }}>
                                             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 0.25 }}>
-                                                {property.ownerName}
+                                                {getPropertyOwnerName(property)}
                                             </Typography>
                                             <Typography variant="body2" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                                 <Icon icon="mdi:phone" width={14} /> {property.ownerPhone}
                                             </Typography>
                                         </Box>
                                         <Chip
-                                            label={(property.status || 'Active').toUpperCase()}
+                                            label={(STATUS_LABELS[property.status || 'Active'] || property.status || 'Aktif').toUpperCase()}
                                             size="small"
                                             sx={{
                                                 bgcolor: property.status === 'Active' ? '#D1FAE5' : property.status === 'Expired' ? '#FEE2E2' : '#F1F5F9',
@@ -560,24 +579,24 @@ export default function PropertyListPage() {
 
                                     <Grid container spacing={2} sx={{ mb: 2.5 }}>
                                         <Grid item xs={6}>
-                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>PROPERTY</Typography>
-                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155', mt: 0.5 }}>{property.propertyData?.propertyType || '-'}</Typography>
+                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>PROPERTI</Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155', mt: 0.5 }}>{PROPERTY_TYPE_LABELS[property.propertyData?.propertyType] || property.propertyData?.propertyType || '-'}</Typography>
                                             <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.7rem' }}>{property.propertyData?.address?.substring(0, 20)}...</Typography>
                                         </Grid>
                                         <Grid item xs={6}>
-                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>DUE DATE</Typography>
+                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>JATUH TEMPO</Typography>
                                             <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155', mt: 0.5 }}>
                                                 {property.insuranceData?.endDate ? dayjs(property.insuranceData.endDate).format('DD MMM YYYY') : '-'}
                                             </Typography>
                                             <Typography variant="caption" sx={{ color: property.status === 'Active' ? '#10B981' : '#EF4444', fontWeight: 600 }}>
-                                                {property.status === 'Active' ? 'Policy Active' : property.status === 'Expired' ? 'Expired' : 'Status Pending'}
+                                                {property.status === 'Active' ? 'Polis Aktif' : property.status === 'Expired' ? 'Kedaluwarsa' : 'Menunggu Status'}
                                             </Typography>
                                         </Grid>
                                     </Grid>
 
                                     <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1, borderTop: '1px solid #F8FAFC' }}>
                                         <IconButton size="small" onClick={() => { setSelectedDetail(property); setOpenCreateDialog(true); }} sx={{ color: '#64748B' }}><Icon icon="mdi:pencil-outline" width={22} /></IconButton>
-                                        <IconButton size="small" onClick={() => { if (window.confirm('Delete this property?')) handleDelete(property.id); }} sx={{ color: '#64748B' }}><Icon icon="mdi:trash-can-outline" width={22} /></IconButton>
+                                        <IconButton size="small" onClick={() => { if (window.confirm('Hapus properti ini?')) handleDelete(property.id); }} sx={{ color: '#64748B' }}><Icon icon="mdi:trash-can-outline" width={22} /></IconButton>
                                     </Stack>
                                 </CardContent>
                             </Card>
@@ -590,10 +609,10 @@ export default function PropertyListPage() {
                     <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid #E2E8F0', pb: 4 }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
                             <Typography variant="body2" sx={{ color: '#64748B' }}>
-                                Showing <b>{startIndex + 1}-{Math.min(endIndex, dataSourceOptions.total)}</b> of <b>{dataSourceOptions.total}</b>
+                                Menampilkan <b>{startIndex + 1}-{Math.min(endIndex, dataSourceOptions.total)}</b> dari <b>{dataSourceOptions.total}</b>
                             </Typography>
                             <Typography variant="body2" sx={{ color: '#64748B' }}>
-                                Page <b>{dataSourceOptions.page + 1}</b> of <b>{Math.ceil(dataSourceOptions.total / mobileLimit)}</b>
+                                Halaman <b>{dataSourceOptions.page + 1}</b> dari <b>{Math.ceil(dataSourceOptions.total / mobileLimit)}</b>
                             </Typography>
                         </Stack>
                         <Stack direction="row" spacing={2}>
@@ -604,7 +623,7 @@ export default function PropertyListPage() {
                                 onClick={() => handlePageChange(dataSourceOptions.page - 1)}
                                 sx={{ borderRadius: '12px', py: 1.25, fontWeight: 700, textTransform: 'uppercase', borderColor: '#E2E8F0', color: '#64748B' }}
                             >
-                                Prev
+                                Sebelumnya
                             </Button>
                             <Button
                                 fullWidth
@@ -613,7 +632,7 @@ export default function PropertyListPage() {
                                 onClick={() => handlePageChange(dataSourceOptions.page + 1)}
                                 sx={{ borderRadius: '12px', py: 1.25, fontWeight: 700, textTransform: 'uppercase', borderColor: '#1E3A8A', color: '#1E3A8A' }}
                             >
-                                Next
+                                Berikutnya
                             </Button>
                         </Stack>
                     </Box>
@@ -632,7 +651,7 @@ export default function PropertyListPage() {
                                 handleFilterChange('keyword', e.target.value);
                             }
                         }}
-                        placeholder={'Search'}
+                        placeholder={'Cari properti'}
                         searchIcon={true}
                     />
                     <CustomRow className={'justify-center gap-x-4'}>
@@ -658,7 +677,7 @@ export default function PropertyListPage() {
                                 fontWeight: 600
                             }}
                         >
-                            Add Property
+                            Tambah Properti
                         </CustomButton>
                     </CustomRow>
                 </CustomRow>

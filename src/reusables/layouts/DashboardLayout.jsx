@@ -49,9 +49,10 @@ function useNotifications() {
         props.forEach((p) => {
           if (p.status === 'Cancelled') return;
           const diff = getDiffDays(p.insuranceData?.endDate);
+          const ownerName = p.ownerName || p.customerName;
           if (diff === null) return;
-          if (diff < 0) result.push({ id: `p-exp-${p.id}`, type: 'expired', category: 'Properti', name: p.ownerName, detail: `${p.propertyData?.propertyType || ''} · ${p.propertyData?.city || ''}`.trim(), diff });
-          else if (diff <= 30) result.push({ id: `p-soon-${p.id}`, type: 'soon', category: 'Properti', name: p.ownerName, detail: `${p.propertyData?.propertyType || ''} · ${p.propertyData?.city || ''}`.trim(), diff });
+          if (diff < 0) result.push({ id: `p-exp-${p.id}`, type: 'expired', category: 'Properti', name: ownerName, detail: `${p.propertyData?.propertyType || ''} · ${p.propertyData?.city || ''}`.trim(), diff });
+          else if (diff <= 30) result.push({ id: `p-soon-${p.id}`, type: 'soon', category: 'Properti', name: ownerName, detail: `${p.propertyData?.propertyType || ''} · ${p.propertyData?.city || ''}`.trim(), diff });
         });
       }
       result.sort((a, b) => { if (a.type !== b.type) return a.type === 'expired' ? -1 : 1; return a.diff - b.diff; });
@@ -129,7 +130,7 @@ export default function DashboardLayout() {
   const sections = [
     { icon: 'heroicons:rectangle-group', label: 'Dashboard', url: '/dashboard', title: 'Dashboard' },
     { icon: 'heroicons:users', label: 'Customers', url: '/customers', title: 'Customer Management' },
-    { icon: 'heroicons:building-office-2', label: 'Properties', url: '/properties', title: 'Property Management' },
+    { icon: 'heroicons:building-office-2', label: 'Properti', url: '/properties', title: 'Manajemen Properti' },
     { icon: 'heroicons:truck', label: 'Cars', url: '/cars', title: 'Car Management' },
     { icon: 'heroicons:calendar', label: 'Quotation', url: '/quotations/create', title: 'Create Quotation' },
     { icon: 'heroicons:document-currency-dollar', label: 'Invoice', url: '/invoices/create', title: 'Create Invoice' },
@@ -160,24 +161,12 @@ export default function DashboardLayout() {
         <Box sx={{ display: { xs: 'flex', sm: 'none' }, justifyContent: 'space-between', alignItems: 'center', px: 2, height: `${Constants.HEADER_MOBILE_HEIGHT}px`, bgcolor: '#fff', borderBottom: '1px solid #f1f5f9' }}>
           <IconButton onClick={() => setIsDrawerOpen(true)} sx={{ color: '#334155' }}><CustomIcon icon="heroicons:bars-3-solid" /></IconButton>
           <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 16 }}>{sections.find(s => s.url === location.pathname)?.label || 'Dashboard'}</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <BellButton notifs={notifs} loading={notifLoading} />
-            <Avatar sx={{ width: 32, height: 32, bgcolor: '#2563eb', fontSize: 13, fontWeight: 700 }}>{user?.username?.charAt(0)?.toUpperCase() || 'U'}</Avatar>
-          </Box>
+          <BellButton notifs={notifs} loading={notifLoading} />
         </Box>
 
         {/* Desktop Toolbar */}
-        <Box sx={{ display: { xs: 'none', sm: 'flex' }, justifyContent: 'flex-end', alignItems: 'center', px: 5, width: { sm: `calc(100% - ${Constants.NAVIGATION_DRAWER_WIDTH}px)` }, ml: { sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px` }, height: `${Constants.HEADER_DESKTOP_HEIGHT}px`, gap: 2, borderBottom: '1px solid #f1f5f9', bgcolor: '#fff' }}>
+        <Box sx={{ display: { xs: 'none', sm: 'flex' }, justifyContent: 'flex-end', alignItems: 'center', px: 4, width: { sm: `calc(100% - ${Constants.NAVIGATION_DRAWER_WIDTH}px)` }, ml: { sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px` }, height: `${Constants.HEADER_DESKTOP_HEIGHT}px`, borderBottom: '1px solid #f1f5f9', bgcolor: '#fff' }}>
           <BellButton notifs={notifs} loading={notifLoading} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{user?.username || 'Demo User'}</div>
-              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'capitalize' }}>{user?.role || 'user'}</div>
-            </div>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: '#2563eb', fontSize: 13, fontWeight: 700 }}>
-              {(user?.username?.charAt(0) || 'D')?.toUpperCase()}
-            </Avatar>
-          </div>
         </Box>
 
         {/* Content */}
@@ -187,7 +176,7 @@ export default function DashboardLayout() {
 
         {/* Bottom Nav Mobile */}
         <Box sx={{ display: { xs: 'flex', sm: 'none' }, position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', bgcolor: '#fff', borderTop: '1px solid #f1f5f9', justifyContent: 'space-around', alignItems: 'center', zIndex: 1000 }}>
-          {[{ icon: 'heroicons:home', label: 'Home', url: '/dashboard' }, { icon: 'heroicons:users', label: 'Customers', url: '/customers' }, { icon: 'heroicons:building-office-2', label: 'Properties', url: '/properties' }, { icon: 'heroicons:truck', label: 'Cars', url: '/cars' }, { icon: 'heroicons:document-text', label: 'Docs', url: '/documents', isMenu: true }].map((item) => {
+          {[{ icon: 'heroicons:home', label: 'Home', url: '/dashboard' }, { icon: 'heroicons:users', label: 'Customers', url: '/customers' }, { icon: 'heroicons:building-office-2', label: 'Properti', url: '/properties' }, { icon: 'heroicons:truck', label: 'Cars', url: '/cars' }, { icon: 'heroicons:document-text', label: 'Docs', url: '/documents', isMenu: true }].map((item) => {
             const isActive = item.isMenu ? ['/invoices', '/quotations', '/kwitansi'].some(p => location.pathname.startsWith(p)) : location.pathname === item.url || (item.url !== '/' && location.pathname.startsWith(item.url));
             return (
               <Box key={item.label} onClick={(e) => { if (item.isMenu) setDocMenuAnchor(e.currentTarget); else navigate(item.url); }} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4, color: isActive ? '#2563eb' : '#94a3b8', cursor: 'pointer', minWidth: '60px' }}>
@@ -213,7 +202,7 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
   const filteredSections = sections.filter(s => !(s.adminOnly && user?.role !== 'superadmin'));
-  const mainNav = filteredSections.filter(s => ['Dashboard', 'Customers', 'Properties', 'Cars'].includes(s.label));
+  const mainNav = filteredSections.filter(s => ['Dashboard', 'Customers', 'Properti', 'Cars'].includes(s.label));
   const docNav = filteredSections.filter(s => ['Quotation', 'Invoice', 'Kwitansi'].includes(s.label));
   const adminNav = filteredSections.filter(s => s.adminOnly);
 
@@ -222,14 +211,6 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
 
       {/* Logo */}
       <div style={{ padding: '20px 16px 14px', borderBottom: '1px solid #f1f5f9' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622C17.176 19.29 21 14.591 21 9a12.02 12.02 0 00-.382-3.016A11.955 11.955 0 0112 2.944z" fill="white" />
-            </svg>
-          </div>
-          <span style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', letterSpacing: '-0.3px' }}>Asuransi</span>
-        </div>
       </div>
 
       {/* User */}

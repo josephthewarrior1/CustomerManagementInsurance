@@ -182,9 +182,23 @@ export default function CreatePropertyDialog({ open, onClose, customerId, onProp
             setActiveStep(0);
             if (!customerId) {
                 fetchCustomers();
+            } else {
+                fetchSelectedCustomer(customerId);
             }
         }
     }, [open, customerId]);
+
+    const fetchSelectedCustomer = async (id) => {
+        try {
+            const res = await CustomerDAO.getCustomerById(id);
+            const customer = res?.customer || res?.data || res;
+            if (customer?.id) {
+                setSelectedCustomer(customer);
+            }
+        } catch (error) {
+            console.error('Failed to fetch selected customer:', error);
+        }
+    };
 
     const fetchCustomers = async () => {
         try {
@@ -229,8 +243,15 @@ export default function CreatePropertyDialog({ open, onClose, customerId, onProp
         try {
             loadingProvider.start();
 
+            const ownerName = selectedCustomer?.name || selectedCustomer?.username || '';
+            const ownerPhone = selectedCustomer?.phone || selectedCustomer?.phoneNumber || '';
+            const ownerEmail = selectedCustomer?.email || '';
+
             const submitData = {
                 customerId: customerId || selectedCustomer?.id,
+                ownerName,
+                ownerPhone,
+                ownerEmail,
                 propertyData: {
                     propertyType: formData.propertyType,
                     address: formData.address,
@@ -475,7 +496,7 @@ export default function CreatePropertyDialog({ open, onClose, customerId, onProp
                                             <TextField fullWidth size="small" name="endDate" type="date" value={formData.endDate} onChange={handleChange} sx={inputStyle} InputLabelProps={{ shrink: true }} />
                                         </Field>
                                     </Stack>
-                                    <Field label="Deductible (Risiko Sendiri)">
+                                    <Field label="Risiko Sendiri">
                                         <TextField fullWidth size="small" name="deductible" type="number" value={formData.deductible} onChange={handleChange} placeholder="cth. 500000" sx={inputStyle} />
                                     </Field>
                                     <Field label="Catatan">

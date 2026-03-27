@@ -308,7 +308,7 @@ export default function CreateInvoicePage() {
     const getOwnerName = () => {
         if (!selectedItem) return '';
         if (invoiceType === 'car') return selectedItem.carData?.ownerName || '';
-        return selectedItem.ownerName || '';
+        return selectedItem.ownerName || selectedItem.customerName || '';
     };
 
     // ── PDF ──────────────────────────────────────────────────────────────────
@@ -468,7 +468,7 @@ export default function CreateInvoicePage() {
         } else {
             return properties.filter(p =>
                 !s ||
-                p.ownerName?.toLowerCase().includes(s) ||
+                (p.ownerName || p.customerName || '').toLowerCase().includes(s) ||
                 p.propertyData?.propertyType?.toLowerCase().includes(s) ||
                 p.propertyData?.city?.toLowerCase().includes(s)
             );
@@ -590,7 +590,7 @@ export default function CreateInvoicePage() {
                                             ) : (
                                                 <Grid container spacing={1.5}>
                                                     {[
-                                                        { label: 'Pemilik', value: selectedItem.ownerName },
+                                                        { label: 'Pemilik', value: selectedItem.ownerName || selectedItem.customerName },
                                                         { label: 'Tipe', value: selectedItem.propertyData?.propertyType },
                                                         { label: 'Kota', value: selectedItem.propertyData?.city },
                                                         { label: 'Alamat', value: selectedItem.propertyData?.address },
@@ -818,7 +818,7 @@ export default function CreateInvoicePage() {
                                             { label: 'No. Mesin', value: selectedItem?.carData?.engineNumber },
                                             { label: 'Harga Mobil', value: selectedItem?.carData?.carPrice ? `Rp ${Number(selectedItem.carData.carPrice).toLocaleString('id-ID')}` : '—' },
                                         ] : [
-                                            { label: 'Pemilik', value: selectedItem?.ownerName },
+                                            { label: 'Pemilik', value: selectedItem?.ownerName || selectedItem?.customerName },
                                             { label: 'Tipe Properti', value: selectedItem?.propertyData?.propertyType },
                                             { label: 'Kota', value: selectedItem?.propertyData?.city },
                                             { label: 'Alamat', value: selectedItem?.propertyData?.address },
@@ -936,7 +936,7 @@ export default function CreateInvoicePage() {
                                         : item.propertyData?.propertyType || 'Property';
                                     const sub1 = invoiceType === 'car'
                                         ? (item.carData?.ownerName || '—')
-                                        : (item.ownerName || '—');
+                                        : (item.ownerName || item.customerName || '—');
                                     const sub2 = invoiceType === 'car'
                                         ? (item.carData?.plateNumber || 'No plate')
                                         : (item.propertyData?.city || '—');
