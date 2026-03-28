@@ -37,6 +37,66 @@ function InfoRow({ label, value, icon, fullWidth }) {
     );
 }
 
+/* ─── READ ONLY IMAGE CARD ─── */
+function DetailImageCard({ label, url, onPreview }) {
+    return (
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 1, display: 'block' }}>
+                {label}
+            </Typography>
+            <Box
+                onClick={() => url && onPreview(url)}
+                sx={{
+                    position: 'relative', width: '100%', paddingTop: '75%', borderRadius: 3, overflow: 'hidden',
+                    border: url ? '1px solid #E2E8F0' : '2px dashed #CBD5E1',
+                    bgcolor: '#F8FAFC', cursor: url ? 'pointer' : 'default',
+                    transition: 'all 0.2s',
+                    '&:hover': url ? { borderColor: '#1E40AF', transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' } : {}
+                }}
+            >
+                {url ? (
+                    <img src={url} alt={label} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                    <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon icon="mdi:camera-off" width={32} color="#CBD5E1" />
+                        <Typography fontSize={13} fontWeight={600} sx={{ color: '#94A3B8', mt: 1 }}>Tidak Ada Foto</Typography>
+                    </Box>
+                )}
+            </Box>
+        </Box>
+    );
+}
+
+/* ─── READ ONLY DOC CARD ─── */
+function DetailDocCard({ label, url, onPreview }) {
+    return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 1, display: 'block' }}>
+                {label}
+            </Typography>
+            <Box
+                onClick={() => url && onPreview(url)}
+                sx={{
+                    position: 'relative', width: '100%', height: 180, borderRadius: 3, overflow: 'hidden',
+                    border: url ? '1px solid #E2E8F0' : '2px dashed #CBD5E1',
+                    bgcolor: '#F8FAFC', cursor: url ? 'pointer' : 'default',
+                    transition: 'all 0.2s',
+                    '&:hover': url ? { borderColor: '#1E40AF', transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' } : {}
+                }}
+            >
+                {url ? (
+                    <img src={url} alt={label} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain', bgcolor: '#fff' }} />
+                ) : (
+                    <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon icon="mdi:file-hidden" width={32} color="#CBD5E1" />
+                        <Typography fontSize={13} fontWeight={600} sx={{ color: '#94A3B8', mt: 1 }}>Tidak Ada Dokumen</Typography>
+                    </Box>
+                )}
+            </Box>
+        </Box>
+    );
+}
+
 /* ─── IMAGE PREVIEW DIALOG ─── */
 function ImagePreviewDialog({ open, images, currentIndex, onClose, onIndexChange }) {
     const handleDownload = async () => {
@@ -255,86 +315,73 @@ export default function CarDetailPage() {
 
                 {/* ── Tab 1: Car Info ── */}
                 <TabPanel value={tabValue} index={0}>
-                    <Grid container spacing={3}>
-                        <Grid item xs={12} md={6}>
-                            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Icon icon="mdi:account" width={20} color="#1E40AF" /> Informasi Kendaraan
-                                </Typography>
-                                <InfoRow label="Nama Pemilik" value={car.carData?.ownerName} icon="mdi:account" />
-                                <InfoRow label="Merek Mobil" value={car.carData?.carBrand} icon="mdi:car" />
-                                <InfoRow label="Model Mobil" value={car.carData?.carModel} icon="mdi:car-info" />
-                                <InfoRow label="Nomor Polisi" value={car.carData?.plateNumber} icon="mdi:numeric" />
-                                <InfoRow label="Nomor Rangka" value={car.carData?.chassisNumber} icon="mdi:barcode" />
-                                <InfoRow label="Nomor Mesin" value={car.carData?.engineNumber} icon="mdi:engine" />
-                            </Paper>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Icon icon="mdi:cash" width={20} color="#1E40AF" /> Finansial & Asuransi
-                                </Typography>
-                                <InfoRow label="Harga Kendaraan" value={formatCurrency(car.carData?.carPrice)} icon="mdi:cash" />
-                                <InfoRow label="Jatuh Tempo Asuransi" value={car.carData?.dueDate} icon="mdi:calendar" />
-                                <InfoRow label="Catatan" value={car.notes} icon="mdi:note-text" fullWidth />
-                            </Paper>
-                        </Grid>
-                    </Grid>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Icon icon="mdi:car-info" width={22} color="#1E40AF" /> Identitas Kendaraan
+                            </Typography>
+                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(12, 1fr)' }, gap: 3 }}>
+                                <Box sx={{ gridColumn: { md: 'span 4' } }}><InfoRow label="Merek Mobil" value={carBrand} icon="mdi:car" fullWidth /></Box>
+                                <Box sx={{ gridColumn: { md: 'span 4' } }}><InfoRow label="Model Mobil" value={carModel} icon="mdi:car-side" fullWidth /></Box>
+                                <Box sx={{ gridColumn: { md: 'span 4' } }}><InfoRow label="Nomor Polisi" value={plateNumber} icon="mdi:numeric" fullWidth /></Box>
+                                
+                                <Box sx={{ gridColumn: { md: 'span 4' } }}><InfoRow label="Tahun" value={car.carData?.year || '-'} icon="mdi:calendar" fullWidth /></Box>
+                                <Box sx={{ gridColumn: { md: 'span 4' } }}><InfoRow label="Warna" value={car.carData?.color || '-'} icon="mdi:palette" fullWidth /></Box>
+                                <Box sx={{ gridColumn: { md: 'span 4' } }}><InfoRow label="Nama Pemilik" value={car.carData?.ownerName} icon="mdi:account" fullWidth /></Box>
+                                
+                                <Box sx={{ gridColumn: { md: 'span 12' }, borderBottom: '1px dashed #E2E8F0', my: 1 }} />
+                                
+                                <Box sx={{ gridColumn: { md: 'span 6' } }}><InfoRow label="Nomor Rangka" value={car.carData?.chassisNumber} icon="mdi:barcode" fullWidth /></Box>
+                                <Box sx={{ gridColumn: { md: 'span 6' } }}><InfoRow label="Nomor Mesin" value={car.carData?.engineNumber} icon="mdi:engine" fullWidth /></Box>
+                            </Box>
+                        </Paper>
+
+                        <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Icon icon="mdi:cash" width={22} color="#1E40AF" /> Finansial & Asuransi
+                            </Typography>
+                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+                                <Box sx={{ gridColumn: { md: 'span 1' } }}><InfoRow label="Harga Kendaraan" value={formatCurrency(car.carData?.carPrice)} icon="mdi:cash-multiple" fullWidth /></Box>
+                                <Box sx={{ gridColumn: { md: 'span 1' } }}><InfoRow label="Tanggal Mulai" value={car.carData?.startDate || '-'} icon="mdi:calendar-arrow-right" fullWidth /></Box>
+                                <Box sx={{ gridColumn: { md: 'span 1' } }}><InfoRow label="Jatuh Tempo Asuransi" value={car.carData?.dueDate || '-'} icon="mdi:calendar-clock" fullWidth /></Box>
+                                <Box sx={{ gridColumn: { md: 'span 3' } }}><InfoRow label="Catatan Tambahan" value={car.notes || '-'} icon="mdi:note-text" fullWidth /></Box>
+                            </Box>
+                        </Paper>
+                    </Box>
                 </TabPanel>
 
                 {/* ── Tab 2: Documents ── */}
                 <TabPanel value={tabValue} index={1}>
-                    <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E293B', mb: 2 }}>Foto Dokumen</Typography>
-                                <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
-                                    {docPhotos.map(doc => (
-                                        <Box key={doc.key} sx={{ flexShrink: 0, width: 90 }}>
-                                            <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 0.5, display: 'block' }}>{doc.label}</Typography>
-                                            {doc.url ? (
-                                                <Box
-                                                    component="img" src={doc.url} alt={doc.label}
-                                                    onClick={() => openPhotoPreview([doc.url])}
-                                                    sx={{ display: 'block', width: 90, height: 90, objectFit: 'cover', borderRadius: 2, cursor: 'pointer', border: '1px solid #E2E8F0', '&:hover': { opacity: 0.85 } }}
-                                                />
-                                            ) : (
-                                                <Box sx={{ width: 90, height: 90, borderRadius: 2, border: '1px dashed #CBD5E1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC', opacity: 0.7 }}>
-                                                    <Icon icon="mdi:camera-off" width={20} color="#94A3B8" />
-                                                    <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '10px', mt: 0.5 }}>Kosong</Typography>
-                                                </Box>
-                                            )}
-                                        </Box>
-                                    ))}
-                                </Box>
-                            </Paper>
-                        </Grid>
-                    </Grid>
+                    <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Icon icon="mdi:folder-account-outline" width={22} color="#1E40AF" /> Kelengkapan Dokumen
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#64748B', mb: 4 }}>
+                            Klik pada dokumen untuk membesarkan atau mengunduh.
+                        </Typography>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 4 }}>
+                            {docPhotos.map(doc => (
+                                <DetailDocCard key={doc.key} label={doc.label} url={doc.url} onPreview={(u) => openPhotoPreview([u])} />
+                            ))}
+                        </Box>
+                    </Paper>
                 </TabPanel>
 
                 {/* ── Tab 3: Car Photos ── */}
                 <TabPanel value={tabValue} index={2}>
-                    <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Icon icon="mdi:camera" width={20} color="#1E40AF" /> Foto Kendaraan
+                    <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Icon icon="mdi:camera-burst" width={22} color="#1E40AF" /> Galeri Foto Kendaraan
                         </Typography>
-                        <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
+                        <Typography variant="body2" sx={{ color: '#64748B', mb: 4 }}>
+                            Klik pada foto untuk mengunduh atau melihat ukuran penuh.
+                        </Typography>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 3 }}>
                             {carPhotos.map(photo => (
-                                <Box key={photo.label} sx={{ flexShrink: 0, width: 90 }}>
-                                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 0.5, display: 'block' }}>{photo.label}</Typography>
-                                    {photo.url ? (
-                                        <Box
-                                            component="img" src={photo.url} alt={photo.label}
-                                            onClick={() => openPhotoPreview(carPhotos.filter(p => p.url).map(p => p.url))}
-                                            sx={{ display: 'block', width: 90, height: 90, objectFit: 'cover', borderRadius: 2, cursor: 'pointer', border: '1px solid #E2E8F0', '&:hover': { opacity: 0.85 } }}
-                                        />
-                                    ) : (
-                                        <Box sx={{ width: 90, height: 90, borderRadius: 2, border: '1px dashed #CBD5E1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC', opacity: 0.7 }}>
-                                            <Icon icon="mdi:camera-off" width={20} color="#94A3B8" />
-                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '10px', mt: 0.5 }}>Kosong</Typography>
-                                        </Box>
-                                    )}
-                                </Box>
+                                <DetailImageCard key={photo.label} label={`Sisi ${photo.label}`} url={photo.url} onPreview={(url) => {
+                                    const allValidPhotos = carPhotos.filter(p => p.url).map(p => p.url);
+                                    openPhotoPreview(allValidPhotos);
+                                }} />
                             ))}
                         </Box>
                     </Paper>
