@@ -12,12 +12,18 @@ import {
     InputAdornment,
     Avatar,
     Divider,
-    Grid
+    Grid,
+    CircularProgress,
+    Drawer,
+    List,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText
 } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import MenuItem from '@mui/material/MenuItem';
 import dayjs from 'dayjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import PropertyDAO from '../../daos/propertyDao';
 import { useLoading } from '../../hooks/LoadingProvider.jsx';
@@ -83,16 +89,34 @@ export default function PropertyListPage() {
     const user = useUser();
     const message = useAlert();
 
-    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [mobileSearchInput, setMobileSearchInput] = useState('');
+    const [mobileVisibleCount, setMobileVisibleCount] = useState(5);
+    const [mobileLoadingMore, setMobileLoadingMore] = useState(false);
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const sentinelRef = useCallback((node) => {
+        if (!node) return;
+        const timer = setTimeout(() => {
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    if (entries[0].isIntersecting) {
+                        setMobileLoadingMore(true);
+                        setTimeout(() => {
+                            setMobileVisibleCount(prev => prev + 5);
+                            setMobileLoadingMore(false);
+                        }, 300);
+                    }
+                },
+                { threshold: 1.0, rootMargin: '0px 0px 0px 0px' }
+            );
+            observer.observe(node);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(window.innerWidth <= 768);
-        };
-
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+        setMobileSearchInput(dataSourceOptions.keyword);
+    }, [dataSourceOptions.keyword]);
 
     const [selectedStatus, setSelectedStatus] = useState("ALL");
 
@@ -103,6 +127,36 @@ export default function PropertyListPage() {
             page: 0,
         }));
     };
+
+    useEffect(() => {
+        setMobileVisibleCount(5);
+        setMobileLoadingMore(false);
+    }, [dataSourceOptions.keyword, dataSourceOptions.propertyType, selectedStatus]);
+
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    const [actionDrawerOpen, setActionDrawerOpen] = useState(false);
+    const [drawerProperty, setDrawerProperty] = useState(null);
+
+    const handleOpenDrawer = (e, property) => {
+        e.stopPropagation();
+        setDrawerProperty(property);
+        setActionDrawerOpen(true);
+    };
+
+    const handleCloseDrawer = () => {
+        setActionDrawerOpen(false);
+        setDrawerProperty(null);
+    };
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const fetchProperties = async () => {
         try {
@@ -478,55 +532,56 @@ export default function PropertyListPage() {
     }, []);
 
     const renderMobileView = () => {
-        const mobileLimit = 10;
-        const startIndex = dataSourceOptions.page * mobileLimit;
-        const endIndex = startIndex + mobileLimit;
+        const BATCH = 5;
+        let filtered = [...allData];
+        if (selectedStatus !== 'ALL') {
+            filtered = filtered.filter(c => c.status === selectedStatus || (c.status === undefined && selectedStatus === 'Active'));
+        }
+        if (dataSourceOptions.propertyType) {
+            filtered = filtered.filter(c => c.propertyData?.propertyType === dataSourceOptions.propertyType);
+        }
+        if (dataSourceOptions.keyword) {
+            const keyword = dataSourceOptions.keyword.toLowerCase();
+            filtered = filtered.filter(property => {
+                const matchOwnerName = getPropertyOwnerName(property)?.toLowerCase().includes(keyword);
+                const matchOwnerPhone = property.ownerPhone?.includes(keyword);
+                const matchOwnerEmail = property.ownerEmail?.toLowerCase().includes(keyword);
+                const matchAddress = property.propertyData?.address?.toLowerCase().includes(keyword);
+                const matchCity = property.propertyData?.city?.toLowerCase().includes(keyword);
+                const matchPolicyNumber = property.insuranceData?.policyNumber?.toLowerCase().includes(keyword);
+                return matchOwnerName || matchOwnerPhone || matchOwnerEmail || matchAddress || matchCity || matchPolicyNumber;
+            });
+        }
+        
+        const paginated = filtered.slice(0, mobileVisibleCount);
+        const hasMore = mobileVisibleCount < filtered.length;
 
         return (
             <Box sx={{ p: 2, bgcolor: '#F8FAFC', minHeight: '100%' }}>
-                {/* Search Bar */}
-                <Box sx={{ mb: 2 }}>
+                {/* Search & Add Inline */}
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
                     <TextField
-                        fullWidth
-                        placeholder="Cari properti..."
-                        value={dataSourceOptions.keyword}
-                        onChange={(e) => handleFilterChange('keyword', e.target.value)}
+                        fullWidth placeholder="Cari properti..."
+                        value={mobileSearchInput}
+                        onChange={(e) => setMobileSearchInput(e.target.value)}
+                        onKeyPress={(e) => { if (e.key === 'Enter') setDataSourceOptions(p => ({ ...p, keyword: mobileSearchInput, page: 0 })); }}
                         InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <Icon icon="mdi:magnify" color="#94A3B8" />
-                                </InputAdornment>
-                            ),
-                            sx: {
-                                borderRadius: '12px',
-                                bgcolor: '#fff',
-                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' },
-                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#CBD5E1' }
-                            }
+                            startAdornment: (<InputAdornment position="start"><Icon icon="mdi:magnify" color="#94A3B8" /></InputAdornment>),
+                            sx: { borderRadius: '12px', bgcolor: '#fff', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' } }
                         }}
                     />
-                </Box>
-
-                {/* Add Property Button */}
-                <Button
-                    fullWidth
-                    variant="contained"
-                    onClick={() => { setOpenCreateDialog(true); setSelectedDetail(null); }}
-                    startIcon={<Icon icon="heroicons:plus" />}
-                    sx={{
-                        bgcolor: '#1E3A8A',
-                        color: '#fff',
-                        textTransform: 'none',
-                        fontWeight: 700,
-                        py: 1.5,
-                        borderRadius: '16px',
-                        mb: 3,
-                        boxShadow: '0 10px 15px -3px rgba(30, 58, 138, 0.3)',
-                        '&:hover': { bgcolor: '#1e40af' }
-                    }}
-                >
-                    Tambah Properti
-                </Button>
+                    <IconButton
+                        onClick={() => { setOpenCreateDialog(true); setSelectedDetail(null); }}
+                        sx={{
+                            bgcolor: '#1E3A8A', color: '#fff', borderRadius: '12px',
+                            width: 48, height: 48, flexShrink: 0,
+                            '&:hover': { bgcolor: '#1e40af' },
+                            boxShadow: '0 4px 12px rgba(30,58,138,0.3)'
+                        }}
+                    >
+                        <Icon icon="mdi:plus" width={24} />
+                    </IconButton>
+                </Stack>
 
                 {/* Status Filters */}
                 <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 2, mb: 1, '&::-webkit-scrollbar': { display: 'none' } }}>
@@ -540,10 +595,7 @@ export default function PropertyListPage() {
                                 borderColor: selectedStatus === summary.status ? '#1E3A8A' : '#E2E8F0',
                                 backgroundColor: selectedStatus === summary.status ? '#1E3A8A' : '#fff',
                                 color: selectedStatus === summary.status ? '#fff' : '#64748B',
-                                fontWeight: 600,
-                                px: 1,
-                                height: 38,
-                                borderRadius: '20px',
+                                fontWeight: 600, px: 1, height: 38, borderRadius: '20px',
                                 '&:active': { transform: 'scale(0.95)' }
                             }}
                         />
@@ -551,15 +603,17 @@ export default function PropertyListPage() {
                 </Box>
 
                 {/* List Content */}
-                {dataSource.length === 0 ? (
+                {paginated.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 8 }}>
                         <Icon icon="mdi:home-off-outline" width={64} color="#CBD5E1" />
                         <Typography variant="body1" sx={{ mt: 2, color: '#94A3B8', fontWeight: 500 }}>Tidak ada properti ditemukan</Typography>
                     </Box>
                 ) : (
                     <Stack spacing={2}>
-                        {dataSource.map((property) => (
-                            <Card key={property.id} sx={{ borderRadius: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
+                        {paginated.map((property) => (
+                            <Card key={property.id} 
+                                  onClick={() => navigate(`/properties/${property.id}`)}
+                                  sx={{ borderRadius: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9', cursor: 'pointer' }}>
                                 <CardContent sx={{ p: '20px !important' }}>
                                     <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2.5 }}>
                                         <Avatar sx={{ width: 48, height: 48, bgcolor: '#EFF6FF', color: '#1E40AF', fontWeight: 700 }}>
@@ -582,6 +636,9 @@ export default function PropertyListPage() {
                                                 fontWeight: 800, fontSize: '0.65rem', borderRadius: '8px'
                                             }}
                                         />
+                                        <IconButton size="small" onClick={(e) => handleOpenDrawer(e, property)}>
+                                            <Icon icon="mdi:dots-vertical" width={24} color="#64748B" />
+                                        </IconButton>
                                     </Stack>
 
                                     <Divider sx={{ mb: 2.5, borderStyle: 'dashed' }} />
@@ -603,48 +660,24 @@ export default function PropertyListPage() {
                                         </Grid>
                                     </Grid>
 
-                                    <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1, borderTop: '1px solid #F8FAFC' }}>
-                                        <IconButton size="small" onClick={() => navigate(`/properties/${property.id}`)} sx={{ color: '#64748B' }}><Icon icon="mdi:eye-outline" width={22} /></IconButton>
-                                        <IconButton size="small" onClick={() => { setSelectedDetail(property); setOpenCreateDialog(true); }} sx={{ color: '#64748B' }}><Icon icon="mdi:pencil-outline" width={22} /></IconButton>
-                                        <IconButton size="small" onClick={() => { if (window.confirm('Hapus properti ini?')) handleDelete(property.id); }} sx={{ color: '#64748B' }}><Icon icon="mdi:trash-can-outline" width={22} /></IconButton>
-                                    </Stack>
                                 </CardContent>
                             </Card>
                         ))}
                     </Stack>
                 )}
 
-                {/* Pagination */}
-                {dataSourceOptions.total > 0 && (
-                    <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid #E2E8F0', pb: 4 }}>
-                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                            <Typography variant="body2" sx={{ color: '#64748B' }}>
-                                Menampilkan <b>{startIndex + 1}-{Math.min(endIndex, dataSourceOptions.total)}</b> dari <b>{dataSourceOptions.total}</b>
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#64748B' }}>
-                                Halaman <b>{dataSourceOptions.page + 1}</b> dari <b>{Math.ceil(dataSourceOptions.total / mobileLimit)}</b>
-                            </Typography>
-                        </Stack>
-                        <Stack direction="row" spacing={2}>
-                            <Button
-                                fullWidth
-                                variant="outlined"
-                                disabled={dataSourceOptions.page === 0}
-                                onClick={() => handlePageChange(dataSourceOptions.page - 1)}
-                                sx={{ borderRadius: '12px', py: 1.25, fontWeight: 700, textTransform: 'uppercase', borderColor: '#E2E8F0', color: '#64748B' }}
-                            >
-                                Sebelumnya
-                            </Button>
-                            <Button
-                                fullWidth
-                                variant="outlined"
-                                disabled={(dataSourceOptions.page + 1) * mobileLimit >= dataSourceOptions.total}
-                                onClick={() => handlePageChange(dataSourceOptions.page + 1)}
-                                sx={{ borderRadius: '12px', py: 1.25, fontWeight: 700, textTransform: 'uppercase', borderColor: '#1E3A8A', color: '#1E3A8A' }}
-                            >
-                                Berikutnya
-                            </Button>
-                        </Stack>
+                {/* Infinite Scroll Loaders */}
+                {mobileLoadingMore && (
+                    <Box sx={{ py: 3, display: 'flex', justifyContent: 'center' }}>
+                        <CircularProgress size={24} sx={{ color: '#1E3A8A' }} />
+                    </Box>
+                )}
+                {hasMore && !mobileLoadingMore && (
+                    <Box ref={sentinelRef} sx={{ height: 1, width: '100%' }} />
+                )}
+                {!hasMore && filtered.length > BATCH && (
+                    <Box sx={{ py: 3, textAlign: 'center' }}>
+                        <Typography variant="body2" sx={{ color: '#94A3B8', fontWeight: 500 }}>Semua {filtered.length} properti sudah dimuat</Typography>
                     </Box>
                 )}
             </Box>
@@ -735,6 +768,38 @@ export default function PropertyListPage() {
     return (
         <>
             {isMobile ? renderMobileView() : renderDesktopView()}
+
+            {/* Mobile Actions Drawer */}
+            <Drawer
+                anchor="bottom"
+                open={actionDrawerOpen}
+                onClose={handleCloseDrawer}
+                PaperProps={{
+                    sx: { borderTopLeftRadius: '24px', borderTopRightRadius: '24px', p: 2 }
+                }}
+            >
+                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+                    <Box sx={{ width: 40, height: 4, bgcolor: '#E2E8F0', borderRadius: 2 }} />
+                </Box>
+                {drawerProperty && (
+                    <>
+                        <Box sx={{ mb: 2, px: 2 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 700 }}>{getPropertyOwnerName(drawerProperty)}</Typography>
+                            <Typography variant="body2" color="text.secondary">{drawerProperty.ownerPhone || '-'}</Typography>
+                        </Box>
+                        <List sx={{ pb: 3 }}>
+                            <ListItemButton onClick={() => { handleCloseDrawer(); setSelectedDetail(drawerProperty); setOpenCreateDialog(true); }} sx={{ borderRadius: '12px', mb: 1 }}>
+                                <ListItemIcon><Icon icon="mdi:pencil-outline" width={24} color="#1E40AF" /></ListItemIcon>
+                                <ListItemText primary="Edit Properti" primaryTypographyProps={{ fontWeight: 600, color: '#1E40AF' }} />
+                            </ListItemButton>
+                            <ListItemButton onClick={() => { handleCloseDrawer(); if (window.confirm('Yakin ingin menghapus properti ini?')) handleDelete(drawerProperty.id); }} sx={{ borderRadius: '12px' }}>
+                                <ListItemIcon><Icon icon="mdi:trash-can-outline" width={24} color="#DC2626" /></ListItemIcon>
+                                <ListItemText primary="Hapus Properti" primaryTypographyProps={{ fontWeight: 600, color: '#DC2626' }} />
+                            </ListItemButton>
+                        </List>
+                    </>
+                )}
+            </Drawer>
 
             <PropertyComponent
                 isNewRecord={selectedDetail === null}
