@@ -160,7 +160,19 @@ export default function DashboardLayout() {
         {/* Mobile Toolbar */}
         <Box sx={{ display: { xs: 'flex', sm: 'none' }, justifyContent: 'space-between', alignItems: 'center', px: 2, height: `${Constants.HEADER_MOBILE_HEIGHT}px`, bgcolor: '#fff', borderBottom: '1px solid #f1f5f9' }}>
           <IconButton onClick={() => setIsDrawerOpen(true)} sx={{ color: '#334155' }}><CustomIcon icon="heroicons:bars-3-solid" /></IconButton>
-          <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 16 }}>{sections.find(s => s.url === location.pathname)?.label || 'Dashboard'}</Typography>
+          <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 16 }}>
+            {(() => {
+              const p = location.pathname;
+              if (p.startsWith('/customers')) return 'Customers';
+              if (p.startsWith('/properties')) return 'Properti';
+              if (p.startsWith('/cars')) return 'Kendaraan';
+              if (p.startsWith('/quotations')) return 'Quotation';
+              if (p.startsWith('/invoices')) return 'Invoice';
+              if (p.startsWith('/admin-management')) return 'Admin Management';
+              if (p.startsWith('/kwitansi')) return 'Kwitansi';
+              return sections.find(s => s.url === p)?.label || 'Dashboard';
+            })()}
+          </Typography>
           <BellButton notifs={notifs} loading={notifLoading} />
         </Box>
 
