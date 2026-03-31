@@ -11,6 +11,13 @@ import UserDAO from '../../daos/UserDAO';
 const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
 
+    html, body, #root {
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 100% !important;
+        overflow: hidden !important;
+    }
+
     .signup-root * {
         box-sizing: border-box;
         margin: 0;
@@ -19,249 +26,171 @@ const styles = `
 
     .signup-root {
         font-family: 'DM Sans', sans-serif;
-        min-height: 100vh;
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
         display: flex;
-        background: #f0f4ff;
-    }
-
-    /* ─── LEFT PANEL ─── */
-    .signup-left {
-        width: 45%;
-        background: linear-gradient(145deg, #1a3fa8 0%, #1251d4 40%, #1a6ef5 100%);
-        border-radius: 0 32px 32px 0;
-        padding: 48px 52px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        position: relative;
+        align-items: center;
+        justify-content: center;
+        background: #eef2ff;
         overflow: hidden;
     }
 
-    .signup-left::before {
-        content: '';
+    /* ─── BG BLOBS ─── */
+    .signup-blob {
         position: absolute;
-        width: 420px;
-        height: 420px;
         border-radius: 50%;
-        background: rgba(255,255,255,0.06);
-        top: -120px;
-        right: -100px;
+        pointer-events: none;
+        z-index: 0;
     }
 
-    .signup-left::after {
-        content: '';
+    .signup-blob-1 {
+        width: 480px;
+        height: 480px;
+        background: radial-gradient(circle, rgba(26,111,245,0.13) 0%, transparent 70%);
+        top: -160px;
+        left: -100px;
+    }
+
+    .signup-blob-2 {
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(26,63,168,0.09) 0%, transparent 70%);
+        bottom: -120px;
+        right: -80px;
+    }
+
+    /* ─── DECORATIVE ─── */
+    .signup-deco {
         position: absolute;
-        width: 280px;
-        height: 280px;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .signup-deco-box {
+        width: 100px;
+        height: 100px;
+        border: 2px solid rgba(26,111,245,0.12);
+        border-radius: 16px;
+        top: 44px;
+        left: 48px;
+    }
+
+    .signup-deco-circle {
+        width: 72px;
+        height: 72px;
+        background: rgba(26,111,245,0.06);
         border-radius: 50%;
-        background: rgba(255,255,255,0.05);
-        bottom: 60px;
-        left: -80px;
+        bottom: 64px;
+        right: 64px;
     }
 
-    .signup-left-brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        z-index: 1;
-    }
-
-    .signup-left-brand-icon {
-        width: 44px;
-        height: 44px;
-        background: rgba(255,255,255,0.18);
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255,255,255,0.25);
-    }
-
-    .signup-left-brand-name {
-        font-family: 'Sora', sans-serif;
-        font-weight: 700;
-        font-size: 20px;
-        color: #fff;
-        letter-spacing: -0.3px;
-    }
-
-    .signup-left-content {
-        z-index: 1;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        padding: 48px 0 32px;
-    }
-
-    .signup-left-tag {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: rgba(255,255,255,0.15);
-        border: 1px solid rgba(255,255,255,0.25);
-        border-radius: 100px;
-        padding: 6px 14px 6px 8px;
-        width: fit-content;
-        margin-bottom: 28px;
-        backdrop-filter: blur(6px);
-    }
-
-    .signup-left-tag-dot {
-        width: 8px;
-        height: 8px;
-        background: #7ee8a2;
+    .signup-deco-dot-1 {
+        width: 11px;
+        height: 11px;
+        background: #1a6ef5;
         border-radius: 50%;
-        box-shadow: 0 0 6px #7ee8a2;
-        animation: pulse 2s infinite;
+        opacity: 0.3;
+        top: 100px;
+        right: 130px;
     }
 
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.4; }
+    .signup-deco-dot-2 {
+        width: 7px;
+        height: 7px;
+        background: #1a3fa8;
+        border-radius: 50%;
+        opacity: 0.22;
+        bottom: 120px;
+        left: 90px;
     }
 
-    .signup-left-tag span {
-        font-size: 12px;
-        color: rgba(255,255,255,0.9);
-        font-weight: 500;
-        letter-spacing: 0.3px;
+    .signup-deco-ring {
+        width: 48px;
+        height: 48px;
+        border: 2px solid rgba(26,111,245,0.09);
+        border-radius: 50%;
+        top: 50%;
+        left: 32px;
+        transform: translateY(-50%);
     }
 
-    .signup-left-headline {
-        font-family: 'Sora', sans-serif;
-        font-size: 38px;
-        font-weight: 800;
-        color: #fff;
-        line-height: 1.15;
-        letter-spacing: -1px;
-        margin-bottom: 20px;
+    .signup-squiggle {
+        position: absolute;
+        opacity: 0.1;
+        pointer-events: none;
+        z-index: 0;
     }
 
-    .signup-left-headline span {
+    /* ─── CARD ─── */
+    .signup-card {
         position: relative;
-        display: inline-block;
-    }
-
-    .signup-left-headline span::after {
-        content: '';
-        position: absolute;
-        bottom: 2px;
-        left: 0;
-        width: 100%;
-        height: 3px;
-        background: rgba(255,255,255,0.45);
-        border-radius: 2px;
-    }
-
-    .signup-left-sub {
-        font-size: 15px;
-        color: rgba(255,255,255,0.72);
-        line-height: 1.65;
-        max-width: 320px;
-        font-weight: 300;
-    }
-
-    .signup-left-checklist {
-        margin-top: 32px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
         z-index: 1;
-    }
-
-    .signup-check-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: rgba(255,255,255,0.85);
-        font-size: 14px;
-        font-weight: 400;
-    }
-
-    .signup-check-icon {
-        width: 24px;
-        height: 24px;
-        background: rgba(255,255,255,0.15);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    /* ─── RIGHT PANEL ─── */
-    .signup-right {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 48px 64px;
-        background: #f0f4ff;
-        overflow-y: auto;
-    }
-
-    .signup-right-inner {
+        background: #fff;
+        border-radius: 28px;
+        padding: 48px 52px 44px;
         width: 100%;
-        max-width: 400px;
+        max-width: 560px;
+        max-height: 92vh;
+        overflow-y: auto;
+        box-shadow:
+            0 2px 4px rgba(26,63,168,0.04),
+            0 14px 44px rgba(26,63,168,0.10);
+        animation: cardIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+        scrollbar-width: none;
     }
 
-    .signup-right-logo {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        justify-content: center;
-        margin-bottom: 28px;
+    .signup-card::-webkit-scrollbar { display: none; }
+
+    @keyframes cardIn {
+        from { opacity: 0; transform: translateY(18px) scale(0.98); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    .signup-right-logo-icon {
-        width: 40px;
-        height: 40px;
-        background: linear-gradient(135deg, #1a3fa8, #1a6ef5);
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
 
-    .signup-right-logo-name {
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* ─── TITLE ─── */
+    .signup-title {
         font-family: 'Sora', sans-serif;
-        font-weight: 700;
-        font-size: 18px;
-        color: #1a3fa8;
-        letter-spacing: -0.3px;
-    }
-
-    .signup-right-title {
-        font-family: 'Sora', sans-serif;
-        font-size: 28px;
+        font-size: 25px;
         font-weight: 800;
         color: #0f1b3d;
         text-align: center;
         margin-bottom: 6px;
-        letter-spacing: -0.8px;
+        letter-spacing: -0.4px;
+        animation: fadeUp 0.4s ease 0.05s both;
     }
 
-    .signup-right-sub {
-        font-size: 14px;
+    .signup-sub {
+        font-size: 13px;
         color: #8a94b2;
         text-align: center;
-        margin-bottom: 28px;
+        margin-bottom: 32px;
         font-weight: 400;
+        line-height: 1.55;
+        animation: fadeUp 0.4s ease 0.1s both;
     }
 
+    /* ─── FIELDS ─── */
     .signup-field-group {
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 18px;
         margin-bottom: 24px;
+        animation: fadeUp 0.4s ease 0.15s both;
     }
 
     .signup-field-label {
         display: block;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
         color: #374163;
         margin-bottom: 6px;
@@ -271,56 +200,22 @@ const styles = `
     .signup-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 12px;
+        gap: 14px;
     }
 
-    .signup-privacy {
-        font-size: 12px;
-        color: #a0abc8;
-        text-align: center;
-        margin-top: 16px;
-        line-height: 1.6;
+    .signup-field-group .MuiInputBase-root,
+    .signup-field-group .MuiOutlinedInput-root {
+        height: 52px !important;
     }
 
-    .signup-privacy a {
-        color: #1a6ef5;
-        text-decoration: none;
-        font-weight: 500;
+    .signup-field-group .MuiInputBase-input {
+        padding: 14px 16px !important;
+        height: 52px !important;
+        box-sizing: border-box !important;
+        font-size: 14px !important;
     }
 
-    .signup-login-link {
-        text-align: center;
-        margin-top: 20px;
-        font-size: 14px;
-        color: #8a94b2;
-    }
-
-    .signup-login-link button {
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: #1a6ef5;
-        font-weight: 600;
-        font-size: 14px;
-        font-family: 'DM Sans', sans-serif;
-        padding: 0;
-    }
-
-    .signup-login-link button:hover {
-        text-decoration: underline;
-    }
-
-    /* Mobile */
-    @media (max-width: 768px) {
-        .signup-left { display: none; }
-        .signup-right {
-            padding: 36px 24px;
-            background: linear-gradient(160deg, #f0f4ff 0%, #e8eeff 100%);
-        }
-        .signup-row { grid-template-columns: 1fr; }
-    }
-
-    /* Submit button */
+    /* ─── SUBMIT ─── */
     .signup-submit-btn {
         width: 100%;
         height: 52px !important;
@@ -330,35 +225,77 @@ const styles = `
         font-weight: 600 !important;
         font-family: 'Sora', sans-serif !important;
         letter-spacing: 0.2px !important;
-        box-shadow: 0 8px 24px rgba(26, 110, 245, 0.35) !important;
-        transition: all 0.2s ease !important;
+        box-shadow: 0 7px 20px rgba(26,110,245,0.30) !important;
+        transition: all 0.18s ease !important;
+        animation: fadeUp 0.4s ease 0.2s both;
     }
 
     .signup-submit-btn:hover:not(:disabled) {
-        transform: translateY(-1px) !important;
-        box-shadow: 0 12px 32px rgba(26, 110, 245, 0.45) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 12px 30px rgba(26,110,245,0.40) !important;
     }
 
-    .signup-submit-btn:disabled {
-        opacity: 0.6 !important;
+    .signup-submit-btn:disabled { opacity: 0.6 !important; }
+
+    /* ─── PRIVACY ─── */
+    .signup-privacy {
+        font-size: 11.5px;
+        color: #a0abc8;
+        text-align: center;
+        margin-top: 14px;
+        line-height: 1.6;
+        animation: fadeUp 0.4s ease 0.25s both;
     }
 
-    @keyframes fadeUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+    .signup-privacy a {
+        color: #1a6ef5;
+        text-decoration: none;
+        font-weight: 500;
     }
 
-    .signup-right-inner > * {
-        animation: fadeUp 0.5s ease both;
-    }
-    .signup-right-inner > *:nth-child(1) { animation-delay: 0.05s; }
-    .signup-right-inner > *:nth-child(2) { animation-delay: 0.1s; }
-    .signup-right-inner > *:nth-child(3) { animation-delay: 0.15s; }
-    .signup-right-inner > *:nth-child(4) { animation-delay: 0.2s; }
+    .signup-privacy a:hover { text-decoration: underline; }
 
-    @keyframes spin {
-        to { transform: rotate(360deg); }
+    /* ─── LOGIN LINK ─── */
+    .signup-login-link {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 13px;
+        color: #8a94b2;
+        animation: fadeUp 0.4s ease 0.3s both;
     }
+
+    .signup-login-link button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #1a6ef5;
+        font-weight: 600;
+        font-size: 13px;
+        font-family: 'DM Sans', sans-serif;
+        padding: 0;
+    }
+
+    .signup-login-link button:hover { text-decoration: underline; }
+
+    /* ─── COPYRIGHT ─── */
+    .signup-copyright {
+        position: absolute;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 11px;
+        color: #a0abc8;
+        z-index: 1;
+        white-space: nowrap;
+        font-family: 'DM Sans', sans-serif;
+    }
+
+    .signup-copyright a {
+        color: #1a6ef5;
+        text-decoration: none;
+    }
+
+    .signup-copyright a:hover { text-decoration: underline; }
 `;
 
 export default function SignUpPage() {
@@ -374,16 +311,16 @@ export default function SignUpPage() {
     }, [user, isLoading, navigate]);
 
     const validationSchema = Yup.object({
-        fullName: Yup.string().required('Full name is required!').min(2, 'At least 2 characters'),
+        fullName: Yup.string().required('Nama lengkap wajib diisi!').min(2, 'Minimal 2 karakter'),
         username: Yup.string()
-            .required('Username is required!')
-            .min(4, 'At least 4 characters')
-            .matches(/^[a-zA-Z0-9_]+$/, 'Letters, numbers, underscores only'),
-        email: Yup.string().email('Invalid email format').required('Email is required!'),
-        password: Yup.string().required('Password is required!').min(6, 'At least 6 characters'),
+            .required('Username wajib diisi!')
+            .min(4, 'Minimal 4 karakter')
+            .matches(/^[a-zA-Z0-9_]+$/, 'Hanya huruf, angka, dan underscore'),
+        email: Yup.string().email('Format email tidak valid').required('Email wajib diisi!'),
+        password: Yup.string().required('Password wajib diisi!').min(6, 'Minimal 6 karakter'),
         confirmPassword: Yup.string()
-            .required('Please confirm your password!')
-            .oneOf([Yup.ref('password'), null], 'Passwords must match'),
+            .required('Konfirmasi password wajib diisi!')
+            .oneOf([Yup.ref('password'), null], 'Password harus sama'),
     });
 
     const handleSubmit = async (data) => {
@@ -396,7 +333,7 @@ export default function SignUpPage() {
                 password: data.password.trim(),
                 role: 'user',
             });
-            if (!result.success) throw new Error(result.error || 'Sign up failed');
+            if (!result.success) throw new Error(result.error || 'Pendaftaran gagal');
             if (result.token) localStorage.setItem('authToken', result.token);
             login({
                 id: result.user.id,
@@ -405,10 +342,10 @@ export default function SignUpPage() {
                 role: result.user.role || 'user',
                 email: result.user.email || '',
             });
-            message('Account created successfully! Welcome aboard! 🎉', 'success');
+            message('Akun berhasil dibuat!', 'success');
             navigate('/', { replace: true });
         } catch (error) {
-            message(error.message || 'Sign up failed. Please try again.', 'error');
+            message(error.message || 'Pendaftaran gagal. Silakan coba lagi.', 'error');
         } finally {
             loading.stop();
         }
@@ -424,10 +361,19 @@ export default function SignUpPage() {
 
     if (isLoading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f0f4ff' }}>
+            <div style={{
+                position: 'fixed', inset: 0,
+                display: 'flex', justifyContent: 'center', alignItems: 'center',
+                background: '#eef2ff'
+            }}>
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ width: 40, height: 40, border: '3px solid #e0e7ff', borderTopColor: '#1a6ef5', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-                    <p style={{ color: '#8a94b2', fontFamily: 'DM Sans, sans-serif' }}>Loading...</p>
+                    <div style={{
+                        width: 36, height: 36,
+                        border: '3px solid #dde6ff', borderTopColor: '#1a6ef5',
+                        borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+                        margin: '0 auto 12px'
+                    }} />
+                    <p style={{ color: '#8a94b2', fontFamily: 'DM Sans, sans-serif', fontSize: 13 }}>Memuat...</p>
                 </div>
             </div>
         );
@@ -438,179 +384,138 @@ export default function SignUpPage() {
             <style>{styles}</style>
             <div className="signup-root">
 
-                {/* ─── LEFT PANEL ─── */}
-                <div className="signup-left">
-                    <div className="signup-left-brand">
-                        <div className="signup-left-brand-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                <path d="M9 12l2 2 4-4" />
-                            </svg>
-                        </div>
-                        <span className="signup-left-brand-name">InsureSync</span>
-                    </div>
+                {/* Blobs */}
+                <div className="signup-blob signup-blob-1" />
+                <div className="signup-blob signup-blob-2" />
 
-                    <div className="signup-left-content">
-                        <div className="signup-left-tag">
-                            <div className="signup-left-tag-dot" />
-                            <span>Join 2,400+ independent agents</span>
-                        </div>
+                {/* Deco */}
+                <div className="signup-deco signup-deco-box" />
+                <div className="signup-deco signup-deco-circle" />
+                <div className="signup-deco signup-deco-dot-1" />
+                <div className="signup-deco signup-deco-dot-2" />
+                <div className="signup-deco signup-deco-ring" />
 
-                        <h2 className="signup-left-headline">
-                            Start growing<br />
-                            your <span>agency</span><br />
-                            smarter today.
-                        </h2>
-                        <p className="signup-left-sub">
-                            Set up your agent profile in minutes and start managing clients, policies, and renewals from one powerful dashboard.
-                        </p>
-                    </div>
+                {/* Squiggles */}
+                <svg className="signup-squiggle" style={{ top: 68, left: 180, width: 84 }} viewBox="0 0 100 20" fill="none">
+                    <path d="M0 10 Q12.5 0 25 10 Q37.5 20 50 10 Q62.5 0 75 10 Q87.5 20 100 10" stroke="#1a6ef5" strokeWidth="2.5" fill="none" />
+                </svg>
+                <svg className="signup-squiggle" style={{ bottom: 80, right: 170, width: 66 }} viewBox="0 0 100 20" fill="none">
+                    <path d="M0 10 Q12.5 0 25 10 Q37.5 20 50 10 Q62.5 0 75 10 Q87.5 20 100 10" stroke="#1a3fa8" strokeWidth="2.5" fill="none" />
+                </svg>
 
-                    <div className="signup-left-checklist">
-                        {[
-                            'Manage all clients & policies in one place',
-                            'Automated renewal reminders & alerts',
-                            'Track commissions & performance metrics',
-                            'Secure, compliant, and always available',
-                        ].map((item, i) => (
-                            <div className="signup-check-item" key={i}>
-                                <div className="signup-check-icon">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                        <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                </div>
-                                {item}
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                {/* Card */}
+                <div className="signup-card">
+                    <h1 className="signup-title">Buat Akun</h1>
+                    <p className="signup-sub">Daftar untuk mulai menggunakan dashboard</p>
 
-                {/* ─── RIGHT PANEL ─── */}
-                <div className="signup-right">
-                    <div className="signup-right-inner">
-
-                        <div className="signup-right-logo">
-                            <div className="signup-right-logo-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                    <path d="M9 12l2 2 4-4" />
-                                </svg>
-                            </div>
-                            <span className="signup-right-logo-name">InsureSync</span>
-                        </div>
-
-                        <h1 className="signup-right-title">Create Account</h1>
-                        <p className="signup-right-sub">Join us and protect what matters most</p>
-
-                        <form onSubmit={formik.handleSubmit}>
-                            <div className="signup-field-group">
-                                {/* Full Name + Username row */}
-                                <div className="signup-row">
-                                    <div>
-                                        <label className="signup-field-label">Full Name</label>
-                                        <CustomTextInput
-                                            name="fullName"
-                                            fullWidth
-                                            placeholder="John Doe"
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            value={formik.values.fullName}
-                                            error={formik.touched.fullName && Boolean(formik.errors.fullName)}
-                                            helperText={formik.touched.fullName && formik.errors.fullName}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="signup-field-label">Username</label>
-                                        <CustomTextInput
-                                            name="username"
-                                            fullWidth
-                                            placeholder="johndoe123"
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            value={formik.values.username}
-                                            error={formik.touched.username && Boolean(formik.errors.username)}
-                                            helperText={formik.touched.username && formik.errors.username}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Email */}
+                    <form onSubmit={formik.handleSubmit}>
+                        <div className="signup-field-group">
+                            <div className="signup-row">
                                 <div>
-                                    <label className="signup-field-label">Email Address</label>
+                                    <label className="signup-field-label">Nama Lengkap</label>
+                                    <CustomTextInput
+                                        name="fullName"
+                                        fullWidth
+                                        placeholder="Masukkan nama lengkap"
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        value={formik.values.fullName}
+                                        error={formik.touched.fullName && Boolean(formik.errors.fullName)}
+                                        helperText={formik.touched.fullName && formik.errors.fullName}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="signup-field-label">Username</label>
+                                    <CustomTextInput
+                                        name="username"
+                                        fullWidth
+                                        placeholder="johndoe123"
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        value={formik.values.username}
+                                        error={formik.touched.username && Boolean(formik.errors.username)}
+                                        helperText={formik.touched.username && formik.errors.username}
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                    <label className="signup-field-label">Alamat Email</label>
                                     <CustomTextInput
                                         name="email"
                                         fullWidth
-                                        placeholder="john@example.com"
-                                        onChange={formik.handleChange}
-                                        onBlur={formik.handleBlur}
-                                        value={formik.values.email}
-                                        error={formik.touched.email && Boolean(formik.errors.email)}
-                                        helperText={formik.touched.email && formik.errors.email}
-                                        type="email"
-                                    />
-                                </div>
-
-                                {/* Password + Confirm row */}
-                                <div className="signup-row">
-                                    <div>
-                                        <label className="signup-field-label">Password</label>
-                                        <CustomTextInput
-                                            name="password"
-                                            fullWidth
-                                            placeholder="••••••••"
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            value={formik.values.password}
-                                            error={formik.touched.password && Boolean(formik.errors.password)}
-                                            helperText={formik.touched.password && formik.errors.password}
-                                            type="password"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="signup-field-label">Confirm</label>
-                                        <CustomTextInput
-                                            name="confirmPassword"
-                                            fullWidth
-                                            placeholder="••••••••"
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            value={formik.values.confirmPassword}
-                                            error={formik.touched.confirmPassword && Boolean(formik.errors.confirmPassword)}
-                                            helperText={formik.touched.confirmPassword && formik.errors.confirmPassword}
-                                            type="password"
-                                        />
-                                    </div>
-                                </div>
+                                        placeholder="Masukkan alamat email"
+                                    onChange={formik.handleChange}
+                                    onBlur={formik.handleBlur}
+                                    value={formik.values.email}
+                                    error={formik.touched.email && Boolean(formik.errors.email)}
+                                    helperText={formik.touched.email && formik.errors.email}
+                                    type="email"
+                                />
                             </div>
 
-                            <CustomButton
-                                fullWidth
-                                type="submit"
-                                disabled={!formik.isValid || formik.isSubmitting}
-                                className="signup-submit-btn"
-                            >
-                                {formik.isSubmitting ? (
-                                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                                        <svg style={{ animation: 'spin 0.8s linear infinite' }} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                                        </svg>
-                                        Creating Account...
-                                    </span>
-                                ) : 'Create Account'}
-                            </CustomButton>
-
-                            <p className="signup-privacy">
-                                By creating an account, you agree to our{' '}
-                                <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
-                            </p>
-                        </form>
-
-                        <div className="signup-login-link">
-                            Already have an account?{' '}
-                            <button type="button" onClick={() => navigate('/login')}>Sign in</button>
+                            <div className="signup-row">
+                                <div>
+                                    <label className="signup-field-label">Password</label>
+                                    <CustomTextInput
+                                        name="password"
+                                        fullWidth
+                                        placeholder="••••••••"
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        value={formik.values.password}
+                                        error={formik.touched.password && Boolean(formik.errors.password)}
+                                        helperText={formik.touched.password && formik.errors.password}
+                                        type="password"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="signup-field-label">Konfirmasi Password</label>
+                                    <CustomTextInput
+                                        name="confirmPassword"
+                                        fullWidth
+                                        placeholder="••••••••"
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        value={formik.values.confirmPassword}
+                                        error={formik.touched.confirmPassword && Boolean(formik.errors.confirmPassword)}
+                                        helperText={formik.touched.confirmPassword && formik.errors.confirmPassword}
+                                        type="password"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
+                        <CustomButton
+                            fullWidth
+                            type="submit"
+                            disabled={!formik.isValid || formik.isSubmitting}
+                            className="signup-submit-btn"
+                        >
+                            {formik.isSubmitting ? (
+                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                                    <svg style={{ animation: 'spin 0.8s linear infinite' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                                    </svg>
+                                    Sedang membuat akun...
+                                </span>
+                            ) : 'Daftar'}
+                        </CustomButton>
+
+                        <p className="signup-privacy">
+                            Dengan membuat akun, Anda menyetujui{' '}
+                            <a href="#">Syarat dan Ketentuan</a> serta <a href="#">Kebijakan Privasi</a>
+                        </p>
+                    </form>
+
+                    <div className="signup-login-link">
+                        Sudah punya akun?{' '}
+                        <button type="button" onClick={() => navigate('/login')}>Masuk</button>
                     </div>
+                </div>
+
+                <div className="signup-copyright">
+                    Hak Cipta @2025 &nbsp;|&nbsp; <a href="#">Kebijakan Privasi</a>
                 </div>
 
             </div>
