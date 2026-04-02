@@ -1,4 +1,4 @@
-import { Icon } from '@iconify/react';
+﻿import { Icon } from '@iconify/react';
 import {
     Box, Button, Typography, TextField, Grid, Paper, Divider,
     Container, IconButton, Dialog, useMediaQuery, useTheme,
@@ -9,12 +9,12 @@ import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CompanyDAO from '../../daos/CompanyDao';
 import CarDAO from '../../daos/CarDao';
-import PropertyDAO from '../../daos/propertyDao';
+// import PropertyDAO from '../../daos/propertyDao';
 import CustomerDAO from '../../daos/CustomerDao';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// ─── Design Tokens ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Design Tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const C = {
     bg: '#F4F5F7',
     white: '#FFFFFF',
@@ -107,13 +107,13 @@ function WizardStepper({ active }) {
     );
 }
 
-// ─── Invoice Type Tab ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Invoice Type Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function InvoiceTypeTab({ value, onChange }) {
     return (
         <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
             {[
                 { key: 'car', label: 'Kendaraan', icon: 'mdi:car', color: C.car, light: C.carLight },
-                { key: 'property', label: 'Properti', icon: 'mdi:home', color: C.property, light: C.propertyLight },
+                // { key: 'property', label: 'Properti', icon: 'mdi:home', color: C.property, light: C.propertyLight },
             ].map(opt => (
                 <Box key={opt.key} flex={1}
                     onClick={() => onChange(opt.key)}
@@ -135,7 +135,7 @@ function InvoiceTypeTab({ value, onChange }) {
     );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export default function CreateInvoicePage() {
     const loading = useLoading();
     const message = useAlert();
@@ -202,7 +202,7 @@ export default function CreateInvoicePage() {
         setSelectedItem(null);
     };
 
-    // ── Helpers ──
+    // â”€â”€ Helpers â”€â”€
     const formatCurrency = (value) =>
         new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(value) || 0);
 
@@ -212,7 +212,7 @@ export default function CreateInvoicePage() {
     const calculateSubtotal = () => items.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.price)), 0);
     const calculateTotal = () => calculateSubtotal() + Number(adminFee) + Number(stampDuty);
 
-    // ── Fetch ──
+    // â”€â”€ Fetch â”€â”€
     const fetchCompanyProfile = async () => {
         try {
             const r = await CompanyDAO.getCompanyProfile();
@@ -230,11 +230,11 @@ export default function CreateInvoicePage() {
             loading.start();
             const [carRes, propRes, custRes] = await Promise.allSettled([
                 CarDAO.getAllCars(),
-                PropertyDAO.getAllProperties(),
+                Promise.resolve({ properties: [] }), // PropertyDAO.getAllProperties(),
                 CustomerDAO.getAllCustomers(),
             ]);
             if (carRes.status === 'fulfilled' && carRes.value?.cars) setCars(carRes.value.cars);
-            if (propRes.status === 'fulfilled' && propRes.value?.properties) setProperties(propRes.value.properties);
+            // if (propRes.status === 'fulfilled' && propRes.value?.properties) setProperties(propRes.value.properties);
             if (custRes.status === 'fulfilled' && custRes.value?.customers) setCustomers(custRes.value.customers);
         } catch (e) { console.error(e); message('Failed to load data', 'error'); }
         finally { loading.stop(); }
@@ -259,12 +259,12 @@ export default function CreateInvoicePage() {
         finally { loading.stop(); }
     };
 
-    // ── Item handlers ──
+    // â”€â”€ Item handlers â”€â”€
     const handleAddItem = () => setItems([...items, { description: '', quantity: 1, price: 0 }]);
     const handleRemoveItem = (i) => { const n = [...items]; n.splice(i, 1); setItems(n); };
     const handleItemChange = (i, field, value) => { const n = [...items]; n[i][field] = value; setItems(n); };
 
-    // ── Navigation ──
+    // â”€â”€ Navigation â”€â”€
     const handleNext = () => {
         if (activeStep === 0 && !selectedItem) { message(`Please select a ${invoiceType === 'car' ? 'car' : 'property'}`, 'error'); return; }
         if (activeStep === 1 && !items.some(it => it.description?.trim())) { message('Please add at least one item', 'error'); return; }
@@ -294,11 +294,11 @@ export default function CreateInvoicePage() {
         finally { loading.stop(); }
     };
 
-    // ── Derived label helpers ──
+    // â”€â”€ Derived label helpers â”€â”€
     const getSelectedLabel = () => {
         if (!selectedItem) return '';
         if (invoiceType === 'car') {
-            return `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''} — ${selectedItem.carData?.plateNumber || 'No Plate'}`;
+            return `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''} â€” ${selectedItem.carData?.plateNumber || 'No Plate'}`;
         }
         return `${selectedItem.propertyData?.propertyType || 'Property'} - ${selectedItem.propertyData?.city || ''}`;
     };
@@ -309,7 +309,7 @@ export default function CreateInvoicePage() {
         return selectedItem.ownerName || selectedItem.customerName || '';
     };
 
-    // ── PDF ──────────────────────────────────────────────────────────────────
+    // â”€â”€ PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const generatePDF = () => {
         const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -450,7 +450,7 @@ export default function CreateInvoicePage() {
 
         doc.save(`Invoice_${invoiceNumber}.pdf`);
     };
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     // Filtered list for dialog
     const filteredList = useMemo(() => {
@@ -477,7 +477,7 @@ export default function CreateInvoicePage() {
     const accentColor = invoiceType === 'car' ? C.car : C.property;
     const accentLight = invoiceType === 'car' ? C.carLight : C.propertyLight;
 
-    // ─── RENDER ───────────────────────────────────────────────────────────────
+    // â”€â”€â”€ RENDER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     return (
         <Box sx={{ bgcolor: C.bg, minHeight: '100vh', py: 4 }}>
             <Container maxWidth="sm">
@@ -494,7 +494,7 @@ export default function CreateInvoicePage() {
 
                 <WizardStepper active={activeStep} />
 
-                {/* ── STEP 1: Details ── */}
+                {/* â”€â”€ STEP 1: Details â”€â”€ */}
                 {activeStep === 0 && (
                     <Fade in key="s1">
                         <Box>
@@ -569,12 +569,12 @@ export default function CreateInvoicePage() {
                                                         { label: 'Kendaraan', value: `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''}`.trim() },
                                                         { label: 'No. Plat', value: selectedItem.carData?.plateNumber },
                                                         { label: 'No. Rangka', value: selectedItem.carData?.chassisNumber },
-                                                        { label: 'Harga Mobil', value: selectedItem.carData?.carPrice ? `Rp ${Number(selectedItem.carData.carPrice).toLocaleString('id-ID')}` : '—' },
-                                                        { label: 'Jatuh Tempo', value: selectedItem.carData?.dueDate ? new Date(selectedItem.carData.dueDate).toLocaleDateString('id-ID') : '—' },
+                                                        { label: 'Harga Mobil', value: selectedItem.carData?.carPrice ? `Rp ${Number(selectedItem.carData.carPrice).toLocaleString('id-ID')}` : 'â€”' },
+                                                        { label: 'Jatuh Tempo', value: selectedItem.carData?.dueDate ? new Date(selectedItem.carData.dueDate).toLocaleDateString('id-ID') : 'â€”' },
                                                     ].map(({ label, value }) => (
                                                         <Grid item xs={6} key={label}>
                                                             <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
-                                                            <Typography fontSize={13} fontWeight={500} sx={{ color: C.text }}>{value || '—'}</Typography>
+                                                            <Typography fontSize={13} fontWeight={500} sx={{ color: C.text }}>{value || 'â€”'}</Typography>
                                                         </Grid>
                                                     ))}
                                                 </Grid>
@@ -585,12 +585,12 @@ export default function CreateInvoicePage() {
                                                         { label: 'Tipe', value: selectedItem.propertyData?.propertyType },
                                                         { label: 'Kota', value: selectedItem.propertyData?.city },
                                                         { label: 'Alamat', value: selectedItem.propertyData?.address },
-                                                        { label: 'Nilai Properti', value: selectedItem.propertyData?.propertyValue ? `Rp ${Number(selectedItem.propertyData.propertyValue).toLocaleString('id-ID')}` : '—' },
-                                                        { label: 'Jatuh Tempo', value: selectedItem.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID') : '—' },
+                                                        { label: 'Nilai Properti', value: selectedItem.propertyData?.propertyValue ? `Rp ${Number(selectedItem.propertyData.propertyValue).toLocaleString('id-ID')}` : 'â€”' },
+                                                        { label: 'Jatuh Tempo', value: selectedItem.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID') : 'â€”' },
                                                     ].map(({ label, value }) => (
                                                         <Grid item xs={6} key={label}>
                                                             <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
-                                                            <Typography fontSize={13} fontWeight={500} sx={{ color: C.text }}>{value || '—'}</Typography>
+                                                            <Typography fontSize={13} fontWeight={500} sx={{ color: C.text }}>{value || 'â€”'}</Typography>
                                                         </Grid>
                                                     ))}
                                                 </Grid>
@@ -636,7 +636,7 @@ export default function CreateInvoicePage() {
                     </Fade>
                 )}
 
-                {/* ── STEP 2: Items ── */}
+                {/* â”€â”€ STEP 2: Items â”€â”€ */}
                 {activeStep === 1 && (
                     <Fade in key="s2">
                         <Box>
@@ -773,7 +773,7 @@ export default function CreateInvoicePage() {
                     </Fade>
                 )}
 
-                {/* ── STEP 3: Review ── */}
+                {/* â”€â”€ STEP 3: Review â”€â”€ */}
                 {activeStep === 2 && (
                     <Fade in key="s3">
                         <Box>
@@ -807,18 +807,18 @@ export default function CreateInvoicePage() {
                                             { label: 'No. Plat', value: selectedItem?.carData?.plateNumber },
                                             { label: 'No. Rangka', value: selectedItem?.carData?.chassisNumber },
                                             { label: 'No. Mesin', value: selectedItem?.carData?.engineNumber },
-                                            { label: 'Harga Mobil', value: selectedItem?.carData?.carPrice ? `Rp ${Number(selectedItem.carData.carPrice).toLocaleString('id-ID')}` : '—' },
+                                            { label: 'Harga Mobil', value: selectedItem?.carData?.carPrice ? `Rp ${Number(selectedItem.carData.carPrice).toLocaleString('id-ID')}` : 'â€”' },
                                         ] : [
                                             { label: 'Pemilik', value: selectedItem?.ownerName || selectedItem?.customerName },
                                             { label: 'Tipe Properti', value: selectedItem?.propertyData?.propertyType },
                                             { label: 'Kota', value: selectedItem?.propertyData?.city },
                                             { label: 'Alamat', value: selectedItem?.propertyData?.address },
-                                            { label: 'Nilai Properti', value: selectedItem?.propertyData?.propertyValue ? `Rp ${Number(selectedItem.propertyData.propertyValue).toLocaleString('id-ID')}` : '—' },
-                                            { label: 'Jatuh Tempo', value: selectedItem?.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID') : '—' },
+                                            { label: 'Nilai Properti', value: selectedItem?.propertyData?.propertyValue ? `Rp ${Number(selectedItem.propertyData.propertyValue).toLocaleString('id-ID')}` : 'â€”' },
+                                            { label: 'Jatuh Tempo', value: selectedItem?.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID') : 'â€”' },
                                         ]).map(({ label, value }) => (
                                             <Grid item xs={6} key={label}>
                                                 <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.3 }}>{label}</Typography>
-                                                <Typography fontSize={13.5} fontWeight={500} sx={{ color: C.text }}>{value || '—'}</Typography>
+                                                <Typography fontSize={13.5} fontWeight={500} sx={{ color: C.text }}>{value || 'â€”'}</Typography>
                                             </Grid>
                                         ))}
                                     </Grid>
@@ -833,7 +833,7 @@ export default function CreateInvoicePage() {
                                             <Box key={i} display="flex" justifyContent="space-between" alignItems="flex-start" gap={2}>
                                                 <Box flex={1}>
                                                     <Typography fontSize={13} sx={{ color: C.text }}>{item.description}</Typography>
-                                                    <Typography fontSize={12} sx={{ color: C.textSub }}>{item.quantity} × {formatCurrency(item.price)}</Typography>
+                                                    <Typography fontSize={12} sx={{ color: C.textSub }}>{item.quantity} Ã— {formatCurrency(item.price)}</Typography>
                                                 </Box>
                                                 <Typography fontSize={13} fontWeight={600} sx={{ color: C.text, whiteSpace: 'nowrap' }}>
                                                     {formatCurrency(Number(item.quantity) * Number(item.price))}
@@ -891,7 +891,7 @@ export default function CreateInvoicePage() {
 
             </Container>
 
-            {/* ── Car / Property Select Dialog ── */}
+            {/* â”€â”€ Car / Property Select Dialog â”€â”€ */}
             <Dialog open={openSelectDialog} onClose={() => { setOpenSelectDialog(false); setSelectSearch(''); }}
                 maxWidth="xs" fullWidth fullScreen={isMobile}
                 PaperProps={{ sx: { borderRadius: isMobile ? 0 : '12px', m: 2 } }}>
@@ -926,11 +926,11 @@ export default function CreateInvoicePage() {
                                         ? `${item.carData?.carBrand || ''} ${item.carData?.carModel || ''}`.trim()
                                         : item.propertyData?.propertyType || 'Property';
                                     const sub1 = invoiceType === 'car'
-                                        ? (item.carData?.ownerName || '—')
-                                        : (item.ownerName || item.customerName || '—');
+                                        ? (item.carData?.ownerName || 'â€”')
+                                        : (item.ownerName || item.customerName || 'â€”');
                                     const sub2 = invoiceType === 'car'
                                         ? (item.carData?.plateNumber || 'No plate')
-                                        : (item.propertyData?.city || '—');
+                                        : (item.propertyData?.city || 'â€”');
                                     return (
                                         <Box key={item.id}
                                             onClick={() => { setSelectedItem(item); setOpenSelectDialog(false); setSelectSearch(''); }}
@@ -958,7 +958,7 @@ export default function CreateInvoicePage() {
                 </Box>
             </Dialog>
 
-            {/* ── Confirm Dialog ── */}
+            {/* â”€â”€ Confirm Dialog â”€â”€ */}
             <Dialog open={openPreviewDialog} onClose={() => setOpenPreviewDialog(false)}
                 maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '12px', m: 2 } }}>
                 <Box sx={{ p: 3 }}>
@@ -976,7 +976,7 @@ export default function CreateInvoicePage() {
                             </Box>
                             <Box display="flex" justifyContent="space-between">
                                 <Typography fontSize={13} sx={{ color: C.textSub }}>Pemilik</Typography>
-                                <Typography fontSize={13} fontWeight={600} sx={{ color: C.text }}>{getOwnerName() || '—'}</Typography>
+                                <Typography fontSize={13} fontWeight={600} sx={{ color: C.text }}>{getOwnerName() || 'â€”'}</Typography>
                             </Box>
                             <Box display="flex" justifyContent="space-between">
                                 <Typography fontSize={13} sx={{ color: C.textSub }}>Items</Typography>
@@ -1005,3 +1005,4 @@ export default function CreateInvoicePage() {
         </Box>
     );
 }
+

@@ -13,7 +13,7 @@ import {
 } from "recharts";
 
 import CustomerDAO from "../../daos/CustomerDao";
-import PropertyDAO from "../../daos/propertyDao";
+// import PropertyDAO from "../../daos/propertyDao";
 import CompanyDAO from "../../daos/CompanyDao";
 import CarDAO from "../../daos/CarDao";
 
@@ -1352,7 +1352,7 @@ export default function DashboardPage() {
     try {
       const [custRes, propRes, compRes, carRes] = await Promise.allSettled([
         CustomerDAO.getAllCustomers(),
-        PropertyDAO.getAllProperties(),
+        Promise.resolve([]), // PropertyDAO.getAllProperties(),
         CompanyDAO.getCompanyProfile(),
         CarDAO.getAllCars(),
       ]);
@@ -1511,7 +1511,7 @@ export default function DashboardPage() {
               {cars.length}
             </span>
           </button>
-          <button
+          {/* <button
             role="tab"
             aria-selected={activeTab === "property"}
             className={`dash-tab${activeTab === "property" ? " active-property" : ""}`}
@@ -1522,14 +1522,15 @@ export default function DashboardPage() {
             <span className={activeTab === "property" ? "tab-count" : "tab-count-inactive"}>
               {properties.length}
             </span>
-          </button>
+          </button> */}
         </div>
 
         {/* ── Content ── */}
-        {activeTab === "vehicle"
+        {/* {activeTab === "vehicle"
           ? <VehicleTab cars={cars} />
           : <PropertyTab properties={properties} />
-        }
+        } */}
+        <VehicleTab cars={cars} />
       </div>
 
     </>

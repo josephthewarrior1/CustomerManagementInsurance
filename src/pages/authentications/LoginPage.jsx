@@ -396,7 +396,7 @@ export default function LoginPage() {
                     <form onSubmit={formik.handleSubmit}>
                         <div className="login-field-group">
                             <div>
-                                <label className="login-field-label">Enter Email / Phone No</label>
+                                <label className="login-field-label">Enter Email / Username</label>
                                 <CustomTextInput
                                     name="login"
                                     fullWidth

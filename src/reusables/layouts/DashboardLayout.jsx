@@ -17,7 +17,7 @@ import Constants from '../../utils/Constants';
 import CustomIcon from '../CustomIcon';
 import { useUser } from '../../hooks/UserProvider';
 import CustomerDAO from '../../daos/CustomerDao';
-import PropertyDAO from '../../daos/propertyDao';
+// import PropertyDAO from '../../daos/propertyDao';
 
 const todayMidnight = new Date();
 todayMidnight.setHours(0, 0, 0, 0);
@@ -32,7 +32,7 @@ function useNotifications() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [custRes, propRes] = await Promise.allSettled([CustomerDAO.getAllCustomers(), PropertyDAO.getAllProperties()]);
+      const [custRes, propRes] = await Promise.allSettled([CustomerDAO.getAllCustomers(), Promise.resolve([])]);
       const result = [];
       if (custRes.status === 'fulfilled') {
         const custs = custRes.value?.customers || custRes.value?.data || (Array.isArray(custRes.value) ? custRes.value : []);
@@ -130,7 +130,7 @@ export default function DashboardLayout() {
   const sections = [
     { icon: 'heroicons:rectangle-group', label: 'Dashboard', url: '/dashboard', title: 'Dashboard' },
     { icon: 'heroicons:users', label: 'Customers', url: '/customers', title: 'Customer Management' },
-    { icon: 'heroicons:building-office-2', label: 'Properti', url: '/properties', title: 'Manajemen Properti' },
+    // { icon: 'heroicons:building-office-2', label: 'Properti', url: '/properties', title: 'Manajemen Properti' },
     { icon: 'heroicons:truck', label: 'Kendaraan', url: '/cars', title: 'Manajemen Kendaraan' },
     { icon: 'heroicons:calendar', label: 'Quotation', url: '/quotations/create', title: 'Create Quotation' },
     { icon: 'heroicons:document-currency-dollar', label: 'Invoice', url: '/invoices/create', title: 'Create Invoice' },
@@ -188,7 +188,7 @@ export default function DashboardLayout() {
 
         {/* Bottom Nav Mobile */}
         <Box sx={{ display: { xs: 'flex', sm: 'none' }, position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', bgcolor: '#fff', borderTop: '1px solid #f1f5f9', justifyContent: 'space-around', alignItems: 'center', zIndex: 1000 }}>
-          {[{ icon: 'heroicons:home', label: 'Home', url: '/dashboard' }, { icon: 'heroicons:users', label: 'Customers', url: '/customers' }, { icon: 'heroicons:building-office-2', label: 'Properti', url: '/properties' }, { icon: 'heroicons:truck', label: 'Kendaraan', url: '/cars' }, { icon: 'heroicons:document-text', label: 'Docs', url: '/documents', isMenu: true }].map((item) => {
+          {[{ icon: 'heroicons:home', label: 'Home', url: '/dashboard' }, { icon: 'heroicons:users', label: 'Customers', url: '/customers' }, /* { icon: 'heroicons:building-office-2', label: 'Properti', url: '/properties' }, */ { icon: 'heroicons:truck', label: 'Kendaraan', url: '/cars' }, { icon: 'heroicons:document-text', label: 'Docs', url: '/documents', isMenu: true }].map((item) => {
             const isActive = item.isMenu ? ['/invoices', '/quotations', '/kwitansi'].some(p => location.pathname.startsWith(p)) : location.pathname === item.url || (item.url !== '/' && location.pathname.startsWith(item.url));
             return (
               <Box key={item.label} onClick={(e) => { if (item.isMenu) setDocMenuAnchor(e.currentTarget); else navigate(item.url); }} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4, color: isActive ? '#2563eb' : '#94a3b8', cursor: 'pointer', minWidth: '60px' }}>
@@ -214,7 +214,7 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
   const filteredSections = sections.filter(s => !(s.adminOnly && user?.role !== 'superadmin'));
-  const mainNav = filteredSections.filter(s => ['Dashboard', 'Customers', 'Properti', 'Kendaraan'].includes(s.label));
+  const mainNav = filteredSections.filter(s => ['Dashboard', 'Customers', /* 'Properti', */ 'Kendaraan'].includes(s.label));
   const docNav = filteredSections.filter(s => ['Quotation', 'Invoice', 'Kwitansi'].includes(s.label));
   const adminNav = filteredSections.filter(s => s.adminOnly);
 

@@ -11,7 +11,6 @@ import {
     Paper,
     Tab,
     Tabs,
-    Divider,
     Stack,
     Dialog,
     Fade,
@@ -23,7 +22,7 @@ import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CustomerDAO from '../../daos/CustomerDao';
 import CreateCarDialog from '../Cars/CreateCarDialog';
-import CreatePropertyDialog from '../Property/CreatePropertyDialog';
+// import CreatePropertyDialog from '../Property/CreatePropertyDialog';
 
 /* ---------------- TAB PANEL ---------------- */
 function TabPanel({ children, value, index }) {
@@ -234,13 +233,13 @@ export default function CustomerDetailPage() {
 
     const [customer, setCustomer] = useState(null);
     const [cars, setCars] = useState([]);
-    const [properties, setProperties] = useState([]);
+    // const [properties, setProperties] = useState([]);
 
     const [loading, setLoading] = useState(true);
     const [tabValue, setTabValue] = useState(0);
     const [previewState, setPreviewState] = useState({ open: false, images: [], index: 0 });
     const [isCarDialogOpen, setIsCarDialogOpen] = useState(false);
-    const [isPropertyDialogOpen, setIsPropertyDialogOpen] = useState(false);
+    // const [isPropertyDialogOpen, setIsPropertyDialogOpen] = useState(false);
 
     useEffect(() => {
         fetchCustomer();
@@ -253,7 +252,7 @@ export default function CustomerDetailPage() {
             if (response.success) {
                 setCustomer(response.customer);
                 setCars(response.cars || []);
-                setProperties(response.properties || []);
+                // setProperties(response.properties || []);
             } else {
                 message(response.error || 'Pelanggan tidak ditemukan', 'error');
                 navigate('/customers');
@@ -272,9 +271,9 @@ export default function CustomerDetailPage() {
         setCars(prev => [...prev, newCar]);
     };
 
-    const handlePropertyCreated = (newProperty) => {
-        setProperties(prev => [...prev, newProperty]);
-    };
+    // const handlePropertyCreated = (newProperty) => {
+    //     setProperties(prev => [...prev, newProperty]);
+    // };
 
     const formatDate = (ts) =>
         ts
@@ -410,7 +409,7 @@ export default function CustomerDetailPage() {
                     >
                         <Tab label="Info Pribadi" icon={<Icon icon="mdi:account" width={20} />} iconPosition="start" />
                         <Tab label={`Kendaraan (${cars.length})`} icon={<Icon icon="mdi:car" width={20} />} iconPosition="start" />
-                        <Tab label={`Properti (${properties.length})`} icon={<Icon icon="mdi:home" width={20} />} iconPosition="start" />
+                        {/* <Tab label={`Properti (${properties.length})`} icon={<Icon icon="mdi:home" width={20} />} iconPosition="start" /> */}
                     </Tabs>
                 </Paper>
 
@@ -494,7 +493,7 @@ export default function CustomerDetailPage() {
                 </TabPanel>
 
                 {/* ── TAB: PROPERTIES ── */}
-                <TabPanel value={tabValue} index={2}>
+                {/* <TabPanel value={tabValue} index={2}>
                     <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B' }}>
                             Properti Terkait
@@ -557,7 +556,7 @@ export default function CustomerDetailPage() {
                             <Typography variant="body2" sx={{ mt: 1, color: '#94A3B8' }}>Pelanggan ini belum memiliki properti terdaftar.</Typography>
                         </Paper>
                     )}
-                </TabPanel>
+                </TabPanel> */}
 
             </Container>
 
@@ -577,12 +576,12 @@ export default function CustomerDetailPage() {
                 customerId={id}
                 onCarCreated={handleCarCreated}
             />
-            <CreatePropertyDialog
+            {/* <CreatePropertyDialog
                 open={isPropertyDialogOpen}
                 onClose={() => setIsPropertyDialogOpen(false)}
                 customerId={id}
                 onPropertyCreated={handlePropertyCreated}
-            />
+            /> */}
         </Box>
     );
 }

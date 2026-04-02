@@ -1,4 +1,4 @@
-import { Icon } from '@iconify/react';
+﻿import { Icon } from '@iconify/react';
 import {
   Box,
   Button,
@@ -32,7 +32,7 @@ import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CompanyDAO from '../../daos/CompanyDao';
 import CarDAO from '../../daos/CarDao';
-import PropertyDAO from '../../daos/propertyDao';
+// import PropertyDAO from '../../daos/propertyDao';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -142,7 +142,7 @@ function QuotationTypeTab({ value, onChange }) {
     <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
       {[
         { key: 'car', label: 'Kendaraan', icon: 'mdi:car', color: C.car, light: C.carLight },
-        { key: 'property', label: 'Properti', icon: 'mdi:home', color: C.property, light: C.propertyLight },
+        // { key: 'property', label: 'Properti', icon: 'mdi:home', color: C.property, light: C.propertyLight },
       ].map(opt => (
         <Box key={opt.key} flex={1}
           onClick={() => onChange(opt.key)}
@@ -236,10 +236,10 @@ export default function CreateQuotationPage() {
       loading.start();
       const [carRes, propRes] = await Promise.allSettled([
         CarDAO.getAllCars(),
-        PropertyDAO.getAllProperties(),
+        Promise.resolve({ properties: [] }), // PropertyDAO.getAllProperties(),
       ]);
       if (carRes.status === 'fulfilled' && carRes.value?.cars) setCars(carRes.value.cars);
-      if (propRes.status === 'fulfilled' && propRes.value?.properties) setProperties(propRes.value.properties);
+      // if (propRes.status === 'fulfilled' && propRes.value?.properties) setProperties(propRes.value.properties);
     } catch (e) { console.error(e); message('Failed to load data', 'error'); }
     finally { loading.stop(); }
   };
@@ -598,7 +598,7 @@ export default function CreateQuotationPage() {
   const getSelectedLabel = () => {
     if (!selectedItem) return '';
     if (quotationType === 'car') {
-      return `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''} — ${selectedItem.carData?.plateNumber || 'No Plate'}`;
+      return `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''} â€” ${selectedItem.carData?.plateNumber || 'No Plate'}`;
     }
     return `${selectedItem.propertyData?.propertyType || 'Property'} - ${selectedItem.propertyData?.city || ''}`;
   };
@@ -625,7 +625,7 @@ export default function CreateQuotationPage() {
 
         <WizardStepper active={activeStep} />
 
-        {/* ── STEP 1 ── */}
+        {/* â”€â”€ STEP 1 â”€â”€ */}
         {activeStep === 0 && (
           <Fade in key="s1">
             <Box>
@@ -696,7 +696,7 @@ export default function CreateQuotationPage() {
                           ].map(({ label, value }) => (
                             <Grid item xs={6} key={label}>
                               <Typography fontSize={11} sx={{ color: '#9EA8B3', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
-                              <Typography fontSize={13} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || '—'}</Typography>
+                              <Typography fontSize={13} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || 'â€”'}</Typography>
                             </Grid>
                           ))}
                         </Grid>
@@ -710,7 +710,7 @@ export default function CreateQuotationPage() {
                           ].map(({ label, value }) => (
                             <Grid item xs={6} key={label}>
                               <Typography fontSize={11} sx={{ color: '#9EA8B3', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
-                              <Typography fontSize={13} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || '—'}</Typography>
+                              <Typography fontSize={13} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || 'â€”'}</Typography>
                             </Grid>
                           ))}
                         </Grid>
@@ -749,7 +749,7 @@ export default function CreateQuotationPage() {
           </Fade>
         )}
 
-        {/* ── STEP 2 ── */}
+        {/* â”€â”€ STEP 2 â”€â”€ */}
         {activeStep === 1 && (
           <Fade in key="s2">
             <Box>
@@ -869,7 +869,7 @@ export default function CreateQuotationPage() {
           </Fade>
         )}
 
-        {/* ── STEP 3 ── */}
+        {/* â”€â”€ STEP 3 â”€â”€ */}
         {activeStep === 2 && (
           <Fade in key="s3">
             <Box>
@@ -903,7 +903,7 @@ export default function CreateQuotationPage() {
                     ]).map(({ label, value }) => (
                       <Grid item xs={6} key={label}>
                         <Typography fontSize={11} sx={{ color: '#9EA8B3', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.3 }}>{label}</Typography>
-                        <Typography fontSize={13.5} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || '—'}</Typography>
+                        <Typography fontSize={13.5} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || 'â€”'}</Typography>
                       </Grid>
                     ))}
                   </Grid>
@@ -1004,11 +1004,11 @@ export default function CreateQuotationPage() {
                     ? `${item.carData?.carBrand || ''} ${item.carData?.carModel || ''}`.trim()
                     : item.propertyData?.propertyType || 'Property';
                   const sub1 = quotationType === 'car'
-                    ? (item.carData?.ownerName || '—')
-                    : (item.ownerName || item.customerName || '—');
+                    ? (item.carData?.ownerName || 'â€”')
+                    : (item.ownerName || item.customerName || 'â€”');
                   const sub2 = quotationType === 'car'
                     ? (item.carData?.plateNumber || 'No plate')
-                    : (item.propertyData?.city || '—');
+                    : (item.propertyData?.city || 'â€”');
                   return (
                     <Box key={item.id} onClick={() => { setSelectedItem(item); setOpenSelectDialog(false); setSelectSearch(''); }}
                       sx={{
@@ -1048,12 +1048,12 @@ export default function CreateQuotationPage() {
           <Box sx={{ p: 2.5, borderRadius: '8px', bgcolor: '#F8F9FA', border: '1px solid #E4E6EA' }}>
             <Box textAlign="center" mb={2}>
               <Typography fontSize={14} fontWeight={700} sx={{ color: '#1C1E21' }}>{companyName}</Typography>
-              <Typography fontSize={12} sx={{ color: '#606770' }}>{companySubtitle} · {companyCity}</Typography>
+              <Typography fontSize={12} sx={{ color: '#606770' }}>{companySubtitle} Â· {companyCity}</Typography>
             </Box>
             <Divider sx={{ borderColor: '#E4E6EA', my: 1.5 }} />
             <Stack spacing={0.75}>
-              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Pemilik</Typography><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>{getOwnerName() || '—'}</Typography></Box>
-              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>{quotationType === 'car' ? 'Kendaraan' : 'Properti'}</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{getSelectedLabel() || '—'}</Typography></Box>
+              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Pemilik</Typography><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>{getOwnerName() || 'â€”'}</Typography></Box>
+              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>{quotationType === 'car' ? 'Kendaraan' : 'Properti'}</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{getSelectedLabel() || 'â€”'}</Typography></Box>
               <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>TSI</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(Number(tsi))}</Typography></Box>
               <Divider sx={{ borderColor: '#E4E6EA', my: 0.5 }} />
               <Box display="flex" justifyContent="space-between"><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>Total Premium</Typography><Typography fontSize={15} fontWeight={700} sx={{ color: '#D32F2F' }}>{fmt(calculations.totalPremium)}</Typography></Box>
@@ -1077,3 +1077,4 @@ export default function CreateQuotationPage() {
     </Box>
   );
 }
+

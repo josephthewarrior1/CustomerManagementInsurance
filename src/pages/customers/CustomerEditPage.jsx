@@ -239,27 +239,54 @@ export default function CustomerEditPage() {
                         sx={{ mb: 4 }}
                     >
                         <Box>
-                            <Typography
-                                variant="h4"
-                                sx={{
-                                    fontWeight: 700,
-                                    color: '#1E293B',
-                                    mb: 1,
-                                    fontSize: { xs: '1.75rem', sm: '2.125rem' }
-                                }}
+                            <Stack
+                                direction="row"
+                                spacing={1.5}
+                                alignItems="center"
+                                sx={{ mb: 1 }}
                             >
-                                Edit Pelanggan
-                            </Typography>
-                            <Typography
-                                variant="body2"
-                                sx={{
-                                    color: '#64748B',
-                                    fontSize: '0.875rem',
-                                    fontWeight: 500
-                                }}
+                                <IconButton
+                                    onClick={() => navigate(`/customers/${id}`)}
+                                    sx={{
+                                        width: 32,
+                                        height: 32,
+                                        p: 0,
+                                        color: '#475569',
+                                        '&:hover': {
+                                            bgcolor: 'transparent',
+                                            color: '#1E293B'
+                                        }
+                                    }}
+                                >
+                                    <Icon icon="mdi:arrow-left" width={20} />
+                                </IconButton>
+                                <Typography
+                                    variant="h4"
+                                    sx={{
+                                        fontWeight: 700,
+                                        color: '#1E293B',
+                                        fontSize: { xs: '1.75rem', sm: '2.125rem' }
+                                    }}
+                                >
+                                    Edit Pelanggan
+                                </Typography>
+                            </Stack>
+                            <Stack
+                                direction={{ xs: 'column', sm: 'row' }}
+                                spacing={1.5}
+                                alignItems={{ xs: 'flex-start', sm: 'center' }}
                             >
-                                ID Pelanggan: <Box component="span" sx={{ color: '#475569' }}>{id}</Box>
-                            </Typography>
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        color: '#64748B',
+                                        fontSize: '0.875rem',
+                                        fontWeight: 500
+                                    }}
+                                >
+                                    ID Pelanggan: <Box component="span" sx={{ color: '#475569' }}>{id}</Box>
+                                </Typography>
+                            </Stack>
                         </Box>
 
                         <Stack
@@ -267,27 +294,6 @@ export default function CustomerEditPage() {
                             spacing={2}
                             sx={{ width: { xs: '100%', sm: 'auto' } }}
                         >
-                            <Button
-                                variant="outlined"
-                                startIcon={<Icon icon="mdi:arrow-left" />}
-                                onClick={() => navigate(`/customers/${id}`)}
-                                sx={{
-                                    borderColor: '#E2E8F0',
-                                    color: '#475569',
-                                    fontWeight: 600,
-                                    px: 3,
-                                    py: 1.25,
-                                    textTransform: 'none',
-                                    fontSize: '0.9375rem',
-                                    borderRadius: 2,
-                                    '&:hover': {
-                                        borderColor: '#CBD5E1',
-                                        bgcolor: '#F8FAFC'
-                                    }
-                                }}
-                            >
-                                Lihat Detail
-                            </Button>
                             <Button
                                 variant="contained"
                                 onClick={handleSave}
