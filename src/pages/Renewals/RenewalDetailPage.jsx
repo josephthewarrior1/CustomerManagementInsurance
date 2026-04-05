@@ -198,17 +198,19 @@ export default function RenewalDetailPage() {
 
     // Can complete?
     const paymentBlocking = renewal.paymentId && payment && payment.status !== 'Paid';
-    const noPaymentDataYet = renewal.paymentId && !payment;
+    const noPaymentDataYet = !renewal.paymentId || (renewal.paymentId && !payment);
     const canComplete = !isTerminal && !paymentBlocking && !noPaymentDataYet;
     const completeBlockReason = isCompleted
         ? 'Renewal sudah selesai'
         : isCancelled
             ? 'Renewal sudah dibatalkan'
-            : paymentBlocking
-                ? `Payment terkait masih berstatus "${payment?.status}". Harus Paid dulu.`
-                : noPaymentDataYet
-                    ? 'Memverifikasi status payment...'
-                    : null;
+            : !renewal.paymentId 
+                ? 'Payment wajib ditautkan sebelum menyelesaikan.'
+                : paymentBlocking
+                    ? `Payment terkait masih berstatus "${payment?.status}". Harus Paid dulu.`
+                    : noPaymentDataYet
+                        ? 'Memverifikasi status payment...'
+                        : null;
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#F8FAFC', pb: 8 }}>
@@ -378,9 +380,8 @@ export default function RenewalDetailPage() {
                                 </Select>
                             </FormControl>
                             <FormControl size="small" disabled={loadingPayments} sx={{ gridColumn: { sm: 'span 2' } }}>
-                                <InputLabel>Payment (opsional)</InputLabel>
-                                <Select value={editData.paymentId} label="Payment (opsional)" onChange={e => setEditData(p => ({ ...p, paymentId: e.target.value }))}>
-                                    <MenuItem value=""><em>Tidak ada</em></MenuItem>
+                                <InputLabel>Payment Record *</InputLabel>
+                                <Select value={editData.paymentId} label="Payment Record *" onChange={e => setEditData(p => ({ ...p, paymentId: e.target.value }))}>
                                     {allPayments.map(p => (
                                         <MenuItem key={p.id} value={p.id}>{p.id} · {p.status} · {formatCurrency(p.amount)}</MenuItem>
                                     ))}

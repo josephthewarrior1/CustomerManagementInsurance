@@ -17,6 +17,7 @@ import Constants from '../../utils/Constants';
 import CustomIcon from '../CustomIcon';
 import { useUser } from '../../hooks/UserProvider';
 import CustomerDAO from '../../daos/CustomerDao';
+import CarDAO from '../../daos/CarDao';
 // import PropertyDAO from '../../daos/propertyDao';
 
 const todayMidnight = new Date();
@@ -34,29 +35,29 @@ function useNotifications() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [custRes, propRes] = await Promise.allSettled([CustomerDAO.getAllCustomers(), Promise.resolve([])]);
+      const [carRes] = await Promise.allSettled([CarDAO.getAllCars()]);
       const result = [];
-      if (custRes.status === 'fulfilled') {
-        const custs = custRes.value?.customers || custRes.value?.data || (Array.isArray(custRes.value) ? custRes.value : []);
-        custs.forEach((c) => {
-          if (c.status === 'Cancelled') return;
-          const diff = getDiffDays(c.carData?.dueDate);
+      
+      if (carRes.status === 'fulfilled') {
+        const cars = carRes.value?.cars || carRes.value?.data || (Array.isArray(carRes.value) ? carRes.value : []);
+        cars.forEach((car) => {
+          if (car.status === 'Cancelled') return;
+          const diff = getDiffDays(car.dueDate || car.carData?.dueDate);
           if (diff === null) return;
-          if (diff < 0) result.push({ id: `v-exp-${c.id}`, type: 'expired', category: 'Kendaraan', name: c.name, detail: `${c.carData?.carBrand || ''} ${c.carData?.carModel || ''} · ${c.carData?.plateNumber || ''}`.trim(), diff });
-          else if (diff <= 30) result.push({ id: `v-soon-${c.id}`, type: 'soon', category: 'Kendaraan', name: c.name, detail: `${c.carData?.carBrand || ''} ${c.carData?.carModel || ''} · ${c.carData?.plateNumber || ''}`.trim(), diff });
+          
+          const carBrand = car.carBrand || car.carData?.carBrand || '';
+          const carModel = car.carModel || car.carData?.carModel || '';
+          const plateNumber = car.plateNumber || car.carData?.plateNumber || '';
+          const ownerName = car.ownerName || car.carData?.ownerName || car.customerName || 'Unknown';
+
+          if (diff < 0) {
+              result.push({ id: `c-exp-${car.id}`, type: 'expired', category: 'Kendaraan', name: ownerName, detail: `${carBrand} ${carModel} · ${plateNumber}`.trim(), diff });
+          } else if (diff <= 30) {
+              result.push({ id: `c-soon-${car.id}`, type: 'soon', category: 'Kendaraan', name: ownerName, detail: `${carBrand} ${carModel} · ${plateNumber}`.trim(), diff });
+          }
         });
       }
-      if (propRes.status === 'fulfilled') {
-        const props = propRes.value?.properties || propRes.value?.data || (Array.isArray(propRes.value) ? propRes.value : []);
-        props.forEach((p) => {
-          if (p.status === 'Cancelled') return;
-          const diff = getDiffDays(p.insuranceData?.endDate);
-          const ownerName = p.ownerName || p.customerName;
-          if (diff === null) return;
-          if (diff < 0) result.push({ id: `p-exp-${p.id}`, type: 'expired', category: 'Properti', name: ownerName, detail: `${p.propertyData?.propertyType || ''} · ${p.propertyData?.city || ''}`.trim(), diff });
-          else if (diff <= 30) result.push({ id: `p-soon-${p.id}`, type: 'soon', category: 'Properti', name: ownerName, detail: `${p.propertyData?.propertyType || ''} · ${p.propertyData?.city || ''}`.trim(), diff });
-        });
-      }
+
       result.sort((a, b) => { if (a.type !== b.type) return a.type === 'expired' ? -1 : 1; return a.diff - b.diff; });
       setNotifs(result);
     } catch (e) { console.error(e); } finally { setLoading(false); }

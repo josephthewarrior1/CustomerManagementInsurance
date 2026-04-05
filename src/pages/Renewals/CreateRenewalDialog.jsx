@@ -151,6 +151,7 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
         const e = {};
         if (!customerId) e.customerId = 'Customer wajib dipilih';
         if (!selectedCar) e.carId = 'Kendaraan wajib dipilih';
+        if (!paymentId) e.paymentId = 'Payment Record wajib dipilih';
         if (!newStartDate) e.newStartDate = 'Tanggal mulai baru wajib diisi';
         if (!newEndDate) e.newEndDate = 'Tanggal berakhir baru wajib diisi';
         if (newStartDate && newEndDate && new Date(newEndDate) <= new Date(newStartDate)) {
@@ -225,7 +226,7 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
                         <Box sx={{ bgcolor: '#F8FAFC', borderRadius: 2, p: 2, border: '1px solid #E2E8F0' }}>
                             <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>Customer</Typography>
                             <Typography variant="body2" sx={{ fontWeight: 600, color: '#1E293B', mt: 0.3 }}>
-                                {prefillCar?.customerName || '-'}
+                                {prefillCar?.carData?.ownerName || prefillCar?.customerName || '-'}
                             </Typography>
                         </Box>
                     ) : (
@@ -329,14 +330,13 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
                     </Divider>
 
                     {/* Payment link */}
-                    <FormControl fullWidth size="small" disabled={loadingPayments || !customerId}>
-                        <InputLabel>Hubungkan ke Payment Record (opsional)</InputLabel>
+                    <FormControl fullWidth size="small" disabled={loadingPayments || !customerId} error={!!errors.paymentId}>
+                        <InputLabel>Hubungkan ke Payment Record *</InputLabel>
                         <Select
                             value={paymentId}
-                            label="Hubungkan ke Payment Record (opsional)"
+                            label="Hubungkan ke Payment Record *"
                             onChange={e => setPaymentId(e.target.value)}
                         >
-                            <MenuItem value=""><em>Tidak ada</em></MenuItem>
                             {payments.map(p => {
                                 const sc = PAYMENT_STATUS_COLOR[p.status] || PAYMENT_STATUS_COLOR.Pending;
                                 return (
@@ -349,7 +349,7 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
                                 );
                             })}
                         </Select>
-                        <FormHelperText>Jika dipilih, renewal hanya bisa diselesaikan setelah payment berstatus Paid</FormHelperText>
+                        <FormHelperText>{errors.paymentId || 'Pilih payment yang terkait. Renewal hanya bisa diselesaikan jika payment ini berstatus Paid'}</FormHelperText>
                     </FormControl>
 
                     {selectedPayment && selectedPayment.status !== 'Paid' && (

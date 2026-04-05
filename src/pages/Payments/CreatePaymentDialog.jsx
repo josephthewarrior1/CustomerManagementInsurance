@@ -93,6 +93,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
     const validate = () => {
         const e = {};
         if (!customerId) e.customerId = 'Customer wajib dipilih';
+        if (!policyId) e.policyId = 'Kendaraan/Polis wajib dipilih';
         if (!amount || isNaN(Number(amount))) e.amount = 'Nominal harus berupa angka yang valid';
         if (!dueDate) e.dueDate = 'Tanggal jatuh tempo wajib diisi';
         setErrors(e);
@@ -169,21 +170,21 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                         {errors.customerId && <FormHelperText>{errors.customerId}</FormHelperText>}
                     </FormControl>
 
-                    {/* Policy / Kendaraan (Optional) */}
-                    <FormControl fullWidth size="small" disabled={!customerId || loadingCars}>
-                        <InputLabel>Hubungkan ke Kendaraan/Polis (opsional)</InputLabel>
+                    {/* Policy / Kendaraan */}
+                    <FormControl fullWidth size="small" disabled={!customerId || loadingCars} error={!!errors.policyId}>
+                        <InputLabel>Hubungkan ke Kendaraan/Polis *</InputLabel>
                         <Select
                             value={policyId}
-                            label="Hubungkan ke Kendaraan/Polis (opsional)"
+                            label="Hubungkan ke Kendaraan/Polis *"
                             onChange={e => setPolicyId(e.target.value)}
                         >
-                            <MenuItem value=""><em>Tidak Dihubungkan</em></MenuItem>
                             {cars.map(c => (
                                 <MenuItem key={c.id} value={c.id}>
                                     {c.carData?.carBrand} {c.carData?.carModel} · {c.carData?.plateNumber || '-'}
                                 </MenuItem>
                             ))}
                         </Select>
+                        {errors.policyId && <FormHelperText>{errors.policyId}</FormHelperText>}
                     </FormControl>
 
                     <Divider textAlign="left">

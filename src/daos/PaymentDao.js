@@ -59,4 +59,12 @@ export default class PaymentDAO {
             formData,
         );
     };
+
+    // Delete payment
+    static deletePayment = async (paymentId) => {
+        return await ApiRequest.set(
+            `/api/payments/${paymentId}`,
+            ApiRequest.HTTP_METHOD.DELETE
+        );
+    };
 }

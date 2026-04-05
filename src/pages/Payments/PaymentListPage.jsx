@@ -127,11 +127,17 @@ export default function PaymentListPage() {
             render: (v) => <Typography variant="caption" sx={{ fontFamily: 'monospace', color: '#64748B' }}>{v}</Typography>
         },
         {
-            title: 'Invoice / Policy', dataIndex: 'invoiceNumber', key: 'invoiceNumber', sortable: true,
+            title: 'Kustomer & Tagihan', dataIndex: 'invoiceNumber', key: 'invoiceNumber', sortable: true,
             render: (_, row) => (
                 <Box>
-                    <Typography variant="body2" fontWeight={600}>{row.invoiceNumber || 'No Invoice'}</Typography>
-                    <Typography variant="caption" color="textSecondary">{row.policyId || 'Tidak tertaut polis'}</Typography>
+                    <Typography variant="body2" fontWeight={600} color="#1E293B">
+                        {row.customerName || 'Multi-kustomer'} 
+                        {row.invoiceNumber && <span style={{ color: '#94A3B8', fontWeight: 500 }}> • {row.invoiceNumber}</span>}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Icon icon="mdi:car" width={14} />
+                        {row.policySummary || row.policyId || 'Tidak tertaut polis'}
+                    </Typography>
                 </Box>
             )
         },
@@ -213,8 +219,12 @@ export default function PaymentListPage() {
                                             <Icon icon="mdi:receipt-text-outline" width={22} />
                                         </Avatar>
                                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E293B' }} noWrap>{p.invoiceNumber || p.id}</Typography>
-                                            <Typography variant="caption" sx={{ color: '#64748B' }} noWrap>{p.policyId || 'Tidak ada polis'}</Typography>
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E293B' }} noWrap>
+                                                {p.customerName || p.invoiceNumber || p.id}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5 }} noWrap>
+                                                <Icon icon="mdi:car" width={14} /> {p.policySummary || p.policyId || 'Tidak ada polis'}
+                                            </Typography>
                                         </Box>
                                         <StatusBadge status={p.status} />
                                         <IconButton size="small" onClick={(e) => { e.stopPropagation(); setDrawerPayment(p); setActionDrawerOpen(true); }}>

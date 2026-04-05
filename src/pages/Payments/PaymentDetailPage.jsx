@@ -73,6 +73,10 @@ export default function PaymentDetailPage() {
     const [completeDialog, setCompleteDialog] = useState(false);
     const [completing, setCompleting] = useState(false);
     
+    // delete dialog
+    const [deleteDialog, setDeleteDialog] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
     // image preview
     const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -175,6 +179,24 @@ export default function PaymentDetailPage() {
         }
     };
 
+    const handleDelete = async () => {
+        setDeleting(true);
+        try {
+            const res = await PaymentDAO.deletePayment(id);
+            if (res.success) {
+                message('Payment berhasil dihapus', 'success');
+                navigate('/payments');
+            } else {
+                message(res.error || 'Gagal menghapus payment', 'error');
+            }
+        } catch (err) {
+            message('Gagal menghapus payment', 'error');
+        } finally {
+            setDeleting(false);
+            setDeleteDialog(false);
+        }
+    };
+
     if (loading) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
@@ -202,6 +224,11 @@ export default function PaymentDetailPage() {
                 <Paper elevation={0} sx={{ p: 4, mb: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff', position: 'relative' }}>
                     <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
                         <Stack direction="row" spacing={1}>
+                            <Button variant="outlined" size="small"
+                                onClick={() => setDeleteDialog(true)}
+                                sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#FCCCA7', color: '#B45309', minWidth: 0, px: 2, '&:hover': { bgcolor: '#FFFBEB', borderColor: '#F59E0B' } }}>
+                                <Icon icon="mdi:delete-outline" width={16} />
+                            </Button>
                             {!editing && (
                                 <Button variant="outlined" size="small" startIcon={<Icon icon="mdi:pencil" width={16} />}
                                     onClick={startEdit}
@@ -370,6 +397,29 @@ export default function PaymentDetailPage() {
                         <Button variant="contained" onClick={handleMarkAsPaid} disabled={completing}
                             sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}>
                             {completing ? <CircularProgress size={20} color="inherit" /> : 'Ya, Lunas'}
+                        </Button>
+                    </Stack>
+                </Box>
+            </Dialog>
+
+            {/* Delete dialog */}
+            <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+                <Box sx={{ p: 3 }}>
+                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
+                        <Box sx={{ bgcolor: '#FEF2F2', borderRadius: 2, p: 1, display: 'flex' }}>
+                            <Icon icon="mdi:alert" width={24} color="#DC2626" />
+                        </Box>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>Hapus Payment?</Typography>
+                    </Stack>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Apakah Anda yakin ingin menghapus Payment Record ini? Data yang sudah dihapus tidak dapat dikembalikan.
+                    </Typography>
+                    <Stack direction="row" spacing={2} justifyContent="flex-end">
+                        <Button variant="outlined" onClick={() => setDeleteDialog(false)} disabled={deleting}
+                            sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#E2E8F0', color: '#475569' }}>Batal</Button>
+                        <Button variant="contained" onClick={handleDelete} disabled={deleting}
+                            sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>
+                            {deleting ? <CircularProgress size={20} color="inherit" /> : 'Hapus Payment'}
                         </Button>
                     </Stack>
                 </Box>
