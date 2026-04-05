@@ -120,19 +120,29 @@ export default function CarListPage() {
                 // Compute status for display
                 const enriched = cars.map(car => {
                     let displayStatus = car.status;
-                    if (car.status !== 'Cancelled' && car.dueDate && new Date(car.dueDate) < today) {
-                        displayStatus = 'Expired';
+                    if (car.status !== 'Cancelled' && car.dueDate) {
+                        const due = new Date(car.dueDate);
+                        due.setHours(0, 0, 0, 0);
+                        const diffDays = Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays < 0) {
+                            displayStatus = 'Expired';
+                        } else if (diffDays <= 30) {
+                            displayStatus = 'Segera Jatuh Tempo';
+                        }
                     }
                     return { ...car, displayStatus };
                 });
 
                 // Stats
                 const activeCount = enriched.filter(c => c.displayStatus === 'Active').length;
+                const expiringSoonCount = enriched.filter(c => c.displayStatus === 'Segera Jatuh Tempo').length;
                 const expiredCount = enriched.filter(c => c.displayStatus === 'Expired').length;
                 const cancelledCount = enriched.filter(c => c.displayStatus === 'Cancelled').length;
                 setSummaries([
                     { status: 'ALL', total: enriched.length },
                     { status: 'Active', total: activeCount },
+                    { status: 'Segera Jatuh Tempo', total: expiringSoonCount },
                     { status: 'Expired', total: expiredCount },
                     { status: 'Cancelled', total: cancelledCount },
                 ]);
@@ -220,6 +230,7 @@ export default function CarListPage() {
     const getStatusColor = (status) => {
         switch (status) {
             case 'Active': return { bg: '#D1FAE5', color: '#065F46' };
+            case 'Segera Jatuh Tempo': return { bg: '#FEF3C7', color: '#B45309' };
             case 'Expired': return { bg: '#FEE2E2', color: '#991B1B' };
             case 'Cancelled': return { bg: '#F1F5F9', color: '#475569' };
             default: return { bg: '#F1F5F9', color: '#475569' };
@@ -231,7 +242,7 @@ export default function CarListPage() {
         return new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     };
 
-    const statusOrder = { 'ALL': 0, 'Active': 1, 'Expired': 2, 'Cancelled': 3 };
+    const statusOrder = { 'ALL': 0, 'Active': 1, 'Segera Jatuh Tempo': 2, 'Expired': 3, 'Cancelled': 4 };
     const sortedSummaries = [...summaries].sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
 
     const columns = [

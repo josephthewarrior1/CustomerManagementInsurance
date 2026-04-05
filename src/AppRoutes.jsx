@@ -19,7 +19,10 @@ import CarEditPage from './pages/Cars/CarEditPage';
 import CreateQuotationPage from './pages/quotations/CreateQuotationPage';
 import CreateInvoicePage from './pages/invoices/CreateInvoicePage';
 import DashboardPage from './pages/dashboard/Dashboard';
-
+import RenewalListPage from './pages/Renewals/RenewalListPage';
+import RenewalDetailPage from './pages/Renewals/RenewalDetailPage';
+import PaymentListPage from './pages/Payments/PaymentListPage';
+import PaymentDetailPage from './pages/Payments/PaymentDetailPage';
 
 export default function AppRoutes() {
     return (
@@ -50,6 +53,18 @@ export default function AppRoutes() {
                     <Route index element={<CarListPage />} />
                     <Route path=":id" element={<CarDetailPage />} />
                     <Route path="edit/:id" element={<CarEditPage />} />
+                </Route>
+
+                {/* Renewals Routes */}
+                <Route path="renewals">
+                    <Route index element={<RenewalListPage />} />
+                    <Route path=":id" element={<RenewalDetailPage />} />
+                </Route>
+
+                {/* Payments Routes */}
+                <Route path="payments">
+                    <Route index element={<PaymentListPage />} />
+                    <Route path=":id" element={<PaymentDetailPage />} />
                 </Route>
 
                 {/* Quotations Routes */}

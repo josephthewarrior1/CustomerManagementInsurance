@@ -53,7 +53,8 @@ const getStatus = (dueDateStr, statusField) => {
   if (statusField === "Cancelled") return "Cancelled";
   if (!dueDateStr) return "Unknown";
   const due = new Date(dueDateStr);
-  const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+  due.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
   if (diffDays < 0) return "Expired";
   if (diffDays <= 30) return "Segera Jatuh Tempo";
   return "Aktif";
@@ -885,7 +886,8 @@ function VehicleTab({ cars }) {
             </div>
           ) : stats.soonExpiring.map(c => {
             const due = new Date(c.carData.dueDate);
-            const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+            due.setHours(0, 0, 0, 0);
+            const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
             const urgent = diffDays <= 7;
             return (
               <div key={c.id} className="alert-row" style={{
@@ -980,7 +982,8 @@ function PropertyTab({ properties }) {
     if (p.status === "Active" || !p.status) {
       if (endDate) {
         const due = new Date(endDate);
-        const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+        due.setHours(0, 0, 0, 0);
+        const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
         if (diffDays < 0) return "Expired";
         if (diffDays <= 30) return "Segera Jatuh Tempo";
       }
@@ -1165,7 +1168,8 @@ function PropertyTab({ properties }) {
             </div>
           ) : stats.soonExpiring.map(p => {
             const due = new Date(p.insuranceData?.endDate);
-            const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+            due.setHours(0, 0, 0, 0);
+            const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
             const urgent = diffDays <= 7;
             return (
               <div key={p.id} className="alert-row" style={{
@@ -1300,7 +1304,9 @@ export default function DashboardPage() {
             let status = "Unknown";
             if (p.status === "Cancelled") status = "Cancelled";
             else if (endDate) {
-              const diff = Math.ceil((new Date(endDate) - today) / 86400000);
+              const due = new Date(endDate);
+              due.setHours(0, 0, 0, 0);
+              const diff = Math.round((due - today) / 86400000);
               if (diff < 0) status = "Expired";
               else if (diff <= 30) status = "Segera Jatuh Tempo";
               else status = "Aktif";
@@ -1385,12 +1391,16 @@ export default function DashboardPage() {
       // Calculate urgent (cars expiring within 7 days)
       const urgentV = allCars.filter(c => {
         if (!c.carData?.dueDate || c.status === "Cancelled") return false;
-        const d = Math.ceil((new Date(c.carData.dueDate) - today) / 86400000);
+        const due = new Date(c.carData.dueDate);
+        due.setHours(0, 0, 0, 0);
+        const d = Math.round((due - today) / 86400000);
         return d >= 0 && d <= 7;
       }).length;
       const urgentP = props.filter(p => {
         if (!p.insuranceData?.endDate || p.status === "Cancelled") return false;
-        const d = Math.ceil((new Date(p.insuranceData.endDate) - today) / 86400000);
+        const due = new Date(p.insuranceData.endDate);
+        due.setHours(0, 0, 0, 0);
+        const d = Math.round((due - today) / 86400000);
         return d >= 0 && d <= 7;
       }).length;
       setUrgentCount(urgentV + urgentP);

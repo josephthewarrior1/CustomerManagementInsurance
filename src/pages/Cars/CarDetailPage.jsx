@@ -8,6 +8,8 @@ import { useNavigate, useParams } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CarDAO from '../../daos/CarDao';
+import RenewalDAO from '../../daos/RenewalDao';
+import CreateRenewalDialog from '../Renewals/CreateRenewalDialog';
 
 /* ─── TAB PANEL ─── */
 function TabPanel({ children, value, index }) {
@@ -183,9 +185,17 @@ export default function CarDetailPage() {
     const [deleting, setDeleting] = useState(false);
     const [previewState, setPreviewState] = useState({ open: false, images: [], index: 0 });
 
+    const [renewals, setRenewals] = useState([]);
+    const [loadingRenewals, setLoadingRenewals] = useState(true);
+    const [createRenewalOpen, setCreateRenewalOpen] = useState(false);
+
     useEffect(() => {
         fetchCar();
     }, [id]);
+
+    useEffect(() => {
+        if (car) fetchRenewals();
+    }, [car]);
 
     const fetchCar = async () => {
         try {
@@ -204,6 +214,22 @@ export default function CarDetailPage() {
         } finally {
             loadingProvider.stop();
             setLoading(false);
+        }
+    };
+
+    const fetchRenewals = async () => {
+        try {
+            setLoadingRenewals(true);
+            const res = await RenewalDAO.getRenewalsByCustomer(car.customerId);
+            if (res.success) {
+                // filter renewals only for this car
+                const carRenewals = (res.renewals || []).filter(r => r.policyId === id);
+                setRenewals(carRenewals);
+            }
+        } catch {
+            // ignore error silently
+        } finally {
+            setLoadingRenewals(false);
         }
     };
 
@@ -262,6 +288,15 @@ export default function CarDetailPage() {
         { label: 'Kanan', url: car.carPhotos?.rightSide },
     ];
 
+    // Check if policy is near expired or expired (e.g. diff <= 30 days)
+    const dueDate = new Date(car.carData?.dueDate);
+    const isExpired = car.status === 'Expired';
+    const msInDay = 24 * 60 * 60 * 1000;
+    const isNearExpire = dueDate && !isNaN(dueDate.getTime()) && (dueDate.getTime() - Date.now() <= 30 * msInDay);
+    const needsRenewal = isExpired || isNearExpire;
+    // Check if there's an ongoing renewal (Pending/Approved/Paid)
+    const hasOngoingRenewal = renewals.some(r => ['Pending', 'Approved', 'Paid'].includes(r.status));
+
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#F8FAFC', pb: 8 }}>
             <Container maxWidth="lg" sx={{ pt: 4 }}>
@@ -297,6 +332,33 @@ export default function CarDetailPage() {
                                 sx={{ bgcolor: statusColors.bg, color: statusColors.color, fontWeight: 700, fontSize: '0.75rem', borderRadius: '8px' }} />
                         </Box>
                     </Stack>
+                    
+                    {needsRenewal && !hasOngoingRenewal && (
+                        <Box sx={{ mt: 3, p: 2, bgcolor: isExpired ? '#FEF2F2' : '#FFFBEB', borderRadius: 2, border: `1px solid ${isExpired ? '#FCA5A5' : '#FDE68A'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <Icon icon="mdi:alert-circle" width={24} color={isExpired ? '#DC2626' : '#D97706'} />
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: isExpired ? '#991B1B' : '#92400E' }}>
+                                        {isExpired ? 'Polis Sudah Habis' : 'Polis Mendekati Jatuh Tempo'}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: isExpired ? '#B91C1C' : '#B45309' }}>
+                                        {isExpired ? 'Periode asuransi telah berakhir. Harap segera perpanjang polis.' : `Polis akan habis pada ${new Date(car.carData?.dueDate).toLocaleDateString('id-ID')}.`}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                            <Button variant="contained" 
+                                startIcon={<Icon icon="mdi:arrow-u-right-top" />}
+                                onClick={() => setCreateRenewalOpen(true)}
+                                sx={{ 
+                                    textTransform: 'none', fontWeight: 600, 
+                                    bgcolor: isExpired ? '#DC2626' : '#D97706',
+                                    '&:hover': { bgcolor: isExpired ? '#B91C1C' : '#B45309' },
+                                    boxShadow: 'none'
+                                }}>
+                                Perpanjang Polis
+                            </Button>
+                        </Box>
+                    )}
                 </Paper>
 
                 {/* ── Tabs ── */}
@@ -310,6 +372,7 @@ export default function CarDetailPage() {
                         <Tab label="Info Kendaraan" icon={<Icon icon="mdi:car-info" width={20} />} iconPosition="start" />
                         <Tab label="Dokumen" icon={<Icon icon="mdi:file-document" width={20} />} iconPosition="start" />
                         <Tab label="Foto" icon={<Icon icon="mdi:camera" width={20} />} iconPosition="start" />
+                        <Tab label="History Renewal" icon={<Icon icon="mdi:history" width={20} />} iconPosition="start" />
                     </Tabs>
                 </Paper>
 
@@ -387,6 +450,71 @@ export default function CarDetailPage() {
                     </Paper>
                 </TabPanel>
 
+                {/* ── Tab 4: Renewals ── */}
+                <TabPanel value={tabValue} index={3}>
+                    <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+                            <Box>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Icon icon="mdi:history" width={22} color="#1E40AF" /> History Renewal Polis
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: '#64748B' }}>
+                                    Catatan perpanjangan asuransi untuk kendaraan ini
+                                </Typography>
+                            </Box>
+                            <Button variant="outlined" size="small" 
+                                startIcon={<Icon icon="mdi:plus" />}
+                                onClick={() => setCreateRenewalOpen(true)}
+                                sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#E2E8F0', color: '#1E40AF' }}>
+                                Buat Renewal
+                            </Button>
+                        </Stack>
+
+                        {loadingRenewals ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={24} /></Box>
+                        ) : renewals.length === 0 ? (
+                            <Box sx={{ textAlign: 'center', py: 6, border: '2px dashed #E2E8F0', borderRadius: 2 }}>
+                                <Icon icon="mdi:file-document-remove-outline" width={48} color="#CBD5E1" />
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#64748B', mt: 2 }}>Belum ada data renewal</Typography>
+                                <Typography variant="body2" sx={{ color: '#94A3B8' }}>Kendaraan ini belum pernah diperpanjang polisnya.</Typography>
+                            </Box>
+                        ) : (
+                            <Stack spacing={2}>
+                                {renewals.map(r => (
+                                    <Box key={r.id} onClick={() => navigate(`/renewals/${r.id}`)}
+                                        sx={{ 
+                                            p: 2, borderRadius: 2, border: '1px solid #E2E8F0', bgcolor: '#F8FAFC', 
+                                            cursor: 'pointer', transition: 'all 0.2s', '&:hover': { borderColor: '#1E40AF', bgcolor: '#EFF6FF' } 
+                                        }}>
+                                        <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2}>
+                                            <Box>
+                                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E293B' }}>{r.id}</Typography>
+                                                    <Chip label={r.status} size="small" 
+                                                        sx={{ 
+                                                            bgcolor: r.status === 'Completed' ? '#EDE9FE' : r.status === 'Cancelled' ? '#F1F5F9' : '#DBEAFE', 
+                                                            color: r.status === 'Completed' ? '#5B21B6' : r.status === 'Cancelled' ? '#475569' : '#1E40AF', 
+                                                            fontWeight: 700, fontSize: '0.65rem', height: 20 
+                                                        }} />
+                                                </Stack>
+                                                <Typography variant="body2" sx={{ color: '#475569', fontWeight: 600 }}>
+                                                    {new Date(r.newStartDate).toLocaleDateString('id-ID')} → {new Date(r.newEndDate).toLocaleDateString('id-ID')}
+                                                </Typography>
+                                            </Box>
+                                            <Stack direction={{ xs: 'row', md: 'column' }} alignItems={{ xs: 'center', md: 'flex-end' }} justifyContent="space-between" width={{ xs: '100%', md: 'auto' }}>
+                                                <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>Premi</Typography>
+                                                <Typography variant="body2" sx={{ fontWeight: 700, color: '#059669' }}>
+                                                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(r.premium)}
+                                                </Typography>
+                                            </Stack>
+                                        </Stack>
+                                    </Box>
+                                ))}
+                            </Stack>
+                        )}
+                    </Paper>
+                </TabPanel>
+
             </Container>
 
             {/* Image Preview */}
@@ -415,6 +543,14 @@ export default function CarDetailPage() {
                     </Stack>
                 </Box>
             </Dialog>
+
+            {/* Create Renewal Modal */}
+            <CreateRenewalDialog 
+                open={createRenewalOpen} 
+                onClose={() => setCreateRenewalOpen(false)} 
+                onCreated={() => { setCreateRenewalOpen(false); fetchRenewals(); }}
+                prefillCar={car}
+            />
         </Box>
     );
 }

@@ -28,6 +28,8 @@ import { useLoading } from "../../hooks/LoadingProvider";
 import { useAlert } from "../../hooks/SnackbarProvider";
 import CustomerDAO from "../../daos/CustomerDao";
 import CompanyDAO from "../../daos/CompanyDao";
+import PaymentDAO from "../../daos/PaymentDao";
+import KwitansiDAO from "../../daos/KwitansiDao";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -149,11 +151,12 @@ export default function KwitansiCreate() {
   const [stampFile, setStampFile] = useState(null);
   const [stampPreview, setStampPreview] = useState("/stamp1.png");
 
-  // Customer
+  // Payments
+  const [payments, setPayments] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [openCustomerDialog, setOpenCustomerDialog] = useState(false);
-  const [customerSearch, setCustomerSearch] = useState("");
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
+  const [paymentSearch, setPaymentSearch] = useState("");
 
   // Form
   const [formData, setFormData] = useState({
@@ -162,9 +165,18 @@ export default function KwitansiCreate() {
   const [pdfName, setPdfName] = useState("");
   const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
 
-  useEffect(() => { fetchCompanyProfile(); fetchCustomers(); }, []);
+  useEffect(() => { fetchCompanyProfile(); fetchPaymentsAndCustomers(); }, []);
   useEffect(() => { generateReceiptNumber(); }, [companyCity]);
-  useEffect(() => { if (selectedCustomer) generatePaymentDescription(); }, [selectedCustomer]);
+  useEffect(() => { 
+    if (selectedPayment) {
+        generatePaymentDescription();
+        setFormData(prev => ({ 
+            ...prev, 
+            jumlah: String(selectedPayment.amount), 
+            terbilang: numberToWords(selectedPayment.amount) 
+        }));
+    } 
+  }, [selectedPayment]);
 
   // ── Helpers ──
   const formatCurrency = (value) =>
@@ -180,16 +192,23 @@ export default function KwitansiCreate() {
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
     setFormData((prev) => ({
       ...prev,
-      nomor: `KW/${year}/${month}/${random}`,
+      nomor: `KW/${year}/${month}/${random} (DRAFT)`,
       tanggal: `${companyCity || "Jakarta"}, ${formatDate(date)}`,
     }));
   };
 
   const generatePaymentDescription = () => {
-    if (selectedCustomer?.carData) {
-      const desc = `Premi ${selectedCustomer.carData?.carBrand || ""} ${selectedCustomer.carData?.carModel || ""} No. Polisi: ${selectedCustomer.carData?.plateNumber || "TBA"}`.trim();
-      setFormData((prev) => ({ ...prev, pembayaran: desc }));
+    const cd = selectedPayment?.customerData?.carData;
+    let desc = "";
+    
+    if (cd && cd.plateNumber) {
+      desc = `PREMI ASURANSI MOBIL\n${(cd.carBrand || "") + " " + (cd.carModel || "").trim()}\nNO POLISI : ${cd.plateNumber || "TBA"}`;
+    } else {
+      desc = `PEMBAYARAN INVOICE ${selectedPayment?.invoiceNumber || ""}`;
+      if (selectedPayment?.notes) desc += `\n${selectedPayment.notes}`;
     }
+    
+    setFormData((prev) => ({ ...prev, pembayaran: desc.trim() }));
   };
 
   const numberToWords = (num) => {
@@ -222,13 +241,25 @@ export default function KwitansiCreate() {
     } catch (e) { console.error(e); }
   };
 
-  const fetchCustomers = async () => {
+  const fetchPaymentsAndCustomers = async () => {
     try {
       loading.start();
-      const r = await CustomerDAO.getAllCustomers();
-      if (r.success) setCustomers(r.customers || []);
-      else message("Failed to load customers", "error");
-    } catch (e) { console.error(e); message("Failed to load customers", "error"); }
+      const [payRes, custRes] = await Promise.allSettled([
+        PaymentDAO.getAllPayments(),
+        CustomerDAO.getAllCustomers()
+      ]);
+      const pays = (payRes.status === 'fulfilled' && (payRes.value?.payments || payRes.value?.data || payRes.value)) || [];
+      const custs = (custRes.status === 'fulfilled' && custRes.value?.customers) || [];
+      setCustomers(custs);
+
+      const paysArr = Array.isArray(pays) ? pays : [];
+      const paidPays = paysArr.filter(p => p.status === 'Paid');
+      const enriched = paidPays.map(p => {
+         const c = custs.find(cu => cu.id === p.customerId);
+         return { ...p, customerData: c || {} };
+      });
+      setPayments(enriched);
+    } catch (e) { console.error(e); message("Failed to load data", "error"); }
     finally { loading.stop(); }
   };
 
@@ -272,14 +303,14 @@ export default function KwitansiCreate() {
   };
 
   const handleSubmit = () => {
-    if (!selectedCustomer) { message("Please select a customer", "error"); return; }
+    if (!selectedPayment) { message("Please select a valid payment", "error"); return; }
     if (!formData.jumlah || Number(formData.jumlah) <= 0) { message("Please enter valid payment amount", "error"); return; }
     setOpenPreviewDialog(true);
   };
 
   // ── Navigation ──
   const handleNext = () => {
-    if (activeStep === 0 && !selectedCustomer) { message("Please select a customer", "error"); return; }
+    if (activeStep === 0 && !selectedPayment) { message("Please select a valid payment", "error"); return; }
     if (activeStep === 1) {
       if (!formData.jumlah || Number(formData.jumlah) <= 0) { message("Please enter valid payment amount", "error"); return; }
       if (!formData.pembayaran?.trim()) { message("Payment description is required", "error"); return; }
@@ -289,21 +320,33 @@ export default function KwitansiCreate() {
   const handleBack = () => setActiveStep((s) => s - 1);
 
   const handleReset = () => {
-    setSelectedCustomer(null);
+    setSelectedPayment(null);
     setFormData({ nomor: "", jumlah: "", terbilang: "", pembayaran: "", tanggal: "" });
     setPdfName("");
     setActiveStep(0);
     generateReceiptNumber();
   };
 
-  // ══ PDF — TIDAK DIUBAH ══════════════════════════════════════════════════════
+  // ══ PDF ══════════════════════════════════════════════════════
   const downloadPDF = async () => {
     try {
       loading.start();
+      
+      const kwRecordData = {
+          paymentId: selectedPayment.id,
+          invoiceData: { invoiceNumber: selectedPayment.invoiceNumber }
+      };
+
+      const res = await KwitansiDAO.generateKwitansi(selectedPayment.id);
+      if (!res.success && !res.id && !res.data) throw new Error(res.error || "Gagal mencatat kwitansi di server");
+      const kwRecord = res.kwitansi || res.data || res;
+      if (kwRecord && kwRecord.kwitansiNumber) setFormData(prev => ({ ...prev, nomor: kwRecord.kwitansiNumber }));
+      
+      // Wait for React state render
+      await new Promise((r) => setTimeout(r, 600));
+
       const element = receiptRef.current;
       if (!element) throw new Error("Receipt element not found");
-
-      await new Promise((r) => setTimeout(r, 250));
 
       const canvas = await html2canvas(element, {
         scale: 2,
@@ -335,94 +378,103 @@ export default function KwitansiCreate() {
 
       pdf.addImage(imgData, "PNG", x, y, renderW, renderH, undefined, "FAST");
 
-      const fileName = pdfName.trim() || `Kwitansi_${formData.nomor.replace(/\//g, "_")}`;
+      const fileName = pdfName.trim() || `Kwitansi_${(kwRecord?.kwitansiNumber || formData.nomor).replace(/\//g, "_")}`;
       pdf.save(`${fileName}.pdf`);
 
       message("Kwitansi PDF generated successfully!", "success");
       setOpenPreviewDialog(false);
     } catch (error) {
       console.error("PDF Generation Error:", error);
-      message("Failed to generate PDF", "error");
+      message(error.message || "Failed to generate PDF", "error");
     } finally {
       loading.stop();
     }
   };
   // ════════════════════════════════════════════════════════════════════════════
 
-  // ══ ReceiptContent — TIDAK DIUBAH ══════════════════════════════════════════
+  // ══ ReceiptContent ══════════════════════════════════════════
   const ReceiptContent = () => (
     <Paper elevation={0} sx={{ width: "210mm", minHeight: "297mm", p: "30px 40px", bgcolor: "#ffffff", color: "#000000", fontFamily: "Arial, Helvetica, sans-serif", boxSizing: "border-box", borderRadius: 0 }}>
       <Box sx={{ mb: 4, textAlign: "center" }}>
-        <Typography sx={{ fontWeight: "bold", fontSize: "22px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>{companyName.toUpperCase()}</Typography>
-        <Typography sx={{ fontSize: "11px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000", mt: 0.5 }}>{companySubtitle.toUpperCase()}</Typography>
+        <Typography sx={{ fontWeight: "bold", fontSize: "28px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>{companyName.toUpperCase()}</Typography>
+        <Typography sx={{ fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000", mt: 0.5 }}>{companySubtitle.toUpperCase()}</Typography>
       </Box>
-      <Box sx={{ mb: 3, textAlign: "center" }}>
-        <Typography sx={{ fontWeight: "bold", fontSize: "18px", fontFamily: "Arial, Helvetica, sans-serif", textDecoration: "underline", color: "#000000" }}>KWITANSI</Typography>
-        <Typography sx={{ fontSize: "10px", fontFamily: "Arial, Helvetica, sans-serif", fontStyle: "italic", color: "#666666", mt: 0.25 }}>RECEIPT</Typography>
+      <Box sx={{ mb: 5, textAlign: "center" }}>
+        <Typography sx={{ fontWeight: 700, fontSize: "20px", fontFamily: "Arial, Helvetica, sans-serif", borderBottom: "1.5px solid #000", display: "inline-block", pb: "3px", color: "#000000", letterSpacing: "1px" }}>KWITANSI</Typography>
+        <Typography sx={{ fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", fontStyle: "italic", color: "#666666", mt: 0.25 }}>RECEIPT</Typography>
       </Box>
       <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 5 }}>
-        <Typography sx={{ fontWeight: "bold", fontSize: "11px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>No. {formData.nomor || "________________"}</Typography>
+        <Typography sx={{ fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>No : {formData.nomor || "________________"}</Typography>
       </Box>
       <Box sx={{ mb: 8 }}>
         {[
-          { id: "terima", label: "Terima dari", en: "Received From", value: selectedCustomer ? selectedCustomer.name : "____________________" },
-          { id: "alamat", label: "Alamat", en: "Address", value: selectedCustomer ? selectedCustomer.address : "____________________" },
+          { id: "terima", label: "Terima dari", en: "Received From", value: selectedPayment?.customerData?.name?.toUpperCase() || "____________________" },
+          { id: "alamat", label: "Alamat", en: "Address", value: selectedPayment?.customerData?.address?.toUpperCase() || "____________________" },
         ].map((row) => (
-          <Box key={row.id} sx={{ mb: 2.5 }}>
+          <Box key={row.id} sx={{ mb: 3 }}>
             <Box sx={{ display: "flex" }}>
-              <Box sx={{ width: "130px" }}>
-                <Typography sx={{ fontWeight: "bold", fontSize: "11px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>{row.label}</Typography>
-                <Typography sx={{ fontSize: "10px", fontFamily: "Arial, Helvetica, sans-serif", fontStyle: "italic", color: "#666666", mt: 0.25 }}>{row.en}</Typography>
+              <Box sx={{ width: "185px", flexShrink: 0 }}>
+                <Typography sx={{ fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000", fontWeight: 600, borderBottom: "1px solid #000", display: "inline-block", pb: "3px" }}>{row.label}</Typography>
+                <Typography sx={{ fontSize: "12px", fontFamily: "Arial, Helvetica, sans-serif", fontStyle: "italic", color: "#666666", mt: "4px" }}>{row.en}</Typography>
               </Box>
-              <Typography sx={{ mx: 2, fontSize: "11px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>:</Typography>
-              <Typography sx={{ fontSize: "11px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>{row.value}</Typography>
+              <Typography sx={{ mr: 2, fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>:</Typography>
+              <Typography sx={{ fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000", flex: 1, whiteSpace: "pre-wrap" }}>{row.value}</Typography>
             </Box>
           </Box>
         ))}
-        <Box sx={{ mb: 2.5 }}>
+        <Box sx={{ mb: 3 }}>
           <Box sx={{ display: "flex" }}>
-            <Box sx={{ width: "130px" }}>
-              <Typography sx={{ fontWeight: "bold", fontSize: "11px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>Jumlah uang sebesar</Typography>
-              <Typography sx={{ fontSize: "10px", fontFamily: "Arial, Helvetica, sans-serif", fontStyle: "italic", color: "#666666", mt: 0.25 }}>The Sum of</Typography>
+            <Box sx={{ width: "185px", flexShrink: 0 }}>
+              <Typography sx={{ fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000", fontWeight: 600, borderBottom: "1px solid #000", display: "inline-block", pb: "3px" }}>Jumlah uang sebesar</Typography>
+              <Typography sx={{ fontSize: "12px", fontFamily: "Arial, Helvetica, sans-serif", fontStyle: "italic", color: "#666666", mt: "4px" }}>The Sum of</Typography>
             </Box>
-            <Typography sx={{ mx: 2, fontSize: "11px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>:</Typography>
-            <Box>
-              <Typography sx={{ fontWeight: "bold", fontSize: "12px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>{formData.jumlah ? formatCurrency(formData.jumlah) : "Rp ________"}</Typography>
-              <Typography sx={{ fontSize: "11px", fontFamily: "Arial, Helvetica, sans-serif", fontStyle: "italic", color: "#333333", mt: 0.5 }}>{formData.terbilang || "_________________________________________"}</Typography>
+            <Typography sx={{ mr: 2, fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>:</Typography>
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>
+                {formData.jumlah ? formatCurrency(formData.jumlah).replace("Rp", "IDR") + ",-" : "IDR ________"}
+              </Typography>
+              <Typography sx={{ fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000", mt: 0.25 }}>
+                {formData.terbilang || "_________________________________________"}
+              </Typography>
             </Box>
           </Box>
         </Box>
-        <Box sx={{ mb: 2.5 }}>
+        <Box sx={{ mb: 3 }}>
           <Box sx={{ display: "flex" }}>
-            <Box sx={{ width: "130px" }}>
-              <Typography sx={{ fontWeight: "bold", fontSize: "11px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>Untuk pembayaran</Typography>
-              <Typography sx={{ fontSize: "10px", fontFamily: "Arial, Helvetica, sans-serif", fontStyle: "italic", color: "#666666", mt: 0.25 }}>Being payment of</Typography>
+            <Box sx={{ width: "185px", flexShrink: 0 }}>
+              <Typography sx={{ fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000", fontWeight: 600, borderBottom: "1px solid #000", display: "inline-block", pb: "3px" }}>Untuk pembayaran</Typography>
+              <Typography sx={{ fontSize: "12px", fontFamily: "Arial, Helvetica, sans-serif", fontStyle: "italic", color: "#666666", mt: "4px" }}>Being payment of</Typography>
             </Box>
-            <Typography sx={{ mx: 2, fontSize: "11px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>:</Typography>
-            <Typography sx={{ fontSize: "11px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000", maxWidth: "350px" }}>{formData.pembayaran || "________________________________________________"}</Typography>
+            <Typography sx={{ mr: 2, fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>:</Typography>
+            <Typography sx={{ fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000", flex: 1, whiteSpace: "pre-wrap", textTransform: "uppercase" }}>{formData.pembayaran || "________________________________________________"}</Typography>
           </Box>
         </Box>
       </Box>
-      <Box sx={{ mt: 10 }}>
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 6 }}>
-          <Typography sx={{ fontSize: "11px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>{formData.tanggal || "Jakarta, ________"}</Typography>
-        </Box>
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-          {stampPreview && (
-            <img src={stampPreview} alt="Company Stamp" style={{ height: "80px", width: "auto", opacity: 0.85, objectFit: "contain" }} crossOrigin="anonymous" />
-          )}
-        </Box>
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4 }}>
-          <Typography sx={{ fontWeight: "bold", fontSize: "11px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000" }}>(Finance Department)</Typography>
+      <Box sx={{ mt: 8, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+        <Box sx={{ width: "250px", textAlign: "center" }}>
+          <Typography sx={{ fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000", mb: 1 }}>
+            {formData.tanggal || "Jakarta, ________"}
+          </Typography>
+          <Box sx={{ height: "120px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+            {stampPreview && (
+              <img src={stampPreview} alt="Company Stamp" style={{ maxHeight: "100%", maxWidth: "100%", opacity: 0.85, objectFit: "contain" }} crossOrigin="anonymous" />
+            )}
+          </Box>
+          <Typography sx={{ fontSize: "14px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000000", mt: 1 }}>
+            (Finance Department)
+          </Typography>
         </Box>
       </Box>
     </Paper>
   );
   // ════════════════════════════════════════════════════════════════════════════
 
-  const filteredCustomers = customers.filter((c) => {
-    const s = customerSearch.toLowerCase();
-    return c.name?.toLowerCase().includes(s) || c.phone?.toLowerCase().includes(s) || c.carData?.carBrand?.toLowerCase().includes(s) || c.carData?.plateNumber?.toLowerCase().includes(s);
+  const filteredPayments = payments.filter((p) => {
+    const s = paymentSearch.toLowerCase();
+    const c = p.customerData;
+    return p.invoiceNumber?.toLowerCase().includes(s) || 
+           c?.name?.toLowerCase().includes(s) || 
+           c?.carData?.plateNumber?.toLowerCase().includes(s);
   });
 
   // ─── RENDER ───────────────────────────────────────────────────────────────
@@ -436,7 +488,7 @@ export default function KwitansiCreate() {
             New Kwitansi
           </Typography>
           <Typography fontSize={13} align="center" sx={{ color: C.textSub, mt: 0.5 }}>
-            Generate a payment receipt for your customer
+            Generate a payment receipt from Paid Payments
           </Typography>
         </Box>
 
@@ -472,32 +524,32 @@ export default function KwitansiCreate() {
                 </Section>
               </Paper>
 
-              {/* Customer */}
+              {/* Payment Source */}
               <Paper elevation={0} sx={{ borderRadius: "12px", border: `1px solid ${C.border}`, bgcolor: C.white, p: 3, mb: 2 }}>
-                <Section title="Customer">
-                  <Field label="Select Customer" required>
+                <Section title="Payment Source">
+                  <Field label="Select Paid Payment" required>
                     <Box
-                      onClick={() => setOpenCustomerDialog(true)}
+                      onClick={() => setOpenPaymentDialog(true)}
                       sx={{
                         display: "flex", alignItems: "center", justifyContent: "space-between",
                         px: 1.5, py: "9px",
-                        border: `1px solid ${selectedCustomer ? C.primary : C.border}`,
+                        border: `1px solid ${selectedPayment ? C.primary : C.border}`,
                         borderRadius: "8px",
-                        bgcolor: selectedCustomer ? C.primaryLight : C.white,
+                        bgcolor: selectedPayment ? C.primaryLight : C.white,
                         cursor: "pointer", transition: "all 0.15s",
-                        "&:hover": { borderColor: selectedCustomer ? C.primary : "#B0B5BC" },
+                        "&:hover": { borderColor: selectedPayment ? C.primary : "#B0B5BC" },
                       }}
                     >
                       <Box display="flex" alignItems="center" gap={1.25}>
-                        <Icon icon="mdi:account-search" width={18} color={selectedCustomer ? C.primary : C.textMuted} />
-                        <Typography fontSize={14} sx={{ color: selectedCustomer ? C.text : C.textMuted }}>
-                          {selectedCustomer
-                            ? `${selectedCustomer.name} — ${selectedCustomer.carData?.plateNumber || "No Plate"}`
-                            : "Search and select customer..."}
+                        <Icon icon="mdi:receipt-text" width={18} color={selectedPayment ? C.primary : C.textMuted} />
+                        <Typography fontSize={14} sx={{ color: selectedPayment ? C.text : C.textMuted }}>
+                          {selectedPayment
+                            ? `${selectedPayment.invoiceNumber} — ${selectedPayment.customerData?.name || ""}`
+                            : "Search and select a paid payment..."}
                         </Typography>
                       </Box>
-                      {selectedCustomer
-                        ? <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSelectedCustomer(null); }} sx={{ p: 0.25 }}>
+                      {selectedPayment
+                        ? <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSelectedPayment(null); }} sx={{ p: 0.25 }}>
                           <Icon icon="mdi:close" width={15} color={C.textSub} />
                         </IconButton>
                         : <Icon icon="mdi:chevron-down" width={18} color={C.textMuted} />
@@ -505,14 +557,14 @@ export default function KwitansiCreate() {
                     </Box>
                   </Field>
 
-                  {selectedCustomer && (
+                  {selectedPayment && (
                     <Box sx={{ mt: -1.5, mb: 0.5, p: 2, borderRadius: "8px", bgcolor: "#F8F9FA", border: `1px solid ${C.border}` }}>
                       <Grid container spacing={1.5}>
                         {[
-                          { label: "Phone", value: selectedCustomer.phone },
-                          { label: "Vehicle", value: `${selectedCustomer.carData?.carBrand || ""} ${selectedCustomer.carData?.carModel || ""}`.trim() },
-                          { label: "Plate", value: selectedCustomer.carData?.plateNumber },
-                          { label: "Address", value: selectedCustomer.address },
+                          { label: "Customer", value: selectedPayment.customerData?.name },
+                          { label: "Amount", value: formatCurrency(selectedPayment.amount) },
+                          { label: "Paid At", value: selectedPayment.paidDate ? new Date(selectedPayment.paidDate).toLocaleDateString("id-ID") : '-' },
+                          { label: "Notes", value: selectedPayment.notes || "—" },
                         ].map(({ label, value }) => (
                           <Grid item xs={6} key={label}>
                             <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
@@ -668,16 +720,16 @@ export default function KwitansiCreate() {
                 </Section>
               </Paper>
 
-              {/* Customer */}
+              {/* Payment Details Review */}
               <Paper elevation={0} sx={{ borderRadius: "12px", border: `1px solid ${C.border}`, bgcolor: C.white, p: 3, mb: 2 }}>
-                <Section title="Customer">
+                <Section title="Payment Detail">
                   <Grid container spacing={2}>
                     {[
-                      { label: "Name", value: selectedCustomer?.name },
-                      { label: "Phone", value: selectedCustomer?.phone },
-                      { label: "Address", value: selectedCustomer?.address },
-                      { label: "Vehicle", value: `${selectedCustomer?.carData?.carBrand || ""} ${selectedCustomer?.carData?.carModel || ""}`.trim() },
-                      { label: "Plate", value: selectedCustomer?.carData?.plateNumber },
+                      { label: "Name", value: selectedPayment?.customerData?.name },
+                      { label: "Phone", value: selectedPayment?.customerData?.phone },
+                      { label: "Address", value: selectedPayment?.customerData?.address },
+                      { label: "Invoice", value: selectedPayment?.invoiceNumber },
+                      { label: "Plate", value: selectedPayment?.customerData?.carData?.plateNumber },
                     ].map(({ label, value }) => (
                       <Grid item xs={6} key={label}>
                         <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.4, mb: 0.3 }}>{label}</Typography>
@@ -745,49 +797,50 @@ export default function KwitansiCreate() {
 
       </Container>
 
-      {/* ── Customer Dialog ── */}
-      <Dialog open={openCustomerDialog} onClose={() => { setOpenCustomerDialog(false); setCustomerSearch(""); }}
+      {/* ── Payment Dialog ── */}
+      <Dialog open={openPaymentDialog} onClose={() => { setOpenPaymentDialog(false); setPaymentSearch(""); }}
         maxWidth="xs" fullWidth fullScreen={isMobile}
         PaperProps={{ sx: { borderRadius: isMobile ? 0 : "12px", m: 2 } }}>
         <Box sx={{ p: 2.5 }}>
           <Box display="flex" alignItems="center" mb={2}>
-            <IconButton size="small" onClick={() => { setOpenCustomerDialog(false); setCustomerSearch(""); }} sx={{ mr: 1 }}>
+            <IconButton size="small" onClick={() => { setOpenPaymentDialog(false); setPaymentSearch(""); }} sx={{ mr: 1 }}>
               <Icon icon="mdi:arrow-left" width={20} color={C.textSub} />
             </IconButton>
-            <Typography fontSize={16} fontWeight={700} sx={{ color: C.text }}>Select Customer</Typography>
+            <Typography fontSize={16} fontWeight={700} sx={{ color: C.text }}>Select Paid Payment</Typography>
           </Box>
           <TextField fullWidth autoFocus size="small"
-            placeholder="Search by name, phone, or plate..."
-            value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)}
+            placeholder="Search by invoice, name, or plate..."
+            value={paymentSearch} onChange={(e) => setPaymentSearch(e.target.value)}
             InputProps={{ startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" width={18} color={C.textMuted} /></InputAdornment> }}
             sx={{ mb: 2, ...inputStyle }} />
           <Box sx={{ maxHeight: "60vh", overflow: "auto" }}>
-            {filteredCustomers.length === 0 ? (
+            {filteredPayments.length === 0 ? (
               <Box sx={{ textAlign: "center", py: 5 }}>
-                <Icon icon="mdi:account-search" width={44} color="#C8CDD4" />
-                <Typography fontSize={14} sx={{ color: C.textSub, mt: 1.5 }}>No customers found</Typography>
-                {customerSearch && <Button onClick={() => setCustomerSearch("")} sx={{ mt: 1, textTransform: "none", fontSize: 12, color: C.primary }}>Clear search</Button>}
+                <Icon icon="mdi:receipt-text" width={44} color="#C8CDD4" />
+                <Typography fontSize={14} sx={{ color: C.textSub, mt: 1.5 }}>No paid payments found</Typography>
+                {paymentSearch && <Button onClick={() => setPaymentSearch("")} sx={{ mt: 1, textTransform: "none", fontSize: 12, color: C.primary }}>Clear search</Button>}
               </Box>
             ) : (
               <Stack spacing={1}>
-                {filteredCustomers.map((customer) => {
-                  const sel = selectedCustomer?.id === customer.id;
+                {filteredPayments.map((payment) => {
+                  const sel = selectedPayment?.id === payment.id;
+                  const c = payment.customerData;
                   return (
-                    <Box key={customer.id}
-                      onClick={() => { setSelectedCustomer(customer); setOpenCustomerDialog(false); setCustomerSearch(""); }}
+                    <Box key={payment.id}
+                      onClick={() => { setSelectedPayment(payment); setOpenPaymentDialog(false); setPaymentSearch(""); }}
                       sx={{
                         display: "flex", alignItems: "center", gap: 1.5, p: 1.5, borderRadius: "8px", cursor: "pointer",
                         border: `1px solid ${sel ? C.primary : C.border}`,
                         bgcolor: sel ? C.primaryLight : C.white, transition: "all 0.15s",
                         "&:hover": { borderColor: C.primary, bgcolor: sel ? C.primaryLight : "#FAFBFC" },
                       }}>
-                      <Avatar sx={{ width: 38, height: 38, bgcolor: C.primary, fontSize: 15, fontWeight: 700 }}>
-                        {customer.name?.charAt(0)?.toUpperCase() || "C"}
+                      <Avatar sx={{ width: 38, height: 38, bgcolor: C.primary, fontSize: 13, fontWeight: 700 }}>
+                        <Icon icon="mdi:receipt-text" width={18} />
                       </Avatar>
                       <Box flex={1} minWidth={0}>
-                        <Typography fontSize={13.5} fontWeight={600} sx={{ color: C.text }}>{customer.name}</Typography>
-                        <Typography fontSize={12} sx={{ color: C.textSub }}>{customer.phone || "—"}</Typography>
-                        <Typography fontSize={12} sx={{ color: C.textMuted }}>{customer.carData?.carBrand || "No car"} · {customer.carData?.plateNumber || "No plate"}</Typography>
+                        <Typography fontSize={13.5} fontWeight={600} sx={{ color: C.text }}>{payment.invoiceNumber || "No Invoice"}</Typography>
+                        <Typography fontSize={12} sx={{ color: C.textSub }}>{c?.name || "—"} ({formatCurrency(payment.amount)})</Typography>
+                        <Typography fontSize={12} sx={{ color: C.textMuted }}>{c?.carData?.carBrand || "No car"} · {c?.carData?.plateNumber || "No plate"}</Typography>
                       </Box>
                       {sel && <Icon icon="mdi:check-circle" width={18} color={C.primary} />}
                     </Box>
@@ -799,7 +852,7 @@ export default function KwitansiCreate() {
         </Box>
       </Dialog>
 
-      {/* ── Preview Dialog — TIDAK DIUBAH (struktur) ── */}
+      {/* ── Preview Dialog ── */}
       <Dialog open={openPreviewDialog} onClose={() => setOpenPreviewDialog(false)}
         maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: "12px" } }}>
         <DialogTitle sx={{ p: 2.5, borderBottom: `1px solid ${C.border}` }}>

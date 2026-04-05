@@ -1,4 +1,4 @@
-﻿import { Icon } from '@iconify/react';
+import { Icon } from '@iconify/react';
 import {
     Box, Button, Typography, TextField, Grid, Paper, Divider,
     Container, IconButton, Dialog, useMediaQuery, useTheme,
@@ -11,6 +11,7 @@ import CompanyDAO from '../../daos/CompanyDao';
 import CarDAO from '../../daos/CarDao';
 // import PropertyDAO from '../../daos/propertyDao';
 import CustomerDAO from '../../daos/CustomerDao';
+import InvoiceDAO from '../../daos/InvoiceDao';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -288,9 +289,49 @@ export default function CreateInvoicePage() {
         setOpenPreviewDialog(true);
     };
 
-    const handleConfirmDownload = () => {
-        try { loading.start(); generatePDF(); message('Invoice PDF generated!', 'success'); setOpenPreviewDialog(false); }
-        catch (e) { console.error(e); message('Failed to generate invoice', 'error'); }
+    const handleConfirmDownload = async () => {
+        try { 
+            loading.start(); 
+            // 1. Prepare data for backend
+            let custId = invoiceType === 'car' ? selectedItem?.carData?.customerId : selectedItem?.propertyData?.customerId;
+            if (!custId) custId = selectedItem?.customerId || selectedItem?.id;
+
+            let dueDateVal = Date.now();
+            if (invoiceType === 'car' && selectedItem?.carData?.dueDate) {
+                dueDateVal = new Date(selectedItem.carData.dueDate).getTime();
+            } else if (invoiceType !== 'car' && selectedItem?.insuranceData?.endDate) {
+                dueDateVal = new Date(selectedItem.insuranceData.endDate).getTime();
+            }
+
+            const invoicePayload = {
+                invoiceNumber,
+                customerId: custId,
+                customerName: getOwnerName(),
+                carId: invoiceType === 'car' ? selectedItem?.id : null,
+                plateNumber: invoiceType === 'car' ? selectedItem?.carData?.plateNumber : '',
+                items: items.filter(it => it.description?.trim()),
+                subTotal: calculateSubtotal(),
+                discount: 0,
+                grandTotal: calculateTotal(),
+                issueDate: Date.now(),
+                dueDate: dueDateVal,
+                status: 'Unpaid',
+                notes: 'Generated from Invoice form'
+            };
+
+            // 2. Save to database
+            const r = await InvoiceDAO.createInvoice(invoicePayload);
+            if (!r.success) throw new Error(r.error || 'Failed to save invoice to server');
+
+            // 3. Generate PDF
+            generatePDF(); 
+            message('Invoice created & PDF downloaded!', 'success'); 
+            setOpenPreviewDialog(false); 
+        }
+        catch (e) { 
+            console.error(e); 
+            message(e.message || 'Failed to generate invoice', 'error'); 
+        }
         finally { loading.stop(); }
     };
 
@@ -995,9 +1036,9 @@ export default function CreateInvoicePage() {
                             Cancel
                         </Button>
                         <Button fullWidth variant="contained" onClick={handleConfirmDownload}
-                            startIcon={<Icon icon="mdi:download" width={15} />}
+                            startIcon={<Icon icon="mdi:content-save" width={15} />}
                             sx={{ borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, bgcolor: '#D32F2F', boxShadow: 'none', '&:hover': { bgcolor: '#B71C1C' } }}>
-                            Generate PDF
+                            Save & Generate PDF
                         </Button>
                     </Box>
                 </Box>
