@@ -9,6 +9,7 @@ import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CarDAO from '../../daos/CarDao';
 import RenewalDAO from '../../daos/RenewalDao';
+import QuotationDAO from '../../daos/QuotationDao';
 import CreateRenewalDialog from '../Renewals/CreateRenewalDialog';
 
 /* ─── TAB PANEL ─── */
@@ -189,12 +190,19 @@ export default function CarDetailPage() {
     const [loadingRenewals, setLoadingRenewals] = useState(true);
     const [createRenewalOpen, setCreateRenewalOpen] = useState(false);
 
+    const [quotations, setQuotations] = useState([]);
+    const [loadingQuotations, setLoadingQuotations] = useState(true);
+    const [acceptingQuote, setAcceptingQuote] = useState(false);
+
     useEffect(() => {
         fetchCar();
     }, [id]);
 
     useEffect(() => {
-        if (car) fetchRenewals();
+        if (car) {
+            fetchRenewals();
+            fetchQuotations();
+        }
     }, [car]);
 
     const fetchCar = async () => {
@@ -230,6 +238,38 @@ export default function CarDetailPage() {
             // ignore error silently
         } finally {
             setLoadingRenewals(false);
+        }
+    };
+
+    const fetchQuotations = async () => {
+        try {
+            setLoadingQuotations(true);
+            const res = await QuotationDAO.getQuotationsByPolicy(id);
+            if (res.success) {
+                setQuotations(res.quotations || []);
+            }
+        } catch {
+            console.error('Failed to get quotes');
+        } finally {
+            setLoadingQuotations(false);
+        }
+    };
+
+    const handleAcceptQuotation = async (quoId) => {
+        try {
+            setAcceptingQuote(true);
+            const res = await QuotationDAO.acceptQuotation(quoId);
+            if (res.success) {
+                message('Penawaran berhasil disetujui', 'success');
+                fetchQuotations();
+                fetchCar(); // Refresh car to show the new insurance details!
+            } else {
+                message(res.error || 'Gagal menyetujui penawaran', 'error');
+            }
+        } catch {
+            message('Gagal menyetujui penawaran', 'error');
+        } finally {
+            setAcceptingQuote(false);
         }
     };
 
@@ -373,6 +413,7 @@ export default function CarDetailPage() {
                         <Tab label="Dokumen" icon={<Icon icon="mdi:file-document" width={20} />} iconPosition="start" />
                         <Tab label="Foto" icon={<Icon icon="mdi:camera" width={20} />} iconPosition="start" />
                         <Tab label="History Renewal" icon={<Icon icon="mdi:history" width={20} />} iconPosition="start" />
+                        <Tab label="Penawaran" icon={<Icon icon="mdi:file-document-edit" width={20} />} iconPosition="start" />
                     </Tabs>
                 </Paper>
 
@@ -407,6 +448,13 @@ export default function CarDetailPage() {
                                 <Box sx={{ gridColumn: { md: 'span 1' } }}><InfoRow label="Harga Kendaraan" value={formatCurrency(car.carData?.carPrice)} icon="mdi:cash-multiple" fullWidth /></Box>
                                 <Box sx={{ gridColumn: { md: 'span 1' } }}><InfoRow label="Tanggal Mulai" value={car.carData?.startDate || '-'} icon="mdi:calendar-arrow-right" fullWidth /></Box>
                                 <Box sx={{ gridColumn: { md: 'span 1' } }}><InfoRow label="Jatuh Tempo Asuransi" value={car.carData?.dueDate || '-'} icon="mdi:calendar-clock" fullWidth /></Box>
+
+                                <Box sx={{ gridColumn: { md: 'span 1' } }}><InfoRow label="Provider Asuransi" value={car.carData?.insuranceProvider || '-'} icon="mdi:shield-check" fullWidth /></Box>
+                                <Box sx={{ gridColumn: { md: 'span 1' } }}><InfoRow label="Jenis Asuransi" value={car.carData?.insuranceType || '-'} icon="mdi:shield-car" fullWidth /></Box>
+                                <Box sx={{ gridColumn: { md: 'span 1' } }}>
+                                    <InfoRow label="Perluasan (Coverages)" value={car.carData?.coverageExtensions?.length > 0 ? car.carData.coverageExtensions.join(', ') : '-'} icon="mdi:shield-plus" fullWidth />
+                                </Box>
+
                                 <Box sx={{ gridColumn: { md: 'span 3' } }}><InfoRow label="Catatan Tambahan" value={car.notes || '-'} icon="mdi:note-text" fullWidth /></Box>
                             </Box>
                         </Paper>
@@ -506,6 +554,85 @@ export default function CarDetailPage() {
                                                 <Typography variant="body2" sx={{ fontWeight: 700, color: '#059669' }}>
                                                     {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(r.premium)}
                                                 </Typography>
+                                            </Stack>
+                                        </Stack>
+                                    </Box>
+                                ))}
+                            </Stack>
+                        )}
+                    </Paper>
+                </TabPanel>
+
+                {/* ── Tab 5: Penawaran / Quotations ── */}
+                <TabPanel value={tabValue} index={4}>
+                    <Paper elevation={0} sx={{ p: { xs: 2, md: 4 }, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
+                        <Stack spacing={1.5} sx={{ mb: 3 }}>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Icon icon="mdi:file-document-edit" width={22} color="#1E40AF" /> Riwayat Penawaran
+                                </Typography>
+                                <Button variant="contained" size="small" disableElevation
+                                    startIcon={<Icon icon="mdi:plus" />}
+                                    onClick={() => navigate('/quotations/create')}
+                                    sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#1E40AF', '&:hover': { bgcolor: '#1E3A8A' }, flexShrink: 0 }}>
+                                    Buat Penawaran
+                                </Button>
+                            </Stack>
+                            <Typography variant="caption" sx={{ color: '#64748B' }}>
+                                Setujui satu penawaran untuk mengunci data asuransi kendaraan ini.
+                            </Typography>
+                        </Stack>
+
+                        {loadingQuotations ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={24} /></Box>
+                        ) : quotations.length === 0 ? (
+                            <Box sx={{ textAlign: 'center', py: 6, border: '2px dashed #E2E8F0', borderRadius: 2 }}>
+                                <Icon icon="mdi:file-document-remove-outline" width={48} color="#CBD5E1" />
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#64748B', mt: 2 }}>Belum ada surat penawaran</Typography>
+                                <Typography variant="body2" sx={{ color: '#94A3B8' }}>Belum ada penawaran harga yang digenerate untuk mobil ini.</Typography>
+                            </Box>
+                        ) : (
+                            <Stack spacing={2}>
+                                {quotations.map(q => (
+                                    <Box key={q.id}
+                                        sx={{ 
+                                            p: 2, borderRadius: 2, border: '1px solid #E2E8F0', bgcolor: '#F8FAFC', 
+                                        }}>
+                                        <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2}>
+                                            <Box flex={1}>
+                                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E293B' }}>{q.quotationNumber}</Typography>
+                                                    <Chip label={q.status} size="small" 
+                                                        sx={{ 
+                                                            bgcolor: q.status === 'Accepted' ? '#D1FAE5' : '#FEF3C7', 
+                                                            color: q.status === 'Accepted' ? '#065F46' : '#92400E', 
+                                                            fontWeight: 700, fontSize: '0.65rem', height: 20 
+                                                        }} />
+                                                </Stack>
+                                                <Typography variant="caption" sx={{ color: '#475569', fontWeight: 600, display: 'block', mb: 0.5 }}>
+                                                    {q.insuranceProvider || 'Asuransi'} · {q.insuranceType || 'Tipe Tidak Diketahui'}
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: '#64748B' }}>
+                                                    TSI: {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(q.tsi)} <br/>
+                                                    Premi: {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(q.totalPremium)}
+                                                </Typography>
+                                            </Box>
+                                            <Stack direction={{ xs: 'row', md: 'column' }} alignItems={{ xs: 'center', md: 'flex-end' }} justifyContent="space-between" width={{ xs: '100%', md: 'auto' }}>
+                                                {q.status === 'Pending' && (
+                                                    <Button 
+                                                        variant="contained" size="small" disableElevation
+                                                        disabled={acceptingQuote}
+                                                        onClick={() => handleAcceptQuotation(q.id)}
+                                                        sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' }, textTransform: 'none', fontWeight: 600 }}
+                                                    >
+                                                        {acceptingQuote ? <CircularProgress size={16} /> : 'Setujui Penawaran'}
+                                                    </Button>
+                                                )}
+                                                {q.status === 'Accepted' && (
+                                                    <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                        <Icon icon="mdi:check-circle" /> Penawaran Dipilih
+                                                    </Typography>
+                                                )}
                                             </Stack>
                                         </Stack>
                                     </Box>

@@ -339,7 +339,7 @@ export default function CreateInvoicePage() {
     const getSelectedLabel = () => {
         if (!selectedItem) return '';
         if (invoiceType === 'car') {
-            return `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''} â€” ${selectedItem.carData?.plateNumber || 'No Plate'}`;
+            return `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''} - ${selectedItem.carData?.plateNumber || 'No Plate'}`;
         }
         return `${selectedItem.propertyData?.propertyType || 'Property'} - ${selectedItem.propertyData?.city || ''}`;
     };
@@ -610,12 +610,12 @@ export default function CreateInvoicePage() {
                                                         { label: 'Kendaraan', value: `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''}`.trim() },
                                                         { label: 'No. Plat', value: selectedItem.carData?.plateNumber },
                                                         { label: 'No. Rangka', value: selectedItem.carData?.chassisNumber },
-                                                        { label: 'Harga Mobil', value: selectedItem.carData?.carPrice ? `Rp ${Number(selectedItem.carData.carPrice).toLocaleString('id-ID')}` : 'â€”' },
-                                                        { label: 'Jatuh Tempo', value: selectedItem.carData?.dueDate ? new Date(selectedItem.carData.dueDate).toLocaleDateString('id-ID') : 'â€”' },
+                                                        { label: 'Harga Mobil', value: selectedItem.carData?.carPrice ? `Rp ${Number(selectedItem.carData.carPrice).toLocaleString('id-ID')}` : '-' },
+                                                        { label: 'Jatuh Tempo', value: selectedItem.carData?.dueDate ? new Date(selectedItem.carData.dueDate).toLocaleDateString('id-ID') : '-' },
                                                     ].map(({ label, value }) => (
                                                         <Grid item xs={6} key={label}>
                                                             <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
-                                                            <Typography fontSize={13} fontWeight={500} sx={{ color: C.text }}>{value || 'â€”'}</Typography>
+                                                            <Typography fontSize={13} fontWeight={500} sx={{ color: C.text }}>{value || '-'}</Typography>
                                                         </Grid>
                                                     ))}
                                                 </Grid>
@@ -626,12 +626,12 @@ export default function CreateInvoicePage() {
                                                         { label: 'Tipe', value: selectedItem.propertyData?.propertyType },
                                                         { label: 'Kota', value: selectedItem.propertyData?.city },
                                                         { label: 'Alamat', value: selectedItem.propertyData?.address },
-                                                        { label: 'Nilai Properti', value: selectedItem.propertyData?.propertyValue ? `Rp ${Number(selectedItem.propertyData.propertyValue).toLocaleString('id-ID')}` : 'â€”' },
-                                                        { label: 'Jatuh Tempo', value: selectedItem.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID') : 'â€”' },
+                                                        { label: 'Nilai Properti', value: selectedItem.propertyData?.propertyValue ? `Rp ${Number(selectedItem.propertyData.propertyValue).toLocaleString('id-ID')}` : '-' },
+                                                        { label: 'Jatuh Tempo', value: selectedItem.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID') : '-' },
                                                     ].map(({ label, value }) => (
                                                         <Grid item xs={6} key={label}>
                                                             <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
-                                                            <Typography fontSize={13} fontWeight={500} sx={{ color: C.text }}>{value || 'â€”'}</Typography>
+                                                            <Typography fontSize={13} fontWeight={500} sx={{ color: C.text }}>{value || '-'}</Typography>
                                                         </Grid>
                                                     ))}
                                                 </Grid>
@@ -848,18 +848,18 @@ export default function CreateInvoicePage() {
                                             { label: 'No. Plat', value: selectedItem?.carData?.plateNumber },
                                             { label: 'No. Rangka', value: selectedItem?.carData?.chassisNumber },
                                             { label: 'No. Mesin', value: selectedItem?.carData?.engineNumber },
-                                            { label: 'Harga Mobil', value: selectedItem?.carData?.carPrice ? `Rp ${Number(selectedItem.carData.carPrice).toLocaleString('id-ID')}` : 'â€”' },
+                                            { label: 'Harga Mobil', value: selectedItem?.carData?.carPrice ? `Rp ${Number(selectedItem.carData.carPrice).toLocaleString('id-ID')}` : '-' },
                                         ] : [
                                             { label: 'Pemilik', value: selectedItem?.ownerName || selectedItem?.customerName },
                                             { label: 'Tipe Properti', value: selectedItem?.propertyData?.propertyType },
                                             { label: 'Kota', value: selectedItem?.propertyData?.city },
                                             { label: 'Alamat', value: selectedItem?.propertyData?.address },
-                                            { label: 'Nilai Properti', value: selectedItem?.propertyData?.propertyValue ? `Rp ${Number(selectedItem.propertyData.propertyValue).toLocaleString('id-ID')}` : 'â€”' },
-                                            { label: 'Jatuh Tempo', value: selectedItem?.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID') : 'â€”' },
+                                            { label: 'Nilai Properti', value: selectedItem?.propertyData?.propertyValue ? `Rp ${Number(selectedItem.propertyData.propertyValue).toLocaleString('id-ID')}` : '-' },
+                                            { label: 'Jatuh Tempo', value: selectedItem?.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID') : '-' },
                                         ]).map(({ label, value }) => (
                                             <Grid item xs={6} key={label}>
                                                 <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.3 }}>{label}</Typography>
-                                                <Typography fontSize={13.5} fontWeight={500} sx={{ color: C.text }}>{value || 'â€”'}</Typography>
+                                                <Typography fontSize={13.5} fontWeight={500} sx={{ color: C.text }}>{value || '-'}</Typography>
                                             </Grid>
                                         ))}
                                     </Grid>
@@ -967,11 +967,11 @@ export default function CreateInvoicePage() {
                                         ? `${item.carData?.carBrand || ''} ${item.carData?.carModel || ''}`.trim()
                                         : item.propertyData?.propertyType || 'Property';
                                     const sub1 = invoiceType === 'car'
-                                        ? (item.carData?.ownerName || 'â€”')
-                                        : (item.ownerName || item.customerName || 'â€”');
+                                        ? (item.carData?.ownerName || '-')
+                                        : (item.ownerName || item.customerName || '-');
                                     const sub2 = invoiceType === 'car'
                                         ? (item.carData?.plateNumber || 'No plate')
-                                        : (item.propertyData?.city || 'â€”');
+                                        : (item.propertyData?.city || '-');
                                     return (
                                         <Box key={item.id}
                                             onClick={() => { setSelectedItem(item); setOpenSelectDialog(false); setSelectSearch(''); }}
@@ -1017,7 +1017,7 @@ export default function CreateInvoicePage() {
                             </Box>
                             <Box display="flex" justifyContent="space-between">
                                 <Typography fontSize={13} sx={{ color: C.textSub }}>Pemilik</Typography>
-                                <Typography fontSize={13} fontWeight={600} sx={{ color: C.text }}>{getOwnerName() || 'â€”'}</Typography>
+                                <Typography fontSize={13} fontWeight={600} sx={{ color: C.text }}>{getOwnerName() || '-'}</Typography>
                             </Box>
                             <Box display="flex" justifyContent="space-between">
                                 <Typography fontSize={13} sx={{ color: C.textSub }}>Items</Typography>

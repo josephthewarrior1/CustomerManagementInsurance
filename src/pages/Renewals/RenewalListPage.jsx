@@ -1,9 +1,9 @@
 import { Icon } from '@iconify/react';
 import {
-    Avatar, Box, Button, Card, CardContent, Chip, CircularProgress,
-    Container, Dialog, Divider, Drawer, Grid, IconButton, InputAdornment,
+    Box, Button, Card, CardContent, Chip, CircularProgress,
+    Dialog, Drawer, IconButton, InputAdornment,
     List, ListItemButton, ListItemIcon, ListItemText,
-    Menu, MenuItem, Stack, TextField, Typography, useMediaQuery, useTheme
+    Stack, TextField, Typography, useMediaQuery, useTheme
 } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -20,7 +20,9 @@ import CustomColumn from '../../reusables/layouts/CustomColumn';
 /* ── helpers ─────────────────────────────────────────────────────────── */
 const formatDate = (d) => {
     if (!d) return '-';
-    return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    const parsed = new Date(d);
+    if (isNaN(parsed.getTime())) return '-';
+    return parsed.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 const formatCurrency = (v) => {
     if (!v && v !== 0) return '-';
@@ -35,11 +37,6 @@ const STATUS_CONFIG = {
     Cancelled: { bg: '#F1F5F9', color: '#475569' },
 };
 const ALL_STATUSES = ['ALL', 'Pending', 'Approved', 'Paid', 'Completed', 'Cancelled'];
-
-function StatusBadge({ status }) {
-    const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.Pending;
-    return <Chip label={status || '-'} size="small" sx={{ bgcolor: cfg.bg, color: cfg.color, fontWeight: 700, fontSize: '0.7rem', borderRadius: '8px' }} />;
-}
 
 /* ── main component ─────────────────────────────────────────────────── */
 export default function RenewalListPage() {
@@ -85,7 +82,6 @@ export default function RenewalListPage() {
             if (res.success) {
                 const list = res.renewals || [];
                 setAllRenewals(list);
-                // Stats
                 const counts = {};
                 ALL_STATUSES.forEach(s => counts[s] = s === 'ALL' ? list.length : 0);
                 list.forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
@@ -103,7 +99,6 @@ export default function RenewalListPage() {
 
     useEffect(() => { fetchRenewals(); }, []);
 
-    // ── compute filtered/paginated data for desktop table ────────────────────
     useEffect(() => {
         let filtered = [...allRenewals];
         if (selectedStatus !== 'ALL') filtered = filtered.filter(r => r.status === selectedStatus);
@@ -129,7 +124,6 @@ export default function RenewalListPage() {
 
     useEffect(() => { setMobileVisibleCount(10); }, [selectedStatus, mobileKeyword]);
 
-    // ── cancel renewal ────────────────────────────────────────────────────────
     const handleCancel = async () => {
         if (!cancelDialog.renewal) return;
         setCancelling(true);
@@ -149,7 +143,6 @@ export default function RenewalListPage() {
         }
     };
 
-    // ── columns ───────────────────────────────────────────────────────────────
     const columns = [
         {
             title: 'ID', dataIndex: 'id', key: 'id', sortable: false,
@@ -162,14 +155,6 @@ export default function RenewalListPage() {
                     <Typography variant="body2" fontWeight={600}>{row.customerName || '-'}</Typography>
                     <Typography variant="caption" color="textSecondary">{row.policySummary || '-'}</Typography>
                 </Box>
-            )
-        },
-        {
-            title: 'Periode Lama', dataIndex: 'oldEndDate', key: 'oldEndDate', sortable: false,
-            render: (_, row) => (
-                <Typography variant="caption" sx={{ color: '#475569' }}>
-                    {formatDate(row.oldStartDate)} → {formatDate(row.oldEndDate)}
-                </Typography>
             )
         },
         {
@@ -186,7 +171,10 @@ export default function RenewalListPage() {
         },
         {
             title: 'Status', dataIndex: 'status', key: 'status', sortable: true,
-            render: (v) => <StatusBadge status={v} />
+            render: (v) => {
+                const cfg = STATUS_CONFIG[v] || STATUS_CONFIG.Pending;
+                return <Box sx={{ bgcolor: cfg.bg, color: cfg.color, px: 1, py: 0.3, borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700, display: 'inline-block' }}>{v}</Box>;
+            }
         },
         {
             title: 'Aksi', dataIndex: 'actions', key: 'actions', sortable: false,
@@ -221,79 +209,101 @@ export default function RenewalListPage() {
 
         return (
             <Box sx={{ p: 2, bgcolor: '#F8FAFC', minHeight: '100%' }}>
-                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
+                {/* Search + Add */}
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
                     <TextField
                         fullWidth placeholder="Cari renewal..."
+                        size="small"
                         value={mobileKeyword}
                         onChange={e => setMobileKeyword(e.target.value)}
                         InputProps={{
-                            startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" color="#94A3B8" /></InputAdornment>,
-                            sx: { borderRadius: '12px', bgcolor: '#fff', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' } }
+                            startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" color="#94A3B8" width={18} /></InputAdornment>,
+                            sx: { borderRadius: '10px', bgcolor: '#fff', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' } }
                         }}
                     />
                     <IconButton onClick={() => setIsCreateOpen(true)}
-                        sx={{ bgcolor: '#1E3A8A', color: '#fff', borderRadius: '12px', width: 48, height: 48, flexShrink: 0, '&:hover': { bgcolor: '#1e40af' }, boxShadow: '0 4px 12px rgba(30,58,138,0.3)' }}>
-                        <Icon icon="mdi:plus" width={24} />
+                        sx={{ bgcolor: '#1E3A8A', color: '#fff', borderRadius: '12px', width: 42, height: 42, flexShrink: 0, '&:hover': { bgcolor: '#1e40af' } }}>
+                        <Icon icon="mdi:plus" width={22} />
                     </IconButton>
                 </Stack>
 
                 {/* Status filter chips */}
-                <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 2, mb: 1 }}>
+                <Box sx={{ display: 'flex', gap: 0.8, overflowX: 'auto', pb: 1.5, mb: 1, '&::-webkit-scrollbar': { display: 'none' } }}>
                     {summaries.map(s => (
-                        <Chip key={s.status} label={`${s.status} (${s.total})`} onClick={() => setSelectedStatus(s.status)}
-                            sx={{ border: '1px solid', borderColor: selectedStatus === s.status ? '#1E3A8A' : '#E2E8F0', bgcolor: selectedStatus === s.status ? '#1E3A8A' : '#fff', color: selectedStatus === s.status ? '#fff' : '#64748B', fontWeight: 600, height: 38, borderRadius: '20px', flexShrink: 0 }} />
+                        <Chip key={s.status}
+                            label={`${s.status === 'ALL' ? 'Semua' : s.status} (${s.total})`}
+                            onClick={() => setSelectedStatus(s.status)}
+                            sx={{
+                                bgcolor: selectedStatus === s.status ? '#1E3A8A' : '#fff',
+                                color: selectedStatus === s.status ? '#fff' : '#64748B',
+                                border: '1px solid', borderColor: selectedStatus === s.status ? '#1E3A8A' : '#E2E8F0',
+                                fontWeight: 600, fontSize: '0.72rem', height: 32, borderRadius: '20px', flexShrink: 0
+                            }} />
                     ))}
                 </Box>
 
+                {/* Cards */}
                 {paginated.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 8 }}>
-                        <Icon icon="mdi:arrow-u-right-top" width={64} color="#CBD5E1" />
-                        <Typography variant="body1" sx={{ mt: 2, color: '#94A3B8', fontWeight: 500 }}>Tidak ada renewal ditemukan</Typography>
+                        <Icon icon="mdi:arrow-u-right-top" width={56} color="#CBD5E1" />
+                        <Typography variant="body2" sx={{ mt: 2, color: '#94A3B8', fontWeight: 500 }}>Tidak ada renewal ditemukan</Typography>
                     </Box>
                 ) : (
-                    <Stack spacing={2}>
-                        {paginated.map(r => (
-                            <Card key={r.id} onClick={() => navigate(`/renewals/${r.id}`)}
-                                sx={{ borderRadius: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9', cursor: 'pointer' }}>
-                                <CardContent sx={{ p: '16px !important' }}>
-                                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
-                                        <Avatar sx={{ width: 44, height: 44, bgcolor: '#EFF6FF', color: '#1E40AF' }}>
-                                            <Icon icon="mdi:arrow-u-right-top" width={22} />
-                                        </Avatar>
-                                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E293B' }} noWrap>{r.customerName || '-'}</Typography>
-                                            <Typography variant="caption" sx={{ color: '#64748B' }} noWrap>{r.policySummary || '-'}</Typography>
-                                        </Box>
-                                        <StatusBadge status={r.status} />
-                                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); setDrawerRenewal(r); setActionDrawerOpen(true); }}>
-                                            <Icon icon="mdi:dots-vertical" width={20} color="#64748B" />
-                                        </IconButton>
-                                    </Stack>
-                                    <Divider sx={{ mb: 1.5, borderStyle: 'dashed' }} />
-                                    <Grid container spacing={1.5}>
-                                        <Grid item xs={6}>
-                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.6rem' }}>Periode Lama</Typography>
-                                            <Typography variant="body2" sx={{ fontWeight: 500, color: '#475569', fontSize: '0.78rem' }}>{formatDate(row => r.oldEndDate)}{formatDate(r.oldEndDate)}</Typography>
-                                        </Grid>
-                                        <Grid item xs={6}>
-                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.6rem' }}>Periode Baru</Typography>
-                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#1E40AF', fontSize: '0.78rem' }}>{formatDate(r.newEndDate)}</Typography>
-                                        </Grid>
-                                        <Grid item xs={6}>
-                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.6rem' }}>Premi</Typography>
-                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#1E293B', fontSize: '0.78rem' }}>{formatCurrency(r.premium)}</Typography>
-                                        </Grid>
-                                        <Grid item xs={6}>
-                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.6rem' }}>Payment</Typography>
-                                            <Typography variant="body2" sx={{ fontWeight: 500, color: '#64748B', fontSize: '0.78rem' }}>{r.paymentId ? r.paymentId : '-'}</Typography>
-                                        </Grid>
-                                    </Grid>
-                                </CardContent>
-                            </Card>
-                        ))}
+                    <Stack spacing={1}>
+                        {paginated.map(r => {
+                            const cfg = STATUS_CONFIG[r.status] || STATUS_CONFIG.Pending;
+                            return (
+                                <Card key={r.id} onClick={() => navigate(`/renewals/${r.id}`)}
+                                    sx={{ borderRadius: '12px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #F1F5F9', cursor: 'pointer' }}>
+                                    <CardContent sx={{ p: '12px 14px !important' }}>
+                                        {/* Row 1: icon + name + status + dots */}
+                                        <Stack direction="row" spacing={1} alignItems="center">
+                                            <Box sx={{
+                                                width: 34, height: 34, borderRadius: '9px', flexShrink: 0,
+                                                bgcolor: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                            }}>
+                                                <Icon icon="mdi:arrow-u-right-top" width={17} color={cfg.color} />
+                                            </Box>
+                                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1E293B', lineHeight: 1.2 }} noWrap>
+                                                    {r.customerName || '-'}
+                                                </Typography>
+                                                <Typography sx={{ fontSize: '0.71rem', color: '#94A3B8' }} noWrap>
+                                                    {r.policySummary || '-'}
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ bgcolor: cfg.bg, color: cfg.color, px: 0.8, py: 0.2, borderRadius: '6px', fontSize: '0.65rem', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                                {r.status}
+                                            </Box>
+                                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); setDrawerRenewal(r); setActionDrawerOpen(true); }}
+                                                sx={{ p: 0.2, flexShrink: 0 }}>
+                                                <Icon icon="mdi:dots-vertical" width={16} color="#CBD5E1" />
+                                            </IconButton>
+                                        </Stack>
+
+                                        {/* Row 2: date + premium + payment dot */}
+                                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.9, pt: 0.9, borderTop: '1px dashed #F1F5F9' }}>
+                                            <Stack direction="row" alignItems="center" spacing={0.4} sx={{ flex: 1, minWidth: 0 }}>
+                                                <Icon icon="mdi:calendar-arrow-right" width={13} color="#94A3B8" style={{ flexShrink: 0 }} />
+                                                <Typography sx={{ fontSize: '0.71rem', color: '#1E40AF', fontWeight: 600 }} noWrap>
+                                                    {formatDate(r.newStartDate)} – {formatDate(r.newEndDate)}
+                                                </Typography>
+                                            </Stack>
+                                            <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', flexShrink: 0 }}>
+                                                {r.premium > 0 ? formatCurrency(r.premium) : '—'}
+                                            </Typography>
+                                            <Box sx={{
+                                                width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                                                bgcolor: r.paymentId ? '#10B981' : '#F59E0B'
+                                            }} />
+                                        </Stack>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
                     </Stack>
                 )}
-                {mobileLoadingMore && <Box sx={{ py: 3, display: 'flex', justifyContent: 'center' }}><CircularProgress size={24} sx={{ color: '#1E3A8A' }} /></Box>}
+                {mobileLoadingMore && <Box sx={{ py: 3, display: 'flex', justifyContent: 'center' }}><CircularProgress size={22} sx={{ color: '#1E3A8A' }} /></Box>}
                 {hasMore && !mobileLoadingMore && <Box ref={sentinelRef} sx={{ height: 1, width: '100%' }} />}
             </Box>
         );
@@ -315,7 +325,6 @@ export default function RenewalListPage() {
                 </CustomRow>
             </CustomRow>
 
-            {/* Stats */}
             <CustomRow className="lg:gap-x-6 md:gap-x-2 sm:gap-x-0 items-start" style={{ flexWrap: 'wrap', gap: 8 }}>
                 {summaries.map(s => (
                     <div key={s.status}
@@ -346,7 +355,6 @@ export default function RenewalListPage() {
         <>
             {isMobile ? renderMobile() : renderDesktop()}
 
-            {/* Create Dialog */}
             <CreateRenewalDialog
                 open={isCreateOpen}
                 onClose={() => setIsCreateOpen(false)}
