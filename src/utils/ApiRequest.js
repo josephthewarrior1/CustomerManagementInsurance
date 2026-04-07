@@ -1,9 +1,21 @@
 import ApiConfig from './ApiConfig';
+import { auth } from '../config/firebaseConfig';
 
 export default class ApiRequest {
     // Regular API call untuk JSON
     static set = async (endpoint, method, body, apiUrl = null) => {
-        const token = localStorage.getItem('authToken');
+        // Always get a fresh Firebase token (auto-refreshes if expired)
+        let token = null;
+        try {
+            if (auth.currentUser) {
+                token = await auth.currentUser.getIdToken();
+                localStorage.setItem('authToken', token);
+            } else {
+                token = localStorage.getItem('authToken');
+            }
+        } catch (e) {
+            token = localStorage.getItem('authToken');
+        }
         
         // Prepare headers
         const headers = {
@@ -56,7 +68,18 @@ export default class ApiRequest {
 
     // ⭐ DEDICATED method untuk multipart/form-data (file upload)
     static setMultipart = async (endpoint, method, formData, apiUrl = null) => {
-        const token = localStorage.getItem('authToken');
+        // Always get a fresh Firebase token
+        let token = null;
+        try {
+            if (auth.currentUser) {
+                token = await auth.currentUser.getIdToken();
+                localStorage.setItem('authToken', token);
+            } else {
+                token = localStorage.getItem('authToken');
+            }
+        } catch (e) {
+            token = localStorage.getItem('authToken');
+        }
         
         // Untuk multipart, HANYA set Authorization
         // JANGAN set Content-Type, biar browser auto-set dengan boundary

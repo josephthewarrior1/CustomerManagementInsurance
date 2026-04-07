@@ -170,6 +170,7 @@ function DocCard({ label, existingUrl, newFile, newPreview, onSelect, onClear })
 const getStatusColor = (status) => {
     switch (status) {
         case 'Active': return { bg: '#D1FAE5', color: '#065F46' };
+        case 'Nonaktif': return { bg: '#FEF3C7', color: '#D97706' };
         case 'Expired': return { bg: '#FEE2E2', color: '#991B1B' };
         case 'Cancelled': return { bg: '#F1F5F9', color: '#475569' };
         default: return { bg: '#F1F5F9', color: '#475569' };
@@ -198,6 +199,7 @@ export default function CarEditPage() {
         chassisNumber: '', engineNumber: '', carPrice: '',
         startDate: '', dueDate: '', notes: '', status: 'Active',
         year: '', color: '',
+        insuranceProvider: '', insuranceType: '', coverageExtensions: '',
     });
 
     const [carPhotos, setCarPhotos] = useState({ front: null, back: null, leftSide: null, rightSide: null });
@@ -241,6 +243,9 @@ export default function CarEditPage() {
                     status: c.status || 'Active',
                     year: c.carData?.year || c.year || '',
                     color: c.carData?.color || c.color || '',
+                    insuranceProvider: c.carData?.insuranceProvider || c.insuranceData?.insuranceCompany || '',
+                    insuranceType: c.carData?.insuranceType || c.insuranceData?.coverageType || '',
+                    coverageExtensions: c.carData?.coverageExtensions?.join(', ') || c.insuranceData?.coverageExtensions?.join(', ') || '',
                 });
             } else {
                 message(response.error || 'Kendaraan tidak ditemukan', 'error');
@@ -284,6 +289,9 @@ export default function CarEditPage() {
                 status: formData.status,
                 year: formData.year,
                 color: formData.color,
+                insuranceProvider: formData.insuranceProvider,
+                insuranceType: formData.insuranceType,
+                coverageExtensions: formData.coverageExtensions ? formData.coverageExtensions.split(',').map(s => s.trim()).filter(Boolean) : [],
             };
             const res = await CarDAO.updateCar(id, payload);
             if (!res.success) throw new Error(res.error || 'Gagal memperbarui kendaraan');
@@ -384,7 +392,7 @@ export default function CarEditPage() {
     const hasNewCarPhotos = Object.values(carPhotos).some(Boolean);
     const hasNewDocPhotos = Object.values(docPhotos).some(Boolean);
     const statusColors = getStatusColor(formData.status);
-    const statusLabel = formData.status === 'Active' ? 'Aktif' : formData.status === 'Expired' ? 'Kedaluwarsa' : 'Dibatalkan';
+    const statusLabel = formData.status === 'Active' ? 'Aktif' : formData.status === 'Nonaktif' ? 'Nonaktif' : formData.status === 'Expired' ? 'Kedaluwarsa' : 'Dibatalkan';
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#F8FAFC', pb: 8 }}>
@@ -527,6 +535,21 @@ export default function CarEditPage() {
                                         <TextField fullWidth size="small" name="dueDate" type="date" value={formData.dueDate} onChange={handleChange} sx={inputStyle} />
                                     </Box>
                                 </Box>
+
+                                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2.5 }}>
+                                    <Box>
+                                        <FieldLabel label="Provider Asuransi" />
+                                        <TextField fullWidth size="small" name="insuranceProvider" value={formData.insuranceProvider} onChange={handleChange} placeholder="cth. Garda Oto" sx={inputStyle} />
+                                    </Box>
+                                    <Box>
+                                        <FieldLabel label="Jenis Asuransi" />
+                                        <TextField fullWidth size="small" name="insuranceType" value={formData.insuranceType} onChange={handleChange} placeholder="cth. All Risk / TLO" sx={inputStyle} />
+                                    </Box>
+                                </Box>
+
+                                <FieldLabel label="Perluasan (Coverages)" />
+                                <TextField fullWidth size="small" name="coverageExtensions" value={formData.coverageExtensions} onChange={handleChange} placeholder="cth. Banjir, Gempa Bumi (pisahkan dengan koma)" sx={{ ...inputStyle, mb: 2.5 }} />
+
                                 <FieldLabel label="Catatan Tambahan" />
                                 <TextField
                                     fullWidth size="small" name="notes"
@@ -540,8 +563,8 @@ export default function CarEditPage() {
                                     Tentukan status operasional asuransi untuk kendaraan ini.
                                 </Typography>
                                 <Stack direction="row" spacing={1.5} useFlexGap flexWrap="wrap" sx={{ mb: 3 }}>
-                                    {['Active', 'Expired', 'Cancelled'].map(s => {
-                                        const lbl = s === 'Active' ? 'Aktif' : s === 'Expired' ? 'Kedaluwarsa' : 'Dibatalkan';
+                                    {['Active', 'Nonaktif', 'Expired', 'Cancelled'].map(s => {
+                                        const lbl = s === 'Active' ? 'Aktif' : s === 'Nonaktif' ? 'Nonaktif' : s === 'Expired' ? 'Kedaluwarsa' : 'Dibatalkan';
                                         const isSelected = formData.status === s;
                                         return (
                                             <Button
@@ -552,7 +575,7 @@ export default function CarEditPage() {
                                                 sx={{
                                                     textTransform: 'none', fontWeight: 700, borderRadius: '8px', fontSize: 13, px: 2,
                                                     ...(isSelected
-                                                        ? { bgcolor: s === 'Active' ? '#065F46' : s === 'Expired' ? '#991B1B' : '#475569', color: '#fff', borderColor: 'transparent', '&:hover': { bgcolor: s === 'Active' ? '#054035' : s === 'Expired' ? '#7f1d1d' : '#334155' } }
+                                                        ? { bgcolor: s === 'Active' ? '#065F46' : s === 'Nonaktif' ? '#D97706' : s === 'Expired' ? '#991B1B' : '#475569', color: '#fff', borderColor: 'transparent', '&:hover': { bgcolor: s === 'Active' ? '#054035' : s === 'Nonaktif' ? '#b45309' : s === 'Expired' ? '#7f1d1d' : '#334155' } }
                                                         : { borderColor: '#E2E8F0', color: '#64748B', bgcolor: '#fff' }
                                                     ),
                                                 }}

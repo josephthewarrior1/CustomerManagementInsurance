@@ -13,7 +13,7 @@ import {
   DialogActions 
 } from '@mui/material';
 import { useUser } from '../../hooks/UserProvider';
-import { getDatabase, ref, onValue, remove, get } from 'firebase/database';
+import { getFirestore, collection, onSnapshot, doc, deleteDoc, getDocs, updateDoc, deleteField } from 'firebase/firestore';
 import { app } from '../../config/firebaseConfig';
 import { useNavigate } from 'react-router';
 import { useEffect, useState } from 'react';
@@ -52,7 +52,7 @@ export default function AdminList() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [adminToDelete, setAdminToDelete] = useState(null);
   const navigate = useNavigate();
-  const db = getDatabase(app);
+  const db = getFirestore(app);
   const message = useAlert();
   
   // State untuk pagination dan sorting
@@ -62,18 +62,20 @@ export default function AdminList() {
   const [sortDirection, setSortDirection] = useState('asc');
 
   useEffect(() => {
-    const adminsRef = ref(db, 'admins');
-    onValue(adminsRef, (snapshot) => {
-      const data = snapshot.val();
-      const adminsArray = data
-        ? Object.keys(data).map((key) => ({
-            id: key,
-            ...data[key],
-          }))
-        : [];
+    const adminsRef = collection(db, 'admins');
+    const unsubscribe = onSnapshot(adminsRef, (snapshot) => {
+      const adminsArray = [];
+      snapshot.forEach((docSnap) => {
+        adminsArray.push({
+          id: docSnap.id,
+          ...docSnap.data(),
+        });
+      });
       setAdmins(adminsArray);
       setFilteredAdmins(adminsArray);
     });
+    
+    return () => unsubscribe();
   }, [db]);
 
   // Handle search
@@ -127,32 +129,31 @@ export default function AdminList() {
 
   const handleDeleteConfirm = () => {
     if (adminToDelete) {
-      const adminRef = ref(db, `admins/${adminToDelete.id}`);
+      const adminRef = doc(db, 'admins', adminToDelete.id);
       
       // Hapus dari admins
-      remove(adminRef)
+      deleteDoc(adminRef)
         .then(() => {
           // Hapus dari assigned_admins di semua couples
           const cleanupPromises = [];
           
-          // Hapus dari couples
-          const couplesRef = ref(db, 'couples');
-          get(couplesRef).then((couplesSnapshot) => {
-            if (couplesSnapshot.exists()) {
-              const couplesData = couplesSnapshot.val();
-              Object.keys(couplesData).forEach(coupleId => {
-                if (couplesData[coupleId].assigned_admins && 
-                    couplesData[coupleId].assigned_admins[adminToDelete.id]) {
-                  
-                  const coupleUpdateRef = ref(db, `couples/${coupleId}/assigned_admins/${adminToDelete.id}`);
-                  cleanupPromises.push(remove(coupleUpdateRef));
+          const couplesRef = collection(db, 'couples');
+          getDocs(couplesRef).then((couplesSnapshot) => {
+            if (!couplesSnapshot.empty) {
+              couplesSnapshot.forEach(docSnap => {
+                const coupleData = docSnap.data();
+                if (coupleData.assigned_admins && coupleData.assigned_admins[adminToDelete.id]) {
+                  const coupleDocRef = doc(db, 'couples', docSnap.id);
+                  cleanupPromises.push(updateDoc(coupleDocRef, {
+                    [`assigned_admins.${adminToDelete.id}`]: deleteField()
+                  }));
                 }
               });
             }
             
             // Hapus dari admin_assignments
-            const assignmentsRef = ref(db, `admin_assignments/${adminToDelete.id}`);
-            cleanupPromises.push(remove(assignmentsRef));
+            const assignmentsRef = doc(db, 'admin_assignments', adminToDelete.id);
+            cleanupPromises.push(deleteDoc(assignmentsRef));
             
             // Tunggu semua cleanup selesai
             return Promise.all(cleanupPromises);

@@ -2,7 +2,7 @@ import { Box, Button, TextField, Typography, MenuItem, Select, FormControl, Inpu
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useUser } from '../../hooks/UserProvider';
-import { getDatabase, ref, set } from 'firebase/database';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { app } from '../../config/firebaseConfig';
 import { useNavigate } from 'react-router';
 import { useAlert } from '../../hooks/SnackbarProvider';
@@ -20,7 +20,7 @@ export default function CreateAdmin() {
   const navigate = useNavigate();
   const message = useAlert();
   const loading = useLoading();
-  const db = getDatabase(app);
+  const db = getFirestore(app);
 
   const formik = useFormik({
     initialValues: {
@@ -36,8 +36,8 @@ export default function CreateAdmin() {
         // Hash password before saving
         const hashedPassword = await hash(values.password, 10);
         
-        // Save to Firebase
-        await set(ref(db, `admins/${values.username}`), {
+        // Save to Firestore
+        await setDoc(doc(db, 'admins', values.username), {
           username: values.username,
           password: hashedPassword,
           role: values.role

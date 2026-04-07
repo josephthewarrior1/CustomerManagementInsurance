@@ -7,6 +7,8 @@ import { useLoading } from '../../hooks/LoadingProvider';
 import { useUser } from '../../hooks/UserProvider';
 import { useEffect } from 'react';
 import UserDAO from '../../daos/UserDAO';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../config/firebaseConfig';
 
 const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
@@ -308,29 +310,43 @@ export default function LoginPage() {
     const handleSubmit = async (data) => {
         try {
             loading.start();
-            const result = await UserDAO.login({
-                login: data.login.trim(),
-                password: data.password.trim(),
-            });
-            if (!result.success) throw new Error(result.error || 'Login failed');
-            if (result.token) localStorage.setItem('authToken', result.token);
+            
+            // Firebase Auth Login
+            // Support both standard email or username-formatted pseudo-emails used by legacy
+            const loginEmail = data.login.trim().includes('@') ? data.login.trim() : `${data.login.trim()}@kudajaya.local`;
+            const userCredential = await signInWithEmailAndPassword(auth, loginEmail, data.password.trim());
+            
+            // Get ID Token
+            const token = await userCredential.user.getIdToken();
+            localStorage.setItem('authToken', token);
+            
+            // Fetch Profile for Role and Data
+            const profileResult = await UserDAO.getProfile();
+            if (!profileResult.success) throw new Error('Failed to retrieve user profile');
+            
+            const userData = profileResult.user;
+            
             login({
-                id: result.user.id,
-                username: result.user.username,
-                fullName: result.user.fullName,
-                role: result.user.role || 'user',
-                email: result.user.email || '',
+                id: userData.id,
+                username: userData.username,
+                fullName: userData.fullName,
+                role: userData.role || 'user',
+                email: userData.email || '',
             });
             
-            // Welcome back message yang lebih bagus
-            const userName = result.user.fullName || result.user.username;
-            message(
-                `✨ Welcome back, ${userName}! ✨`,
-                'success'
-            );
+            // Welcome back message
+            const userName = userData.fullName || userData.username;
+            message(`✨ Welcome back, ${userName}! ✨`, 'success');
+            
             navigate('/dashboard', { replace: true });
         } catch (error) {
-            message(error.message || 'Login failed. Please check your credentials.', 'error');
+            console.error('Login error:', error);
+            // Translate Firebase specific errors if necessary
+            let errMsg = 'Login failed. Please check your credentials.';
+            if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                errMsg = 'Invalid email or password.';
+            }
+            message(errMsg, 'error');
         } finally {
             loading.stop();
         }

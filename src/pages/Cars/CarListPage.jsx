@@ -136,12 +136,14 @@ export default function CarListPage() {
 
                 // Stats
                 const activeCount = enriched.filter(c => c.displayStatus === 'Active').length;
+                const nonaktifCount = enriched.filter(c => c.displayStatus === 'Nonaktif').length;
                 const expiringSoonCount = enriched.filter(c => c.displayStatus === 'Segera Jatuh Tempo').length;
                 const expiredCount = enriched.filter(c => c.displayStatus === 'Expired').length;
                 const cancelledCount = enriched.filter(c => c.displayStatus === 'Cancelled').length;
                 setSummaries([
                     { status: 'ALL', total: enriched.length },
                     { status: 'Active', total: activeCount },
+                    { status: 'Nonaktif', total: nonaktifCount },
                     { status: 'Segera Jatuh Tempo', total: expiringSoonCount },
                     { status: 'Expired', total: expiredCount },
                     { status: 'Cancelled', total: cancelledCount },
@@ -230,6 +232,7 @@ export default function CarListPage() {
     const getStatusColor = (status) => {
         switch (status) {
             case 'Active': return { bg: '#D1FAE5', color: '#065F46' };
+            case 'Nonaktif': return { bg: '#FEF3C7', color: '#D97706' };
             case 'Segera Jatuh Tempo': return { bg: '#FEF3C7', color: '#B45309' };
             case 'Expired': return { bg: '#FEE2E2', color: '#991B1B' };
             case 'Cancelled': return { bg: '#F1F5F9', color: '#475569' };
@@ -242,7 +245,7 @@ export default function CarListPage() {
         return new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     };
 
-    const statusOrder = { 'ALL': 0, 'Active': 1, 'Segera Jatuh Tempo': 2, 'Expired': 3, 'Cancelled': 4 };
+    const statusOrder = { 'ALL': 0, 'Active': 1, 'Nonaktif': 2, 'Segera Jatuh Tempo': 3, 'Expired': 4, 'Cancelled': 5 };
     const sortedSummaries = [...summaries].sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
 
     const columns = [

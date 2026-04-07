@@ -18,6 +18,7 @@ import {
     IconButton,
     CircularProgress,
     Autocomplete,
+    MenuItem,
 } from '@mui/material';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
@@ -250,6 +251,7 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
         dueDate: '',
         year: '',
         color: '',
+        status: 'Active',
     });
 
     // Car photos state
@@ -354,7 +356,7 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
         setFormData({
             carBrand: '', carModel: '', plateNumber: '', ownerName: '',
             chassisNumber: '', engineNumber: '', carPrice: '', startDate: '', dueDate: '',
-            year: '', color: ''
+            year: '', color: '', status: 'Active'
         });
         setSelectedCustomer(null);
         setActiveStep(0);
@@ -384,6 +386,7 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
                 carPrice: formData.carPrice ? Number(formData.carPrice) : 0,
                 year: formData.year,
                 color: formData.color,
+                status: formData.status || 'Active',
             };
             const response = await CarDAO.createCar(submitData);
             if (!response.success) throw new Error(response.error || 'Gagal membuat kendaraan');
@@ -646,6 +649,12 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
                                             <TextField fullWidth size="small" name="dueDate" type="date" value={formData.dueDate} onChange={handleChange} sx={inputStyle} />
                                         </Field>
                                     </Stack>
+                                    <Field label="Status Kendaraan (Sudah Lunas Asuransi?)">
+                                        <TextField select fullWidth size="small" name="status" value={formData.status || 'Active'} onChange={handleChange} sx={inputStyle}>
+                                            <MenuItem value="Active">Sudah Lunas Asuransi (Active)</MenuItem>
+                                            <MenuItem value="Nonaktif">Belum Bayar Asuransi (Nonaktif)</MenuItem>
+                                        </TextField>
+                                    </Field>
                                 </Section>
                             </Paper>
 

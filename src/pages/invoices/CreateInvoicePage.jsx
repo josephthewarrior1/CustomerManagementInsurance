@@ -166,9 +166,15 @@ export default function CreateInvoicePage() {
     const [policyNumber, setPolicyNumber] = useState('');
     const [ownerAddress, setOwnerAddress] = useState('');
     const [items, setItems] = useState([{ description: '', quantity: 1, price: 0 }]);
+    const [discount, setDiscount] = useState(0);
     const [adminFee, setAdminFee] = useState(0);
     const [stampDuty, setStampDuty] = useState(0);
     const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
+
+    // Dates for Invoice Form
+    const [invoiceStartDate, setInvoiceStartDate] = useState('');
+    const [invoiceEndDate, setInvoiceEndDate] = useState('');
+    const [invoiceDueDate, setInvoiceDueDate] = useState('');
 
     useEffect(() => {
         fetchCompanyProfile();
@@ -194,6 +200,24 @@ export default function CreateInvoicePage() {
             } else {
                 setOwnerAddress('');
             }
+
+            // PREFILL DATES
+            let sd = ''; let ed = '';
+            if (invoiceType === 'car') {
+                sd = selectedItem?.carData?.startDate;
+                ed = selectedItem?.carData?.dueDate;
+            } else {
+                sd = selectedItem?.insuranceData?.startDate;
+                ed = selectedItem?.insuranceData?.endDate;
+            }
+            if (sd) setInvoiceStartDate(new Date(sd).toISOString().split('T')[0]);
+            if (ed) setInvoiceEndDate(new Date(ed).toISOString().split('T')[0]);
+            
+            // Set invoiceDueDate to 14 days from now as default
+            const dt = new Date();
+            dt.setDate(dt.getDate() + 14);
+            setInvoiceDueDate(dt.toISOString().split('T')[0]);
+
         }
     }, [selectedItem, customers, invoiceType]);
 
@@ -211,7 +235,7 @@ export default function CreateInvoicePage() {
         'Rp ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(value) || 0);
 
     const calculateSubtotal = () => items.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.price)), 0);
-    const calculateTotal = () => calculateSubtotal() + Number(adminFee) + Number(stampDuty);
+    const calculateTotal = () => calculateSubtotal() - Number(discount) + Number(adminFee) + Number(stampDuty);
 
     // â”€â”€ Fetch â”€â”€
     const fetchCompanyProfile = async () => {
@@ -243,8 +267,10 @@ export default function CreateInvoicePage() {
 
     const generateInvoiceNumber = () => {
         const d = new Date();
-        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-        setInvoiceNumber(`INV-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}-${random}`);
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+        const romanMonth = romanMonths[d.getMonth()];
+        setInvoiceNumber(`${random}/MV/JAS/TAP/${romanMonth}/${d.getFullYear()}`);
     };
 
     const handleSaveCompanyProfile = async () => {
@@ -279,7 +305,8 @@ export default function CreateInvoicePage() {
         setPolicyNumber('');
         setOwnerAddress('');
         setItems([{ description: '', quantity: 1, price: 0 }]);
-        setAdminFee(0); setStampDuty(0);
+        setDiscount(0); setAdminFee(0); setStampDuty(0);
+        setInvoiceStartDate(''); setInvoiceEndDate(''); setInvoiceDueDate('');
         setActiveStep(0);
         generateInvoiceNumber();
     };
@@ -289,43 +316,40 @@ export default function CreateInvoicePage() {
         setOpenPreviewDialog(true);
     };
 
-    const handleConfirmDownload = async () => {
+    const handleGenerate = async (shouldSave) => {
         try { 
             loading.start(); 
-            // 1. Prepare data for backend
-            let custId = invoiceType === 'car' ? selectedItem?.carData?.customerId : selectedItem?.propertyData?.customerId;
-            if (!custId) custId = selectedItem?.customerId || selectedItem?.id;
+            if (shouldSave) {
+                // 1. Prepare data for backend
+                let custId = invoiceType === 'car' ? selectedItem?.carData?.customerId : selectedItem?.propertyData?.customerId;
+                if (!custId) custId = selectedItem?.customerId || selectedItem?.id;
 
-            let dueDateVal = Date.now();
-            if (invoiceType === 'car' && selectedItem?.carData?.dueDate) {
-                dueDateVal = new Date(selectedItem.carData.dueDate).getTime();
-            } else if (invoiceType !== 'car' && selectedItem?.insuranceData?.endDate) {
-                dueDateVal = new Date(selectedItem.insuranceData.endDate).getTime();
+                let dueDateVal = invoiceDueDate ? new Date(invoiceDueDate).getTime() : Date.now();
+
+                const invoicePayload = {
+                    invoiceNumber,
+                    customerId: custId,
+                    customerName: getOwnerName(),
+                    carId: invoiceType === 'car' ? selectedItem?.id : null,
+                    plateNumber: invoiceType === 'car' ? selectedItem?.carData?.plateNumber : '',
+                    items: items.filter(it => it.description?.trim()),
+                    subTotal: calculateSubtotal(),
+                    discount: Number(discount),
+                    grandTotal: calculateTotal(),
+                    issueDate: Date.now(),
+                    dueDate: dueDateVal,
+                    status: 'Unpaid',
+                    notes: 'Generated from Invoice form'
+                };
+
+                // 2. Save to database
+                const r = await InvoiceDAO.createInvoice(invoicePayload);
+                if (!r.success) throw new Error(r.error || 'Failed to save invoice to server');
             }
-
-            const invoicePayload = {
-                invoiceNumber,
-                customerId: custId,
-                customerName: getOwnerName(),
-                carId: invoiceType === 'car' ? selectedItem?.id : null,
-                plateNumber: invoiceType === 'car' ? selectedItem?.carData?.plateNumber : '',
-                items: items.filter(it => it.description?.trim()),
-                subTotal: calculateSubtotal(),
-                discount: 0,
-                grandTotal: calculateTotal(),
-                issueDate: Date.now(),
-                dueDate: dueDateVal,
-                status: 'Unpaid',
-                notes: 'Generated from Invoice form'
-            };
-
-            // 2. Save to database
-            const r = await InvoiceDAO.createInvoice(invoicePayload);
-            if (!r.success) throw new Error(r.error || 'Failed to save invoice to server');
 
             // 3. Generate PDF
             generatePDF(); 
-            message('Invoice created & PDF downloaded!', 'success'); 
+            message(shouldSave ? 'Invoice saved & PDF downloaded!' : 'Draft PDF downloaded (Not Saved)!', 'success'); 
             setOpenPreviewDialog(false); 
         }
         catch (e) { 
@@ -378,31 +402,35 @@ export default function CreateInvoicePage() {
         // Info Section
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
 
-        const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+        const dateStr = new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date());
 
         const drawRowTop = (y, label, val) => {
             doc.text(label, marginX, y);
-            doc.text(':', marginX + 35, y);
-            doc.text(String(val || '-'), marginX + 38, y);
+            doc.text(':', marginX + 43, y);
+            
+            const splitVal = doc.splitTextToSize(String(val || '-'), 110);
+            doc.text(splitVal, marginX + 46, y);
+            return splitVal.length * 5; 
         };
 
+        // Block 1
         drawRowTop(currentY, 'No Invoice', invoiceNumber); currentY += 6;
         drawRowTop(currentY, 'Tgl', dateStr); currentY += 6;
         drawRowTop(currentY, 'Nama Asuransi', insuranceName); currentY += 10;
 
+        // Block 2
         drawRowTop(currentY, 'No Polis', policyNumber); currentY += 6;
         drawRowTop(currentY, 'Nama Tertanggung', getOwnerName()); currentY += 6;
-        drawRowTop(currentY, 'Alamat Tertanggung', ownerAddress); currentY += 10;
+        let addrH = drawRowTop(currentY, 'Alamat Tertanggung', ownerAddress); currentY += Math.max(6, addrH + 1);
+        currentY += 4;
 
-        let startDateStr = selectedItem?.carData?.startDate ? new Date(selectedItem.carData.startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
-        let dueDateStr = selectedItem?.carData?.dueDate ? new Date(selectedItem.carData.dueDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
-        if (invoiceType !== 'car') {
-            startDateStr = selectedItem?.insuranceData?.startDate ? new Date(selectedItem.insuranceData.startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
-            dueDateStr = selectedItem?.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
-        }
+        // Block 3 & 4
+        let startDateStr = invoiceStartDate ? new Date(invoiceStartDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
+        let endDateStr = invoiceEndDate ? new Date(invoiceEndDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
 
-        drawRowTop(currentY, 'Jangka Waktu', `${startDateStr} - ${dueDateStr}`); currentY += 10;
+        drawRowTop(currentY, 'Jangka Waktu', `${startDateStr} - ${endDateStr}`); currentY += 10;
         drawRowTop(currentY, 'Jenis Asuransi', invoiceType === 'car' ? 'Kendaraan Bermotor' : 'Properti'); currentY += 10;
 
         // Table Header
@@ -449,14 +477,25 @@ export default function CreateInvoicePage() {
         let rightY = tableStartY + 12;
         items.forEach(item => {
             if (item.description) {
-                const isNeg = Number(item.price) < 0 || Number(item.quantity) < 0;
                 doc.text(item.description, rightColStart + 3, rightY);
                 doc.text(': IDR', rightColStart + 28, rightY);
                 doc.text(new Intl.NumberFormat('id-ID').format(Math.abs(item.price * item.quantity)), pageWidth - marginX - 3, rightY, { align: 'right' });
-                if (isNeg) doc.text('-', rightColStart + 38, rightY); // simple minus sign identifier
                 rightY += 6;
             }
         });
+
+        if (Number(discount) > 0) {
+            doc.text('Disc', rightColStart + 3, rightY);
+            doc.text(': IDR', rightColStart + 28, rightY);
+            doc.text(new Intl.NumberFormat('id-ID').format(discount), pageWidth - marginX - 3, rightY, { align: 'right' });
+            rightY += 6;
+
+            doc.line(rightColStart, rightY - 2, pageWidth - marginX, rightY - 2);
+            doc.text('Premi nett', rightColStart + 3, rightY + 3);
+            doc.text(': IDR', rightColStart + 28, rightY + 3);
+            doc.text(new Intl.NumberFormat('id-ID').format(calculateSubtotal() - Number(discount)), pageWidth - marginX - 3, rightY + 3, { align: 'right' });
+            rightY += 9;
+        }
 
         if (Number(adminFee) > 0) {
             doc.text('Biaya Admin', rightColStart + 3, rightY);
@@ -662,6 +701,26 @@ export default function CreateInvoicePage() {
                                                             placeholder="Alamat klien..." sx={inputStyle} />
                                                     </Field>
                                                 </Grid>
+
+                                                {/* Date Pickers */}
+                                                <Grid item xs={12} mt={2}>
+                                                    <Typography fontSize={13} fontWeight={700} mb={1.5} color={C.text}>Penyesuaian Tanggal</Typography>
+                                                </Grid>
+                                                <Grid item xs={12} sm={4}>
+                                                    <Field label="Jangka Waktu (Mulai)" required={true}>
+                                                        <TextField fullWidth size="small" type="date" value={invoiceStartDate} onChange={(e) => setInvoiceStartDate(e.target.value)} sx={inputStyle} />
+                                                    </Field>
+                                                </Grid>
+                                                <Grid item xs={12} sm={4}>
+                                                    <Field label="Jangka Waktu (Selesai)" required={true}>
+                                                        <TextField fullWidth size="small" type="date" value={invoiceEndDate} onChange={(e) => setInvoiceEndDate(e.target.value)} sx={inputStyle} />
+                                                    </Field>
+                                                </Grid>
+                                                <Grid item xs={12} sm={4}>
+                                                    <Field label="Jatuh Tempo Pembayaran" required={true}>
+                                                        <TextField fullWidth size="small" type="date" value={invoiceDueDate} onChange={(e) => setInvoiceDueDate(e.target.value)} sx={inputStyle} />
+                                                    </Field>
+                                                </Grid>
                                             </Grid>
                                         </Box>
                                     )}
@@ -751,6 +810,13 @@ export default function CreateInvoicePage() {
                                 <Section title="Additional Fees">
                                     <Box display="flex" gap={1.5}>
                                         <Box flex={1}>
+                                            <Typography fontSize={12} fontWeight={600} sx={{ color: C.text, mb: 0.75 }}>Discount</Typography>
+                                            <TextField fullWidth size="small" type="number" value={discount}
+                                                onChange={(e) => setDiscount(e.target.value)}
+                                                InputProps={{ startAdornment: <InputAdornment position="start"><Typography fontSize={13} fontWeight={700} sx={{ color: C.textSub }}>Rp</Typography></InputAdornment> }}
+                                                sx={inputStyle} />
+                                        </Box>
+                                        <Box flex={1}>
                                             <Typography fontSize={12} fontWeight={600} sx={{ color: C.text, mb: 0.75 }}>Admin Fee</Typography>
                                             <TextField fullWidth size="small" type="number" value={adminFee}
                                                 onChange={(e) => setAdminFee(e.target.value)}
@@ -776,6 +842,12 @@ export default function CreateInvoicePage() {
                                             <Typography fontSize={13} sx={{ color: C.textSub }}>Subtotal ({validItemCount} item{validItemCount !== 1 ? 's' : ''})</Typography>
                                             <Typography fontSize={13} fontWeight={600} sx={{ color: C.text }}>{formatCurrency(calculateSubtotal())}</Typography>
                                         </Box>
+                                        {Number(discount) > 0 && (
+                                            <Box display="flex" justifyContent="space-between">
+                                                <Typography fontSize={13} sx={{ color: C.textSub }}>Discount</Typography>
+                                                <Typography fontSize={13} sx={{ color: C.error }}>-{formatCurrency(discount)}</Typography>
+                                            </Box>
+                                        )}
                                         {Number(adminFee) > 0 && (
                                             <Box display="flex" justifyContent="space-between">
                                                 <Typography fontSize={13} sx={{ color: C.textSub }}>Admin Fee</Typography>
@@ -1035,10 +1107,15 @@ export default function CreateInvoicePage() {
                             sx={{ borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: C.border, color: C.textSub }}>
                             Cancel
                         </Button>
-                        <Button fullWidth variant="contained" onClick={handleConfirmDownload}
+                        <Button fullWidth variant="outlined" onClick={() => handleGenerate(false)}
+                            startIcon={<Icon icon="mdi:download" width={15} />}
+                            sx={{ borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, color: C.primary, borderColor: C.primary }}>
+                            Hanya Download
+                        </Button>
+                        <Button fullWidth variant="contained" onClick={() => handleGenerate(true)}
                             startIcon={<Icon icon="mdi:content-save" width={15} />}
                             sx={{ borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, bgcolor: '#D32F2F', boxShadow: 'none', '&:hover': { bgcolor: '#B71C1C' } }}>
-                            Save & Generate PDF
+                            Save & PDF
                         </Button>
                     </Box>
                 </Box>
