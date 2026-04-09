@@ -123,16 +123,11 @@ export default function PaymentListPage() {
 
     const columns = [
         {
-            title: 'Payment ID', dataIndex: 'id', key: 'id', sortable: false,
-            render: (v) => <Typography variant="caption" sx={{ fontFamily: 'monospace', color: '#64748B' }}>{v}</Typography>
-        },
-        {
-            title: 'Kustomer & Tagihan', dataIndex: 'invoiceNumber', key: 'invoiceNumber', sortable: true,
+            title: 'Kustomer & Mobil', dataIndex: 'invoiceNumber', key: 'invoiceNumber', sortable: true,
             render: (_, row) => (
                 <Box>
                     <Typography variant="body2" fontWeight={600} color="#1E293B">
                         {row.customerName || 'Multi-kustomer'} 
-                        {row.invoiceNumber && <span style={{ color: '#94A3B8', fontWeight: 500 }}> • {row.invoiceNumber}</span>}
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <Icon icon="mdi:car" width={14} />
@@ -155,7 +150,13 @@ export default function PaymentListPage() {
         },
         {
             title: 'Status', dataIndex: 'status', key: 'status', sortable: true,
-            render: (v) => <StatusBadge status={v} />
+            render: (v, row) => {
+                let displayStatus = v;
+                if (v === 'Pending' && row.dueDate && new Date(row.dueDate) < new Date(new Date().setHours(0,0,0,0))) {
+                    displayStatus = 'Overdue';
+                }
+                return <StatusBadge status={displayStatus} />;
+            }
         },
         {
             title: 'Aksi', dataIndex: 'actions', key: 'actions', sortable: false,
@@ -220,13 +221,13 @@ export default function PaymentListPage() {
                                         </Avatar>
                                         <Box sx={{ flex: 1, minWidth: 0 }}>
                                             <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E293B' }} noWrap>
-                                                {p.customerName || p.invoiceNumber || p.id}
+                                                {p.customerName || p.id}
                                             </Typography>
                                             <Typography variant="caption" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5 }} noWrap>
                                                 <Icon icon="mdi:car" width={14} /> {p.policySummary || p.policyId || 'Tidak ada polis'}
                                             </Typography>
                                         </Box>
-                                        <StatusBadge status={p.status} />
+                                        <StatusBadge status={(p.status === 'Pending' && p.dueDate && new Date(p.dueDate) < new Date(new Date().setHours(0,0,0,0))) ? 'Overdue' : p.status} />
                                         <IconButton size="small" onClick={(e) => { e.stopPropagation(); setDrawerPayment(p); setActionDrawerOpen(true); }}>
                                             <Icon icon="mdi:dots-vertical" width={20} color="#64748B" />
                                         </IconButton>

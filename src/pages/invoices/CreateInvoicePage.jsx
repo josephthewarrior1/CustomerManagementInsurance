@@ -165,10 +165,15 @@ export default function CreateInvoicePage() {
     const [insuranceName, setInsuranceName] = useState('');
     const [policyNumber, setPolicyNumber] = useState('');
     const [ownerAddress, setOwnerAddress] = useState('');
-    const [items, setItems] = useState([{ description: '', quantity: 1, price: 0 }]);
-    const [discount, setDiscount] = useState(0);
-    const [adminFee, setAdminFee] = useState(0);
-    const [stampDuty, setStampDuty] = useState(0);
+    const [items, setItems] = useState([{ description: '', quantity: 1, price: '' }]);
+    const [discount, setDiscount] = useState('');
+    const [adminFee, setAdminFee] = useState('');
+    const [stampDuty, setStampDuty] = useState('');
+
+    const parseNumber = (val) => {
+        const numStr = String(val).replace(/\D/g, '');
+        return numStr === '' ? '' : numStr;
+    };
     const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
 
     // Dates for Invoice Form
@@ -212,7 +217,7 @@ export default function CreateInvoicePage() {
             }
             if (sd) setInvoiceStartDate(new Date(sd).toISOString().split('T')[0]);
             if (ed) setInvoiceEndDate(new Date(ed).toISOString().split('T')[0]);
-            
+
             // Set invoiceDueDate to 14 days from now as default
             const dt = new Date();
             dt.setDate(dt.getDate() + 14);
@@ -287,7 +292,7 @@ export default function CreateInvoicePage() {
     };
 
     // â”€â”€ Item handlers â”€â”€
-    const handleAddItem = () => setItems([...items, { description: '', quantity: 1, price: 0 }]);
+    const handleAddItem = () => setItems([...items, { description: '', quantity: 1, price: '' }]);
     const handleRemoveItem = (i) => { const n = [...items]; n.splice(i, 1); setItems(n); };
     const handleItemChange = (i, field, value) => { const n = [...items]; n[i][field] = value; setItems(n); };
 
@@ -304,8 +309,8 @@ export default function CreateInvoicePage() {
         setInsuranceName('');
         setPolicyNumber('');
         setOwnerAddress('');
-        setItems([{ description: '', quantity: 1, price: 0 }]);
-        setDiscount(0); setAdminFee(0); setStampDuty(0);
+        setItems([{ description: '', quantity: 1, price: '' }]);
+        setDiscount(''); setAdminFee(''); setStampDuty('');
         setInvoiceStartDate(''); setInvoiceEndDate(''); setInvoiceDueDate('');
         setActiveStep(0);
         generateInvoiceNumber();
@@ -317,8 +322,8 @@ export default function CreateInvoicePage() {
     };
 
     const handleGenerate = async (shouldSave) => {
-        try { 
-            loading.start(); 
+        try {
+            loading.start();
             if (shouldSave) {
                 // 1. Prepare data for backend
                 let custId = invoiceType === 'car' ? selectedItem?.carData?.customerId : selectedItem?.propertyData?.customerId;
@@ -348,13 +353,13 @@ export default function CreateInvoicePage() {
             }
 
             // 3. Generate PDF
-            generatePDF(); 
-            message(shouldSave ? 'Invoice saved & PDF downloaded!' : 'Draft PDF downloaded (Not Saved)!', 'success'); 
-            setOpenPreviewDialog(false); 
+            generatePDF();
+            message(shouldSave ? 'Invoice saved & PDF downloaded!' : 'Draft PDF downloaded (Not Saved)!', 'success');
+            setOpenPreviewDialog(false);
         }
-        catch (e) { 
-            console.error(e); 
-            message(e.message || 'Failed to generate invoice', 'error'); 
+        catch (e) {
+            console.error(e);
+            message(e.message || 'Failed to generate invoice', 'error');
         }
         finally { loading.stop(); }
     };
@@ -409,10 +414,10 @@ export default function CreateInvoicePage() {
         const drawRowTop = (y, label, val) => {
             doc.text(label, marginX, y);
             doc.text(':', marginX + 43, y);
-            
+
             const splitVal = doc.splitTextToSize(String(val || '-'), 110);
             doc.text(splitVal, marginX + 46, y);
-            return splitVal.length * 5; 
+            return splitVal.length * 5;
         };
 
         // Block 1
@@ -513,19 +518,26 @@ export default function CreateInvoicePage() {
         // Draw dynamic table boundaries
         const finalLeftY = leftY + 10;
         const finalRightY = rightY + 5;
-        const tableEndY = Math.max(finalLeftY, finalRightY);
+        const tableContentEndY = Math.max(finalLeftY, finalRightY);
 
-        doc.rect(marginX, tableStartY + 6, pageWidth - 2 * marginX, tableEndY - (tableStartY + 6));
-        doc.line(rightColStart, tableStartY + 6, rightColStart, tableEndY);
+        // Jumlah row sits INSIDE the rect
+        const jumlahBottomY = tableContentEndY + 10;
 
-        // Jumlah row
-        doc.line(rightColStart, finalRightY, pageWidth - marginX, finalRightY);
-        doc.text('Jumlah', rightColStart + 3, finalRightY + 6);
-        doc.text(': IDR', rightColStart + 28, finalRightY + 6);
-        doc.text(new Intl.NumberFormat('id-ID').format(calculateTotal()), pageWidth - marginX - 3, finalRightY + 6, { align: 'right' });
+        // Main rect — extends to include the Jumlah row
+        doc.rect(marginX, tableStartY + 6, pageWidth - 2 * marginX, jumlahBottomY - (tableStartY + 6));
+        // Vertical divider — spans full height including Jumlah row
+        doc.line(rightColStart, tableStartY + 6, rightColStart, jumlahBottomY);
+
+        // Separator line above Jumlah (right column only)
+        doc.line(rightColStart, tableContentEndY, pageWidth - marginX, tableContentEndY);
+
+        // Jumlah text
+        doc.text('Jumlah', rightColStart + 3, tableContentEndY + 6);
+        doc.text(': IDR', rightColStart + 28, tableContentEndY + 6);
+        doc.text(new Intl.NumberFormat('id-ID').format(calculateTotal()), pageWidth - marginX - 3, tableContentEndY + 6, { align: 'right' });
 
         // Signature
-        let signY = tableEndY + 30;
+        let signY = jumlahBottomY + 24;
         doc.text('(Finance Department)', rightColStart + 30, signY, { align: 'center' });
 
         doc.save(`Invoice_${invoiceNumber}.pdf`);
@@ -604,77 +616,44 @@ export default function CreateInvoicePage() {
                                 </Section>
                             </Paper>
 
-                            {/* Invoice Type + Selection */}
+                            {/* Selection */}
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: `1px solid ${C.border}`, bgcolor: C.white, p: 3, mb: 2 }}>
-                                <Section title="Jenis Invoice">
-                                    {/* Tab picker */}
-                                    <InvoiceTypeTab value={invoiceType} onChange={handleTypeChange} />
-
-                                    {/* Select car/property */}
-                                    <Field label={invoiceType === 'car' ? 'Pilih Kendaraan' : 'Pilih Properti'} required>
-                                        <Box
-                                            onClick={() => setOpenSelectDialog(true)}
-                                            sx={{
-                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                                px: 1.5, py: '9px',
-                                                border: `1px solid ${selectedItem ? accentColor : C.border}`,
-                                                borderRadius: '8px',
-                                                bgcolor: selectedItem ? accentLight : C.white,
-                                                cursor: 'pointer', transition: 'all 0.15s',
-                                                '&:hover': { borderColor: selectedItem ? accentColor : '#B0B5BC' },
-                                            }}
-                                        >
-                                            <Box display="flex" alignItems="center" gap={1.25}>
-                                                <Icon icon={invoiceType === 'car' ? 'mdi:car-search' : 'mdi:home-search'} width={18} color={selectedItem ? accentColor : C.textMuted} />
-                                                <Typography fontSize={14} sx={{ color: selectedItem ? C.text : C.textMuted }}>
-                                                    {selectedItem ? getSelectedLabel() : `Cari dan pilih ${invoiceType === 'car' ? 'kendaraan' : 'properti'}...`}
-                                                </Typography>
-                                            </Box>
-                                            {selectedItem
-                                                ? <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSelectedItem(null); }} sx={{ p: 0.25 }}>
-                                                    <Icon icon="mdi:close" width={15} color={C.textSub} />
-                                                </IconButton>
-                                                : <Icon icon="mdi:chevron-down" width={18} color={C.textMuted} />
-                                            }
+                                <Section title="Pilih Kendaraan">
+                                    <Box
+                                        onClick={() => setOpenSelectDialog(true)}
+                                        sx={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            px: 1.5, py: '9px', mb: 1.5,
+                                            border: `1px solid ${selectedItem ? accentColor : C.border}`,
+                                            borderRadius: '8px',
+                                            bgcolor: selectedItem ? accentLight : C.white,
+                                            cursor: 'pointer', transition: 'all 0.15s',
+                                            '&:hover': { borderColor: selectedItem ? accentColor : '#B0B5BC' },
+                                        }}
+                                    >
+                                        <Box display="flex" alignItems="center" gap={1.25}>
+                                            <Icon icon="mdi:car-search" width={18} color={selectedItem ? accentColor : C.textMuted} />
+                                            <Typography fontSize={14} sx={{ color: selectedItem ? C.text : C.textMuted }}>
+                                                {selectedItem ? getSelectedLabel() : `Cari dan pilih kendaraan...`}
+                                            </Typography>
                                         </Box>
-                                    </Field>
+                                        {selectedItem
+                                            ? <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSelectedItem(null); }} sx={{ p: 0.25 }}>
+                                                <Icon icon="mdi:close" width={15} color={C.textSub} />
+                                            </IconButton>
+                                            : <Icon icon="mdi:chevron-down" width={18} color={C.textMuted} />
+                                        }
+                                    </Box>
 
                                     {/* Selected item detail card */}
                                     {selectedItem && (
-                                        <Box sx={{ mt: -1.5, mb: 0.5, p: 2, borderRadius: '8px', bgcolor: '#F8F9FA', border: `1px solid ${C.border}` }}>
-                                            {invoiceType === 'car' ? (
-                                                <Grid container spacing={1.5}>
-                                                    {[
-                                                        { label: 'Pemilik', value: selectedItem.carData?.ownerName },
-                                                        { label: 'Kendaraan', value: `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''}`.trim() },
-                                                        { label: 'No. Plat', value: selectedItem.carData?.plateNumber },
-                                                        { label: 'No. Rangka', value: selectedItem.carData?.chassisNumber },
-                                                        { label: 'Harga Mobil', value: selectedItem.carData?.carPrice ? `Rp ${Number(selectedItem.carData.carPrice).toLocaleString('id-ID')}` : '-' },
-                                                        { label: 'Jatuh Tempo', value: selectedItem.carData?.dueDate ? new Date(selectedItem.carData.dueDate).toLocaleDateString('id-ID') : '-' },
-                                                    ].map(({ label, value }) => (
-                                                        <Grid item xs={6} key={label}>
-                                                            <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
-                                                            <Typography fontSize={13} fontWeight={500} sx={{ color: C.text }}>{value || '-'}</Typography>
-                                                        </Grid>
-                                                    ))}
-                                                </Grid>
-                                            ) : (
-                                                <Grid container spacing={1.5}>
-                                                    {[
-                                                        { label: 'Pemilik', value: selectedItem.ownerName || selectedItem.customerName },
-                                                        { label: 'Tipe', value: selectedItem.propertyData?.propertyType },
-                                                        { label: 'Kota', value: selectedItem.propertyData?.city },
-                                                        { label: 'Alamat', value: selectedItem.propertyData?.address },
-                                                        { label: 'Nilai Properti', value: selectedItem.propertyData?.propertyValue ? `Rp ${Number(selectedItem.propertyData.propertyValue).toLocaleString('id-ID')}` : '-' },
-                                                        { label: 'Jatuh Tempo', value: selectedItem.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID') : '-' },
-                                                    ].map(({ label, value }) => (
-                                                        <Grid item xs={6} key={label}>
-                                                            <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
-                                                            <Typography fontSize={13} fontWeight={500} sx={{ color: C.text }}>{value || '-'}</Typography>
-                                                        </Grid>
-                                                    ))}
-                                                </Grid>
-                                            )}
+                                        <Box sx={{ mt: -0.5, mb: 0.5, p: 1.5, borderRadius: '8px', bgcolor: '#F8F9FA', border: `1px solid ${C.border}` }}>
+                                            <Typography fontSize={13} sx={{ color: C.textSub }}>
+                                                Pemilik:{' '}
+                                                <strong style={{ color: C.text, fontWeight: 700 }}>
+                                                    {getOwnerName() || '-'}
+                                                </strong>
+                                            </Typography>
                                         </Box>
                                     )}
 
@@ -683,44 +662,45 @@ export default function CreateInvoicePage() {
                                         <Box mt={3}>
                                             <Typography fontSize={13} fontWeight={700} mb={1.5} color={C.text}>Informasi Tambahan (Khusus PDF)</Typography>
                                             <Grid container spacing={2}>
-                                                <Grid item xs={12} sm={4}>
+                                                <Grid item xs={12} sm={6}>
                                                     <Field label="Nama Asuransi" required={false}>
                                                         <TextField fullWidth size="small" value={insuranceName} onChange={(e) => setInsuranceName(e.target.value)}
                                                             placeholder="cth. Asuransi TAP" sx={inputStyle} />
                                                     </Field>
                                                 </Grid>
-                                                <Grid item xs={12} sm={4}>
+                                                <Grid item xs={12} sm={6}>
                                                     <Field label="No Polis" required={false}>
                                                         <TextField fullWidth size="small" value={policyNumber} onChange={(e) => setPolicyNumber(e.target.value)}
                                                             placeholder="cth. 1100201..." sx={inputStyle} />
                                                     </Field>
                                                 </Grid>
-                                                <Grid item xs={12} sm={4}>
+                                                <Grid item xs={12}>
                                                     <Field label="Alamat Tertanggung" required={false}>
                                                         <TextField fullWidth size="small" value={ownerAddress} onChange={(e) => setOwnerAddress(e.target.value)}
                                                             placeholder="Alamat klien..." sx={inputStyle} />
                                                     </Field>
                                                 </Grid>
+                                            </Grid>
 
-                                                {/* Date Pickers */}
-                                                <Grid item xs={12} mt={2}>
-                                                    <Typography fontSize={13} fontWeight={700} mb={1.5} color={C.text}>Penyesuaian Tanggal</Typography>
-                                                </Grid>
+                                            {/* Date fields */}
+                                            <Divider sx={{ my: 2 }} />
+                                            <Typography fontSize={13} fontWeight={700} mb={1.5} color={C.text}>Jangka Waktu Asuransi</Typography>
+                                            <Grid container spacing={2}>
                                                 <Grid item xs={12} sm={4}>
-                                                    <Field label="Jangka Waktu (Mulai)" required={true}>
+                                                    <Field label="Mulai" required={true}>
                                                         <TextField fullWidth size="small" type="date" value={invoiceStartDate} onChange={(e) => setInvoiceStartDate(e.target.value)} sx={inputStyle} />
                                                     </Field>
                                                 </Grid>
                                                 <Grid item xs={12} sm={4}>
-                                                    <Field label="Jangka Waktu (Selesai)" required={true}>
+                                                    <Field label="Selesai" required={true}>
                                                         <TextField fullWidth size="small" type="date" value={invoiceEndDate} onChange={(e) => setInvoiceEndDate(e.target.value)} sx={inputStyle} />
                                                     </Field>
                                                 </Grid>
-                                                <Grid item xs={12} sm={4}>
+                                                {/* <Grid item xs={12} sm={4}>
                                                     <Field label="Jatuh Tempo Pembayaran" required={true}>
                                                         <TextField fullWidth size="small" type="date" value={invoiceDueDate} onChange={(e) => setInvoiceDueDate(e.target.value)} sx={inputStyle} />
                                                     </Field>
-                                                </Grid>
+                                                </Grid> */}
                                             </Grid>
                                         </Box>
                                     )}
@@ -777,17 +757,10 @@ export default function CreateInvoicePage() {
                                                     </Box>
                                                     <Box display="flex" gap={1.5}>
                                                         <Box flex={1}>
-                                                            <Typography fontSize={12} fontWeight={600} sx={{ color: C.text, mb: 0.75 }}>Quantity</Typography>
-                                                            <TextField fullWidth size="small" type="number"
-                                                                value={item.quantity}
-                                                                onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                                                sx={inputStyle} />
-                                                        </Box>
-                                                        <Box flex={2}>
-                                                            <Typography fontSize={12} fontWeight={600} sx={{ color: C.text, mb: 0.75 }}>Unit Price</Typography>
-                                                            <TextField fullWidth size="small" type="number"
-                                                                value={item.price}
-                                                                onChange={(e) => handleItemChange(index, 'price', e.target.value)}
+                                                            <Typography fontSize={12} fontWeight={600} sx={{ color: C.text, mb: 0.75 }}>Harga (Rp)</Typography>
+                                                            <TextField fullWidth size="small" type="text"
+                                                                value={item.price ? new Intl.NumberFormat('id-ID').format(item.price) : ''}
+                                                                onChange={(e) => handleItemChange(index, 'price', parseNumber(e.target.value))}
                                                                 InputProps={{ startAdornment: <InputAdornment position="start"><Typography fontSize={13} fontWeight={700} sx={{ color: C.textSub }}>Rp</Typography></InputAdornment> }}
                                                                 sx={inputStyle} />
                                                         </Box>
@@ -811,22 +784,22 @@ export default function CreateInvoicePage() {
                                     <Box display="flex" gap={1.5}>
                                         <Box flex={1}>
                                             <Typography fontSize={12} fontWeight={600} sx={{ color: C.text, mb: 0.75 }}>Discount</Typography>
-                                            <TextField fullWidth size="small" type="number" value={discount}
-                                                onChange={(e) => setDiscount(e.target.value)}
+                                            <TextField fullWidth size="small" type="text" value={discount ? new Intl.NumberFormat('id-ID').format(discount) : ''}
+                                                onChange={(e) => setDiscount(parseNumber(e.target.value))}
                                                 InputProps={{ startAdornment: <InputAdornment position="start"><Typography fontSize={13} fontWeight={700} sx={{ color: C.textSub }}>Rp</Typography></InputAdornment> }}
                                                 sx={inputStyle} />
                                         </Box>
                                         <Box flex={1}>
                                             <Typography fontSize={12} fontWeight={600} sx={{ color: C.text, mb: 0.75 }}>Admin Fee</Typography>
-                                            <TextField fullWidth size="small" type="number" value={adminFee}
-                                                onChange={(e) => setAdminFee(e.target.value)}
+                                            <TextField fullWidth size="small" type="text" value={adminFee ? new Intl.NumberFormat('id-ID').format(adminFee) : ''}
+                                                onChange={(e) => setAdminFee(parseNumber(e.target.value))}
                                                 InputProps={{ startAdornment: <InputAdornment position="start"><Typography fontSize={13} fontWeight={700} sx={{ color: C.textSub }}>Rp</Typography></InputAdornment> }}
                                                 sx={inputStyle} />
                                         </Box>
                                         <Box flex={1}>
                                             <Typography fontSize={12} fontWeight={600} sx={{ color: C.text, mb: 0.75 }}>Stamp Duty</Typography>
-                                            <TextField fullWidth size="small" type="number" value={stampDuty}
-                                                onChange={(e) => setStampDuty(e.target.value)}
+                                            <TextField fullWidth size="small" type="text" value={stampDuty ? new Intl.NumberFormat('id-ID').format(stampDuty) : ''}
+                                                onChange={(e) => setStampDuty(parseNumber(e.target.value))}
                                                 InputProps={{ startAdornment: <InputAdornment position="start"><Typography fontSize={13} fontWeight={700} sx={{ color: C.textSub }}>Rp</Typography></InputAdornment> }}
                                                 sx={inputStyle} />
                                         </Box>
@@ -946,7 +919,7 @@ export default function CreateInvoicePage() {
                                             <Box key={i} display="flex" justifyContent="space-between" alignItems="flex-start" gap={2}>
                                                 <Box flex={1}>
                                                     <Typography fontSize={13} sx={{ color: C.text }}>{item.description}</Typography>
-                                                    <Typography fontSize={12} sx={{ color: C.textSub }}>{item.quantity} Ã— {formatCurrency(item.price)}</Typography>
+                                                    <Typography fontSize={12} sx={{ color: C.textSub }}>{formatCurrency(item.price)}</Typography>
                                                 </Box>
                                                 <Typography fontSize={13} fontWeight={600} sx={{ color: C.text, whiteSpace: 'nowrap' }}>
                                                     {formatCurrency(Number(item.quantity) * Number(item.price))}
