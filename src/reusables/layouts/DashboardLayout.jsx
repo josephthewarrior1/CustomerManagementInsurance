@@ -121,12 +121,19 @@ function BellButton({ notifs, loading, sx = {} }) {
 
 export default function DashboardLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [docMenuAnchor, setDocMenuAnchor] = useState(null);
-  const isDocMenuOpen = Boolean(docMenuAnchor);
+
   const { user, logout, isLoading } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
   const { notifs, loading: notifLoading } = useNotifications();
+
+  const isFullscreenMobileRoute = (() => {
+    const p = location.pathname;
+    return p.match(/^\/customers\/[^/]+$/) || 
+           p.match(/^\/customers\/edit\/[^/]+$/) || 
+           p.match(/^\/cars\/[^/]+$/) || 
+           p.match(/^\/cars\/edit\/[^/]+$/);
+  })();
 
   useEffect(() => { if (!user && !isLoading) navigate('/login', { replace: true }); }, [user, isLoading, navigate]);
 
@@ -163,7 +170,7 @@ export default function DashboardLayout() {
 
       <div className="max-h-full w-full flex flex-col">
         {/* Mobile Toolbar */}
-        <Box sx={{ display: { xs: 'flex', sm: 'none' }, justifyContent: 'space-between', alignItems: 'center', px: 2, height: `${Constants.HEADER_MOBILE_HEIGHT}px`, bgcolor: '#fff', borderBottom: '1px solid #f1f5f9' }}>
+        <Box sx={{ display: { xs: isFullscreenMobileRoute ? 'none' : 'flex', sm: 'none' }, justifyContent: 'space-between', alignItems: 'center', px: 2, height: `${Constants.HEADER_MOBILE_HEIGHT}px`, bgcolor: '#fff', borderBottom: '1px solid #f1f5f9' }}>
           <IconButton onClick={() => setIsDrawerOpen(true)} sx={{ color: '#334155' }}><CustomIcon icon="heroicons:bars-3-solid" /></IconButton>
           <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 16 }}>
             {(() => {
@@ -189,28 +196,11 @@ export default function DashboardLayout() {
         </Box>
 
         {/* Content */}
-        <Box component="main" sx={{ px: { xs: 0, sm: 5 }, py: { xs: 0, sm: 4 }, width: { sm: `calc(100% - ${Constants.NAVIGATION_DRAWER_WIDTH}px)` }, marginLeft: { sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px` }, maxHeight: { xs: `calc(100vh - ${Constants.HEADER_MOBILE_HEIGHT}px - 60px)`, sm: `calc(100vh - ${Constants.HEADER_DESKTOP_HEIGHT}px)` }, overflow: 'auto', bgcolor: '#f8fafc' }}>
+        <Box component="main" sx={{ px: { xs: 0, sm: 5 }, py: { xs: 0, sm: 4 }, width: { sm: `calc(100% - ${Constants.NAVIGATION_DRAWER_WIDTH}px)` }, marginLeft: { sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px` }, maxHeight: { xs: isFullscreenMobileRoute ? '100vh' : `calc(100vh - ${Constants.HEADER_MOBILE_HEIGHT}px)`, sm: `calc(100vh - ${Constants.HEADER_DESKTOP_HEIGHT}px)` }, overflow: 'auto', bgcolor: '#f8fafc' }}>
           <div className="w-full"><Outlet /></div>
         </Box>
 
-        {/* Bottom Nav Mobile */}
-        <Box sx={{ display: { xs: 'flex', sm: 'none' }, position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', bgcolor: '#fff', borderTop: '1px solid #f1f5f9', justifyContent: 'space-around', alignItems: 'center', zIndex: 1000 }}>
-          {[{ icon: 'heroicons:home', label: 'Home', url: '/dashboard' }, { icon: 'heroicons:users', label: 'Customers', url: '/customers' }, /* { icon: 'heroicons:building-office-2', label: 'Properti', url: '/properties' }, */ { icon: 'heroicons:truck', label: 'Kendaraan', url: '/cars' }, { icon: 'heroicons:banknotes', label: 'Payment', url: '/payments' }, { icon: 'heroicons:arrow-path', label: 'Renewal', url: '/renewals' }, { icon: 'heroicons:document-text', label: 'Docs', url: '/documents', isMenu: true }].map((item) => {
-            const isActive = item.isMenu ? ['/invoices', '/quotations', '/kwitansi'].some(p => location.pathname.startsWith(p)) : location.pathname === item.url || (item.url !== '/' && location.pathname.startsWith(item.url));
-            return (
-              <Box key={item.label} onClick={(e) => { if (item.isMenu) setDocMenuAnchor(e.currentTarget); else navigate(item.url); }} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4, color: isActive ? '#2563eb' : '#94a3b8', cursor: 'pointer', minWidth: '60px' }}>
-                <CustomIcon icon={isActive ? `${item.icon}-solid` : item.icon} sx={{ fontSize: '22px' }} />
-                <Typography variant="caption" sx={{ fontWeight: isActive ? 600 : 400, fontSize: '0.6rem' }}>{item.label}</Typography>
-              </Box>
-            );
-          })}
-        </Box>
 
-        <Menu anchorEl={docMenuAnchor} open={isDocMenuOpen} onClose={() => setDocMenuAnchor(null)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} transformOrigin={{ vertical: 'bottom', horizontal: 'center' }} sx={{ '& .MuiPaper-root': { borderRadius: '12px', mt: -1, minWidth: 150, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' } }}>
-          <MuiMenuItem onClick={() => { navigate('/invoices/create'); setDocMenuAnchor(null); }}><ListItemIcon><CustomIcon icon="heroicons:document-plus" sx={{ color: '#2563eb' }} /></ListItemIcon><ListItemText primary="Invoice" /></MuiMenuItem>
-          <MuiMenuItem onClick={() => { navigate('/kwitansi'); setDocMenuAnchor(null); }}><ListItemIcon><CustomIcon icon="heroicons:receipt-percent" sx={{ color: '#2563eb' }} /></ListItemIcon><ListItemText primary="Kwitansi" /></MuiMenuItem>
-          <MuiMenuItem onClick={() => { navigate('/quotations/create'); setDocMenuAnchor(null); }}><ListItemIcon><CustomIcon icon="heroicons:clipboard-document-list" sx={{ color: '#2563eb' }} /></ListItemIcon><ListItemText primary="Quotation" /></MuiMenuItem>
-        </Menu>
       </div>
     </div>
   );

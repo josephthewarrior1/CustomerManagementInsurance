@@ -31,6 +31,7 @@ export default function AppRoutes() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUpPage />} />
 
+            
             <Route path="/" element={<DashboardLayout />}>
                 <Route index element={<DashboardPage />} />{/* Ubah default ke PropertyListPage */}
 
@@ -39,7 +40,6 @@ export default function AppRoutes() {
                     <Route index element={<CustomerListPage />} />
                     <Route path=":id" element={<CustomerDetailPage />} />
                     <Route path="edit/:id" element={<CustomerEditPage />} />
-
                 </Route>
 
                 {/* Properties Routes */}

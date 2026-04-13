@@ -1,115 +1,81 @@
 import { Icon } from '@iconify/react';
 import {
     Box,
-    Container,
     Typography,
     Button,
-    Grid,
-    Paper,
-    Alert,
-    Tabs,
-    Tab,
-    Card,
-    CardContent,
-    CardMedia,
+    Avatar,
     IconButton,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    useMediaQuery,
-    useTheme,
-    Stack
+    CircularProgress,
+    Chip,
+    InputBase
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CustomerDAO from '../../daos/CustomerDao';
-import FormInput from '../../reusables/form/FormInput';
-import FormFileUpload from '../../reusables/form/FormFileUpload';
 
-function TabPanel({ children, value, index }) {
+function StyledInput({ label, value, onChange, name, placeholder, icon, multiline = false, rows = 1 }) {
     return (
-        <div hidden={value !== index}>
-            {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
-        </div>
+        <Box sx={{ mb: 3 }}>
+            <Typography sx={{ 
+                fontSize: '0.65rem', 
+                fontWeight: 800, 
+                color: '#94A3B8', 
+                mb: 1, 
+                letterSpacing: 0.5,
+                textTransform: 'uppercase' 
+            }}>
+                {label}
+            </Typography>
+            <Box sx={{ 
+                display: 'flex', 
+                alignItems: multiline ? 'flex-start' : 'center', 
+                bgcolor: '#F8FAFC', 
+                borderRadius: 3, 
+                p: 2,
+                border: '1px solid transparent',
+                transition: 'all 0.2s',
+                '&:focus-within': {
+                    borderColor: '#E2E8F0',
+                    bgcolor: '#ffffff',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
+                }
+            }}>
+                <InputBase 
+                    fullWidth 
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    multiline={multiline}
+                    rows={rows}
+                    sx={{ 
+                        fontSize: '0.95rem', 
+                        fontWeight: 600, 
+                        color: '#1E293B',
+                        '&::placeholder': { color: '#94A3B8', opacity: 1 }
+                    }}
+                />
+                {icon && (
+                    <Box sx={{ ml: 1, color: '#94A3B8', display: 'flex', mt: multiline ? 0.3 : 0 }}>
+                        <Icon icon={icon} width={20} />
+                    </Box>
+                )}
+            </Box>
+        </Box>
     );
 }
 
-// Helper function untuk format currency
-const formatCurrency = (value) => {
-    if (!value) return '';
-    const num = parseFloat(value);
-    return isNaN(num) ? '' : num.toLocaleString('id-ID');
-};
-
-// Helper function untuk compress image
-const compressImage = (file, maxWidth = 1920, maxHeight = 1080, quality = 0.8) => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height *= maxWidth / width;
-                        width = maxWidth;
-                    }
-                } else {
-                    if (height > maxHeight) {
-                        width *= maxHeight / height;
-                        height = maxHeight;
-                    }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                canvas.toBlob(
-                    (blob) => {
-                        if (blob) {
-                            const compressedFile = new File([blob], file.name, {
-                                type: 'image/jpeg',
-                                lastModified: Date.now()
-                            });
-                            console.log(`📸 Compressed ${file.name}: ${(file.size / 1024).toFixed(2)}KB → ${(compressedFile.size / 1024).toFixed(2)}KB`);
-                            resolve(compressedFile);
-                        } else {
-                            reject(new Error('Canvas to Blob conversion failed'));
-                        }
-                    },
-                    'image/jpeg',
-                    quality
-                );
-            };
-            img.onerror = () => reject(new Error('Image load error'));
-        };
-        reader.onerror = () => reject(new Error('FileReader error'));
-    });
-};
-
 export default function CustomerEditPage() {
     const { id } = useParams();
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [errors, setErrors] = useState({});
-    const [customer, setCustomer] = useState(null);
-
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const navigate = useNavigate();
     const message = useAlert();
     const loadingProvider = useLoading();
+
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [customer, setCustomer] = useState(null);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -155,54 +121,31 @@ export default function CustomerEditPage() {
             ...prev,
             [name]: value
         }));
-
-        if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
-        }
-    };
-
-
-
-    const validateForm = () => {
-        const newErrors = {};
-
-        if (!formData.name.trim()) newErrors.name = 'Nama wajib diisi';
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
     };
 
     const handleSave = async () => {
-        if (!validateForm()) return;
+        if (!formData.name.trim()) {
+            message('Nama lengap wajib diisi', 'error');
+            return;
+        }
 
         try {
             setSaving(true);
             loadingProvider.start();
 
-            const updateData = {
-                name: formData.name,
-                phone: formData.phone,
-                address: formData.address,
-                notes: formData.notes,
-            };
-
-            console.log('📝 Updating customer with data:', updateData);
-
-            const response = await CustomerDAO.updateCustomer(id, updateData);
+            const response = await CustomerDAO.updateCustomer(id, {
+                ...formData,
+            });
 
             if (!response.success) {
                 throw new Error(response.error || 'Gagal memperbarui pelanggan');
             }
 
-            console.log('✅ Customer data updated successfully');
-
-
-
             message('Pelanggan berhasil diperbarui!', 'success');
             navigate(`/customers/${id}`);
 
         } catch (error) {
-            console.error('❌ Error updating customer:', error);
+            console.error('Error updating customer:', error);
             message(error.error || 'Gagal memperbarui pelanggan', 'error');
         } finally {
             loadingProvider.stop();
@@ -210,184 +153,149 @@ export default function CustomerEditPage() {
         }
     };
 
-
-
     if (loading) {
         return (
-            <Container sx={{ py: 8, textAlign: 'center' }}>
-                <Typography variant="h6" color="text.secondary">Memuat data pelanggan...</Typography>
-            </Container>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', bgcolor: '#ffffff' }}>
+                <CircularProgress />
+            </Box>
         );
     }
 
-
-
     return (
-        <Box sx={{
-            bgcolor: '#F8FAFC',
-            minHeight: '100vh',
-            pb: 6
-        }}>
-            <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 5 } }}>
-                {/* Header Section - Improved spacing and hierarchy */}
-                <Box sx={{ mb: 5 }}>
-                    <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
-                        justifyContent="space-between"
-                        alignItems={{ xs: 'stretch', sm: 'flex-start' }}
-                        spacing={3}
-                        sx={{ mb: 4 }}
-                    >
-                        <Box>
-                            <Stack
-                                direction="row"
-                                spacing={1.5}
-                                alignItems="center"
-                                sx={{ mb: 1 }}
-                            >
-                                <IconButton
-                                    onClick={() => navigate(`/customers/${id}`)}
-                                    sx={{
-                                        width: 32,
-                                        height: 32,
-                                        p: 0,
-                                        color: '#475569',
-                                        '&:hover': {
-                                            bgcolor: 'transparent',
-                                            color: '#1E293B'
-                                        }
-                                    }}
-                                >
-                                    <Icon icon="mdi:arrow-left" width={20} />
-                                </IconButton>
-                                <Typography
-                                    variant="h4"
-                                    sx={{
-                                        fontWeight: 700,
-                                        color: '#1E293B',
-                                        fontSize: { xs: '1.75rem', sm: '2.125rem' }
-                                    }}
-                                >
-                                    Edit Pelanggan
-                                </Typography>
-                            </Stack>
-                            <Stack
-                                direction={{ xs: 'column', sm: 'row' }}
-                                spacing={1.5}
-                                alignItems={{ xs: 'flex-start', sm: 'center' }}
-                            >
-                                <Typography
-                                    variant="body2"
-                                    sx={{
-                                        color: '#64748B',
-                                        fontSize: '0.875rem',
-                                        fontWeight: 500
-                                    }}
-                                >
-                                    ID Pelanggan: <Box component="span" sx={{ color: '#475569' }}>{id}</Box>
-                                </Typography>
-                            </Stack>
+        <Box sx={{ bgcolor: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            {/* Header / App Bar */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2 }}>
+                <IconButton onClick={() => navigate(`/customers/${id}`)} sx={{ color: '#2563EB', pl: 1 }}>
+                    <Icon icon="mdi:arrow-left" width={24} />
+                </IconButton>
+                <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', color: '#1E293B', ml: -2 }}>
+                    Edit Pelanggan
+                </Typography>
+                <Box sx={{ pr: 1, width: 24 }} /> {/* Balancer */}
+            </Box>
+
+            <Box sx={{ p: 3, pt: 1, flex: 1, maxWidth: '600px', mx: 'auto', width: '100%' }}>
+                {/* Profile Section */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
+                    <Box sx={{ position: 'relative' }}>
+                        <Avatar sx={{ width: 84, height: 84, bgcolor: '#1E293B', color: '#ffffff', fontSize: '2.5rem', fontWeight: 800 }}>
+                            {formData.name?.[0]?.toUpperCase()}
+                        </Avatar>
+                        <Box sx={{ 
+                            position: 'absolute', bottom: -2, right: -2, 
+                            width: 26, height: 26, bgcolor: '#ffffff', borderRadius: '50%', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)' 
+                        }}>
+                            <Icon icon="mdi:check-circle" color="#475569" width={22} />
                         </Box>
-
-                        <Stack
-                            direction={{ xs: 'column', sm: 'row' }}
-                            spacing={2}
-                            sx={{ width: { xs: '100%', sm: 'auto' } }}
-                        >
-                            <Button
-                                variant="contained"
-                                onClick={handleSave}
-                                disabled={saving}
-                                startIcon={<Icon icon="mdi:content-save" />}
-                                sx={{
-                                    bgcolor: '#1E40AF',
-                                    color: '#fff',
-                                    fontWeight: 600,
-                                    px: 3,
-                                    py: 1.25,
-                                    textTransform: 'none',
-                                    fontSize: '0.9375rem',
-                                    borderRadius: 2,
-                                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
-                                    '&:hover': {
-                                        bgcolor: '#1E3A8A',
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)'
-                                    },
-                                    '&:disabled': {
-                                        bgcolor: '#94A3B8',
-                                        color: '#fff'
-                                    }
-                                }}
-                            >
-                                {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-                            </Button>
-                        </Stack>
-                    </Stack>
-
-
+                    </Box>
+                    
+                    <Chip 
+                        label={customer?.status === 'Active' ? 'PREMIUM CLIENT' : 'REGULAR CLIENT'} 
+                        size="small" 
+                        sx={{ 
+                            mt: 2, 
+                            bgcolor: '#E0F2FE', 
+                            color: '#1E40AF', 
+                            fontWeight: 800, 
+                            fontSize: '0.65rem', 
+                            height: 22, 
+                            px: 1,
+                            letterSpacing: 0.5
+                        }} 
+                    />
                 </Box>
 
+                {/* Form Fields */}
+                <Box sx={{ mb: 4 }}>
+                    <StyledInput
+                        label="NAMA LENGKAP"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        placeholder="Michael Santoso"
+                        icon="mdi:account"
+                    />
+                    <StyledInput
+                        label="NOMOR TELEPON"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="082198765432"
+                        icon="mdi:phone"
+                    />
+                    <StyledInput
+                        label="ALAMAT"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        placeholder="Jl. Gatot Subroto No. 45, Bandung"
+                        icon="mdi:map-marker"
+                    />
+                    <StyledInput
+                        label="CATATAN TAMBAHAN"
+                        name="notes"
+                        value={formData.notes}
+                        onChange={handleChange}
+                        placeholder="Perpanjangan asuransi mobil tahunan"
+                        icon="mdi:file-document-outline"
+                        multiline
+                        rows={3}
+                    />
+                </Box>
 
-
-                {/* Main Content Paper - Enhanced design */}
-                <Paper
-                    elevation={0}
-                    sx={{
-                        p: { xs: 3, sm: 5 },
-                        borderRadius: 3,
-                        border: '1px solid #E2E8F0',
-                        bgcolor: '#fff',
-                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)'
+                {/* Submit Action */}
+                <Button 
+                    fullWidth 
+                    variant="contained" 
+                    onClick={handleSave}
+                    disabled={saving}
+                    startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <Icon icon="mdi:content-save" />}
+                    sx={{ 
+                        bgcolor: '#475569', color: '#ffffff', borderRadius: 3, py: 1.8, mb: 3,
+                        fontWeight: 700, textTransform: 'none', fontSize: '0.95rem',
+                        boxShadow: 'none',
+                        '&:hover': { bgcolor: '#334155', boxShadow: 'none' }
                     }}
                 >
-                    <Grid container spacing={3}>
-                        <Grid size={12}>
-                            <FormInput
-                                label="Nama Lengkap"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                error={errors.name}
-                                required
-                                icon="lucide:user"
-                                placeholder="Michael Santoso"
-                            />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <FormInput
-                                label="Nomor Telepon"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                icon="lucide:phone"
-                                placeholder="+62 812 3456 7890"
-                            />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <FormInput
-                                label="Alamat"
-                                name="address"
-                                value={formData.address}
-                                onChange={handleChange}
-                                icon="lucide:map-pin"
-                                placeholder="Jl. Pademangan III Raya No. 14"
-                            />
-                        </Grid>
-                        <Grid size={12}>
-                            <FormInput
-                                label="Catatan Tambahan"
-                                name="notes"
-                                value={formData.notes}
-                                onChange={handleChange}
-                                multiline
-                                rows={4}
-                                icon="lucide:file-text"
-                                placeholder="Tambahkan keterangan tambahan..."
-                            />
-                        </Grid>
-                    </Grid>
-                </Paper>
-            </Container>
+                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </Button>
+
+                {/* Info Box */}
+                <Box sx={{ 
+                    bgcolor: '#E2E8F0', 
+                    borderRadius: 3, 
+                    p: 2.5, 
+                    display: 'flex', 
+                    gap: 2,
+                    alignItems: 'flex-start'
+                }}>
+                    <Box sx={{ 
+                        bgcolor: '#ffffff', 
+                        width: 32, 
+                        height: 32, 
+                        borderRadius: 2, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        flexShrink: 0
+                    }}>
+                        <Icon icon="mdi:information-variant" color="#475569" width={20} />
+                    </Box>
+                    <Box>
+                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155', mb: 0.5 }}>
+                            Perubahan Data
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748B', lineHeight: 1.5 }}>
+                            Pastikan seluruh informasi yang Anda ubah sudah sesuai dengan dokumen resmi pelanggan. Riwayat perubahan akan dicatat dalam sistem audit.
+                        </Typography>
+                    </Box>
+                </Box>
+                
+                {/* Bottom Padding */}
+                <Box sx={{ pb: 4 }} />
+            </Box>
         </Box>
     );
 }

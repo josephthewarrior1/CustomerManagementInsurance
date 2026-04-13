@@ -5,7 +5,6 @@ import {
     IconButton,
     Typography,
     Button,
-    Chip,
     Avatar,
     TextField,
     InputAdornment,
@@ -13,14 +12,12 @@ import {
     CardContent,
     useMediaQuery,
     useTheme,
-    MenuItem,
     Stack,
-    Menu,
-    ListItemIcon,
-    ListItemText,
     Drawer,
     List,
-    ListItemButton
+    ListItemButton,
+    ListItemIcon,
+    ListItemText
 } from '@mui/material';
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router';
@@ -32,7 +29,6 @@ import CreateCustomerDialog from './CreateCustomerDialog';
 import ViewCustomerDialog from './ViewCustomerDialog';
 import {
     CustomButton,
-    CustomDashboardStatsCard,
     CustomDatatable,
     CustomIcon,
     CustomRow,
@@ -58,13 +54,6 @@ export default function CustomerListPage() {
         sortColumn: '',
         sortDirection: 'asc',
     });
-    const [summaries, setSummaries] = useState([]);
-    const [selectedStatus, setSelectedStatus] = useState("ALL");
-
-    // Status Menu State
-    const [statusMenuAnchor, setStatusMenuAnchor] = useState(null);
-    const [statusCustomer, setStatusCustomer] = useState(null);
-    const [updatingStatus, setUpdatingStatus] = useState(false);
 
     // Mobile search input state
     const [mobileSearchInput, setMobileSearchInput] = useState('');
@@ -98,7 +87,7 @@ export default function CustomerListPage() {
     // Reset visible count when filter/search changes
     useEffect(() => {
         setMobileVisibleCount(10);
-    }, [dataSourceOptions.keyword, selectedStatus]);
+    }, [dataSourceOptions.keyword]);
 
     // Infinite scroll: listen on nearest scrollable parent (mobile only)
     useEffect(() => {
@@ -136,7 +125,7 @@ export default function CustomerListPage() {
         return () => target.removeEventListener('scroll', handleScroll);
     }, [isMobile, mobileVisibleCount]);
 
-    // Fetch customers data + stats
+    // Fetch customers data
     const fetchCustomers = async () => {
         try {
             loading.start();
@@ -151,28 +140,11 @@ export default function CustomerListPage() {
                     address: customer.address || 'Tanpa Alamat',
                     createdAt: customer.createdAt,
                     updatedAt: customer.updatedAt,
-                    carBrand: '-',
-                    plateNumber: '-',
-                    dueDate: null,
-                    status: customer.status === 'Cancelled' ? 'Cancelled' : 'Active',
                 }));
-
-                // Compute stats
-                const activeCount = customers.filter(c => c.status === 'Active').length;
-                const cancelledCount = customers.filter(c => c.status === 'Cancelled').length;
-                setSummaries([
-                    { status: "ALL", total: customers.length },
-                    { status: "Active", total: activeCount },
-                    { status: "Cancelled", total: cancelledCount },
-                ]);
 
                 setAllCustomers(customers);
 
-                // Filter by status
                 let filteredData = [...customers];
-                if (selectedStatus !== "ALL") {
-                    filteredData = filteredData.filter(customer => customer.status === selectedStatus);
-                }
 
                 // Filter by keyword
                 if (dataSourceOptions.keyword) {
@@ -215,32 +187,6 @@ export default function CustomerListPage() {
         } finally {
             loading.stop();
         }
-    };
-
-    const statusOrder = {
-        "ALL": 0,
-        "Active": 1,
-        "Expired": 2,
-        "Cancelled": 3
-    };
-
-    const statusLabels = {
-        "ALL": "Semua",
-        "Active": "Aktif",
-        "Expired": "Kedaluwarsa",
-        "Cancelled": "Dibatalkan"
-    };
-
-    const sortedSummaries = [...summaries].sort((a, b) => {
-        return statusOrder[a.status] - statusOrder[b.status];
-    });
-
-    const handleStatusChange = (status) => {
-        setSelectedStatus(status);
-        setDataSourceOptions((prevOptions) => ({
-            ...prevOptions,
-            page: 0,
-        }));
     };
 
     // Open delete confirmation dialog
@@ -328,53 +274,6 @@ export default function CustomerListPage() {
         });
     };
 
-    // Status Menu Handlers
-    const handleStatusClick = (event, customer) => {
-        event.stopPropagation();
-        setStatusMenuAnchor(event.currentTarget);
-        setStatusCustomer(customer);
-    };
-
-    const handleStatusClose = () => {
-        setStatusMenuAnchor(null);
-        setStatusCustomer(null);
-    };
-
-    const handleStatusUpdate = async (newStatus) => {
-        if (!statusCustomer) return;
-        try {
-            setUpdatingStatus(true);
-            loading.start();
-
-            const response = await CustomerDAO.updateCustomer(statusCustomer.id, {
-                status: newStatus === 'Reset' ? null : newStatus
-            });
-
-            if (response.success) {
-                message('Status berhasil diperbarui', 'success');
-                fetchCustomers();
-            } else {
-                throw new Error(response.error || 'Gagal memperbarui status');
-            }
-        } catch (error) {
-            message(error.message || 'Gagal memperbarui status', 'error');
-        } finally {
-            loading.stop();
-            setUpdatingStatus(false);
-            handleStatusClose();
-        }
-    };
-
-    // Get status color
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'Active': return '#2E7D32';
-            case 'Expired': return '#D32F2F';
-            case 'Cancelled': return '#616161';
-            default: return '#9E9E9E';
-        }
-    };
-
     // Initial data fetch
     useEffect(() => {
         fetchCustomers();
@@ -384,7 +283,6 @@ export default function CustomerListPage() {
         dataSourceOptions.sortColumn,
         dataSourceOptions.sortDirection,
         dataSourceOptions.keyword,
-        selectedStatus,
     ]);
 
     // Desktop Table Columns
@@ -411,27 +309,14 @@ export default function CustomerListPage() {
             )
         },
         {
-            title: 'Status',
-            dataIndex: 'status',
-            key: 'status',
+            title: 'Alamat',
+            dataIndex: 'address',
+            key: 'address',
             sortable: true,
-            render: (value, row) => (
-                <Chip
-                    label={statusLabels[value] || value || '-'}
-                    size="small"
-                    onClick={(e) => handleStatusClick(e, row)}
-                    sx={{
-                        fontWeight: 'bold',
-                        fontSize: '12px',
-                        backgroundColor: getStatusColor(value),
-                        color: '#FFFFFF',
-                        cursor: 'pointer',
-                        '&:hover': {
-                            opacity: 0.9,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                        }
-                    }}
-                />
+            render: (value) => (
+                <Typography variant="body2">
+                    {value}
+                </Typography>
             )
         },
         {
@@ -470,9 +355,7 @@ export default function CustomerListPage() {
     // Mobile View
     const renderMobileView = () => {
         let filteredData = [...allCustomers];
-        if (selectedStatus !== "ALL") {
-            filteredData = filteredData.filter(customer => customer.status === selectedStatus);
-        }
+        
         if (dataSourceOptions.keyword) {
             const keyword = dataSourceOptions.keyword.toLowerCase();
             filteredData = filteredData.filter(customer =>
@@ -480,7 +363,6 @@ export default function CustomerListPage() {
                 customer.phone.toLowerCase().includes(keyword)
             );
         }
-
 
         mobileFilteredCountRef.current = filteredData.length;
 
@@ -527,28 +409,6 @@ export default function CustomerListPage() {
                     </IconButton>
                 </Stack>
 
-                {/* Status Filters */}
-                <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 2, mb: 1, '&::-webkit-scrollbar': { display: 'none' } }}>
-                    {sortedSummaries.map((summary) => (
-                        <Chip
-                            key={summary.status}
-                            label={`${statusLabels[summary.status]} (${summary.total})`}
-                            onClick={() => handleStatusChange(summary.status)}
-                            sx={{
-                                border: '1px solid',
-                                borderColor: selectedStatus === summary.status ? '#1E3A8A' : '#E2E8F0',
-                                backgroundColor: selectedStatus === summary.status ? '#1E3A8A' : '#fff',
-                                color: selectedStatus === summary.status ? '#fff' : '#64748B',
-                                fontWeight: 600,
-                                px: 1,
-                                height: 38,
-                                borderRadius: '20px',
-                                '&:active': { transform: 'scale(0.95)' }
-                            }}
-                        />
-                    ))}
-                </Box>
-
                 {/* List Content */}
                 {paginatedData.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -574,15 +434,6 @@ export default function CustomerListPage() {
                                                 <Icon icon="mdi:phone" width={14} /> {customer.phone}
                                             </Typography>
                                         </Box>
-                                        <Chip
-                                            label={(statusLabels[customer.status] || customer.status || '-').toUpperCase()}
-                                            size="small"
-                                            sx={{
-                                                bgcolor: customer.status === 'Active' ? '#D1FAE5' : customer.status === 'Expired' ? '#FEE2E2' : '#F1F5F9',
-                                                color: customer.status === 'Active' ? '#065F46' : customer.status === 'Expired' ? '#991B1B' : '#475569',
-                                                fontWeight: 800, fontSize: '0.65rem', borderRadius: '8px'
-                                            }}
-                                        />
                                         <IconButton size="small" onClick={(e) => handleOpenDrawer(e, customer)}>
                                             <Icon icon="mdi:dots-vertical" width={24} color="#64748B" />
                                         </IconButton>
@@ -642,30 +493,6 @@ export default function CustomerListPage() {
                     </CustomRow>
                 </CustomRow>
 
-                <CustomRow className={'lg:gap-x-6 md:gap-x-2 sm:gap-x-0 items-start'}>
-                    {sortedSummaries.map((summary) => (
-                        <div
-                            key={summary.status}
-                            onClick={() => handleStatusChange(summary.status)}
-                            className={`cursor-pointer rounded-lg transition-all duration-200 ${selectedStatus === summary.status
-                                ? "border-2 border-blue-500"
-                                : "border border-transparent"
-                                }`}
-                            style={{
-                                width: "100%",
-                                height: "100%",
-                                display: "flex",
-                            }}
-                        >
-                            <CustomDashboardStatsCard
-                                value={summary?.total}
-                                label={statusLabels[summary.status] || summary.status}
-                                className="w-full h-full"
-                            />
-                        </div>
-                    ))}
-                </CustomRow>
-
                 <CustomDatatable
                     dataSource={dataSource}
                     columns={columns}
@@ -709,38 +536,6 @@ export default function CustomerListPage() {
                     openDeleteDialog(selectedCustomer);
                 }}
             />
-
-            {/* Status Change Menu */}
-            <Menu
-                anchorEl={statusMenuAnchor}
-                open={Boolean(statusMenuAnchor)}
-                onClose={handleStatusClose}
-                PaperProps={{
-                    sx: {
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                        minWidth: 150
-                    }
-                }}
-            >
-                <MenuItem
-                    onClick={() => handleStatusUpdate('Reset')}
-                    disabled={updatingStatus}
-                >
-                    <ListItemIcon>
-                        <Icon icon="mdi:check-circle" color="#2E7D32" width={20} />
-                    </ListItemIcon>
-                    <ListItemText primary="Set Aktif / Reset" secondary="Mengikuti jatuh tempo" secondaryTypographyProps={{ fontSize: 10 }} />
-                </MenuItem>
-                <MenuItem
-                    onClick={() => handleStatusUpdate('Cancelled')}
-                    disabled={updatingStatus}
-                >
-                    <ListItemIcon>
-                        <Icon icon="mdi:cancel" color="#616161" width={20} />
-                    </ListItemIcon>
-                    <ListItemText primary="Set Dibatalkan" />
-                </MenuItem>
-            </Menu>
 
             {/* Delete Confirmation Dialog */}
             <Dialog
