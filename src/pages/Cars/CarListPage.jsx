@@ -398,16 +398,16 @@ export default function CarListPage() {
                                             </IconButton>
                                         </Stack>
                                         <Divider sx={{ mb: 2, borderStyle: 'dashed' }} />
-                                        <Grid container spacing={2}>
-                                            <Grid item xs={6}>
+                                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                                            <Box>
                                                 <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>PLAT</Typography>
                                                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>{car.plateNumber}</Typography>
-                                            </Grid>
-                                            <Grid item xs={6}>
+                                            </Box>
+                                            <Box sx={{ textAlign: 'right' }}>
                                                 <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>JATUH TEMPO</Typography>
                                                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>{formatDate(car.dueDate)}</Typography>
-                                            </Grid>
-                                        </Grid>
+                                            </Box>
+                                        </Stack>
                                     </CardContent>
                                 </Card>
                             );

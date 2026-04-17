@@ -51,6 +51,7 @@ export default class ApiRequest {
         const error = await response.json();
 
         if (
+            response.status === 401 ||
             error.code === 'NO_TOKEN_PROVIDED' ||
             error.code === 'INVALID_TOKEN' ||
             error.code === 'BAD_TOKEN_FORMAT' ||
@@ -58,8 +59,15 @@ export default class ApiRequest {
             error.code === 'JWT_EXPIRED' ||
             error.code === 'JWT_MALFORMED' ||
             error.code === 'SUBSCRIPTION_EXPIRED' ||
-            error.code === 'INVALID_SIGNATURE'
+            error.code === 'INVALID_SIGNATURE' ||
+            error.code === 'auth/id-token-expired'
         ) {
+            if (auth) {
+                auth.signOut().catch(console.error);
+            }
+            localStorage.removeItem('user');
+            localStorage.removeItem('authToken');
+            window.location.href = '/login';
             throw { message: 'TOKEN_EXPIRED' };
         }
 
@@ -119,6 +127,7 @@ export default class ApiRequest {
 
         // Handle auth errors
         if (
+            response.status === 401 ||
             error.code === 'NO_TOKEN_PROVIDED' ||
             error.code === 'INVALID_TOKEN' ||
             error.code === 'BAD_TOKEN_FORMAT' ||
@@ -126,8 +135,15 @@ export default class ApiRequest {
             error.code === 'JWT_EXPIRED' ||
             error.code === 'JWT_MALFORMED' ||
             error.code === 'SUBSCRIPTION_EXPIRED' ||
-            error.code === 'INVALID_SIGNATURE'
+            error.code === 'INVALID_SIGNATURE' ||
+            error.code === 'auth/id-token-expired'
         ) {
+            if (auth) {
+                auth.signOut().catch(console.error);
+            }
+            localStorage.removeItem('user');
+            localStorage.removeItem('authToken');
+            window.location.href = '/login';
             throw { message: 'TOKEN_EXPIRED' };
         }
 

@@ -5,10 +5,12 @@ import { useAlert } from '../../hooks/SnackbarProvider';
 import { useNavigate } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useUser } from '../../hooks/UserProvider';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import UserDAO from '../../daos/UserDAO';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../config/firebaseConfig';
+import { InputAdornment, IconButton } from '@mui/material';
+import { Icon } from '@iconify/react';
 
 const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
@@ -295,6 +297,7 @@ export default function LoginPage() {
     const loading = useLoading();
     const message = useAlert();
     const navigate = useNavigate();
+    const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
         if (user && !isLoading) {
@@ -435,7 +438,18 @@ export default function LoginPage() {
                                     value={formik.values.password}
                                     error={formik.touched.password && Boolean(formik.errors.password)}
                                     helperText={formik.touched.password && formik.errors.password}
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
+                                    endAdornment={
+                                        <InputAdornment position="end" style={{ marginRight: 24 }}>
+                                            <IconButton
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                edge="end"
+                                                size="small"
+                                            >
+                                                <Icon icon={showPassword ? "mdi:eye-outline" : "mdi:eye-off-outline"} color="#8a94b2" width={22} />
+                                            </IconButton>
+                                        </InputAdornment>
+                                    }
                                 />
                             </div>
                         </div>

@@ -12,6 +12,7 @@ import CarDAO from '../../daos/CarDao';
 // import PropertyDAO from '../../daos/propertyDao';
 import CustomerDAO from '../../daos/CustomerDao';
 import InvoiceDAO from '../../daos/InvoiceDao';
+import QuotationDAO from '../../daos/QuotationDao';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -160,6 +161,19 @@ export default function CreateInvoicePage() {
     const [openSelectDialog, setOpenSelectDialog] = useState(false);
     const [selectSearch, setSelectSearch] = useState('');
 
+    // Quotation
+    const [acceptedQuotation, setAcceptedQuotation] = useState(null);
+    const coverageLabels = useMemo(() => ({
+        comprehensive: 'Comprehensive',
+        flood: 'Banjir',
+        earthquake: 'Gempa Bumi',
+        typhoonAndStorm: 'Angin Topan / Badai / Hujan Es',
+        landslide: 'Tanah Longsor',
+        waterHammer: 'Water Hammer',
+        thirdPartyLiability: 'Tanggung Jawab Hukum Pihak III',
+        authorizedWorkshop: 'Authorized Workshop',
+    }), []);
+
     // Invoice
     const [invoiceNumber, setInvoiceNumber] = useState('');
     const [insuranceName, setInsuranceName] = useState('');
@@ -223,8 +237,12 @@ export default function CreateInvoicePage() {
             dt.setDate(dt.getDate() + 14);
             setInvoiceDueDate(dt.toISOString().split('T')[0]);
 
+            // Fetch accepted quotation for this car/policy
+            if (invoiceType === 'car' && selectedItem?.id) {
+                fetchAcceptedQuotation(selectedItem.id);
+            }
         }
-    }, [selectedItem, customers, invoiceType]);
+    }, [selectedItem, customers, invoiceType]); // eslint-disable-line
 
     // When invoice type changes, reset selected item
     const handleTypeChange = (type) => {
@@ -270,6 +288,33 @@ export default function CreateInvoicePage() {
         finally { loading.stop(); }
     };
 
+    // Fetch accepted quotation for a car/policy
+    const fetchAcceptedQuotation = async (policyId) => {
+        try {
+            const res = await QuotationDAO.getQuotationsByPolicy(policyId);
+            if (res.success && res.quotations) {
+                const accepted = res.quotations.find(q => q.status === 'Accepted');
+                if (accepted) {
+                    setAcceptedQuotation(accepted);
+                    const premiumAmount = Number(accepted.totalPremium) || 0;
+                    const quotationItems = [
+                        { description: 'Premi', quantity: 1, price: premiumAmount },
+                    ];
+                    setItems([...quotationItems]);
+                    setDiscount('');
+                    setAdminFee('');
+                    setStampDuty('');
+                    if (accepted.insuranceProvider) setInsuranceName(accepted.insuranceProvider);
+                } else {
+                    setAcceptedQuotation(null);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to fetch quotations:', e);
+            setAcceptedQuotation(null);
+        }
+    };
+
     const generateInvoiceNumber = () => {
         const d = new Date();
         const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
@@ -292,9 +337,16 @@ export default function CreateInvoicePage() {
     };
 
     // â”€â”€ Item handlers â”€â”€
+    // ── Item handlers ──
     const handleAddItem = () => setItems([...items, { description: '', quantity: 1, price: '' }]);
-    const handleRemoveItem = (i) => { const n = [...items]; n.splice(i, 1); setItems(n); };
-    const handleItemChange = (i, field, value) => { const n = [...items]; n[i][field] = value; setItems(n); };
+    const handleRemoveItem = (i) => {
+        if (items[i]?.fromQuotation) return;
+        const n = [...items]; n.splice(i, 1); setItems(n);
+    };
+    const handleItemChange = (i, field, value) => {
+        if (items[i]?.fromQuotation) return;
+        const n = [...items]; n[i][field] = value; setItems(n);
+    };
 
     // â”€â”€ Navigation â”€â”€
     const handleNext = () => {
@@ -306,6 +358,7 @@ export default function CreateInvoicePage() {
 
     const handleReset = () => {
         setSelectedItem(null);
+        setAcceptedQuotation(null);
         setInsuranceName('');
         setPolicyNumber('');
         setOwnerAddress('');
@@ -337,14 +390,20 @@ export default function CreateInvoicePage() {
                     customerName: getOwnerName(),
                     carId: invoiceType === 'car' ? selectedItem?.id : null,
                     plateNumber: invoiceType === 'car' ? selectedItem?.carData?.plateNumber : '',
-                    items: items.filter(it => it.description?.trim()),
+                    quotationId: acceptedQuotation?.id || '',
+                    items: items.filter(it => it.description?.trim()).map(it => ({
+                        description: it.description,
+                        quantity: it.quantity,
+                        price: it.price,
+                        fromQuotation: it.fromQuotation || false,
+                    })),
                     subTotal: calculateSubtotal(),
                     discount: Number(discount),
                     grandTotal: calculateTotal(),
                     issueDate: Date.now(),
                     dueDate: dueDateVal,
                     status: 'Unpaid',
-                    notes: 'Generated from Invoice form'
+                    notes: acceptedQuotation ? `Dari Penawaran ${acceptedQuotation.quotationNumber}` : 'Generated from Invoice form'
                 };
 
                 // 2. Save to database
@@ -359,7 +418,7 @@ export default function CreateInvoicePage() {
         }
         catch (e) {
             console.error(e);
-            message(e.message || 'Failed to generate invoice', 'error');
+            message(e.error || e.message || 'Failed to generate invoice', 'error');
         }
         finally { loading.stop(); }
     };
@@ -731,14 +790,32 @@ export default function CreateInvoicePage() {
                                         </Button>
                                     }
                                 >
+                                    {/* Quotation info banner */}
+                                    {acceptedQuotation && (
+                                        <Box sx={{ mb: 2, p: 1.5, borderRadius: '8px', bgcolor: '#EFF6FF', border: '1px solid #BFDBFE', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Icon icon="mdi:file-document-check" width={18} color="#2563EB" />
+                                            <Typography fontSize={12} sx={{ color: '#1E40AF' }}>
+                                                Items di-generate dari Penawaran <strong>{acceptedQuotation.quotationNumber}</strong>
+                                            </Typography>
+                                        </Box>
+                                    )}
                                     <Stack spacing={2}>
-                                        {items.map((item, index) => (
-                                            <Box key={index} sx={{ p: 2, borderRadius: '8px', border: `1px solid ${C.border}`, bgcolor: '#FAFBFC' }}>
+                                        {items.map((item, index) => {
+                                            const isLocked = !!item.fromQuotation;
+                                            return (
+                                            <Box key={index} sx={{
+                                                p: 2, borderRadius: '8px',
+                                                border: `1px solid ${isLocked ? '#BFDBFE' : C.border}`,
+                                                bgcolor: isLocked ? '#EFF6FF' : '#FAFBFC',
+                                            }}>
                                                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
-                                                    <Typography fontSize={12} fontWeight={600} sx={{ color: C.textSub, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                                                        Item {index + 1}
-                                                    </Typography>
-                                                    {items.length > 1 && (
+                                                    <Box display="flex" alignItems="center" gap={0.75}>
+                                                        {isLocked && <Icon icon="mdi:lock" width={14} color="#2563EB" />}
+                                                        <Typography fontSize={12} fontWeight={600} sx={{ color: isLocked ? '#2563EB' : C.textSub, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                                                            {isLocked ? `Dari Penawaran` : `Item ${index + 1}`}
+                                                        </Typography>
+                                                    </Box>
+                                                    {!isLocked && items.length > 1 && (
                                                         <IconButton size="small" onClick={() => handleRemoveItem(index)} sx={{ color: C.error, p: 0.25 }}>
                                                             <Icon icon="mdi:trash-can-outline" width={16} />
                                                         </IconButton>
@@ -747,12 +824,13 @@ export default function CreateInvoicePage() {
                                                 <Stack spacing={1.5}>
                                                     <Box>
                                                         <Typography fontSize={12} fontWeight={600} sx={{ color: C.text, mb: 0.75 }}>
-                                                            Description <span style={{ color: C.error }}>*</span>
+                                                            Description {!isLocked && <span style={{ color: C.error }}>*</span>}
                                                         </Typography>
                                                         <TextField fullWidth size="small" multiline maxRows={2}
                                                             placeholder="e.g., Premi Asuransi Kendaraan"
                                                             value={item.description}
                                                             onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                                                            disabled={isLocked}
                                                             sx={inputStyle} />
                                                     </Box>
                                                     <Box display="flex" gap={1.5}>
@@ -761,6 +839,7 @@ export default function CreateInvoicePage() {
                                                             <TextField fullWidth size="small" type="text"
                                                                 value={item.price ? new Intl.NumberFormat('id-ID').format(item.price) : ''}
                                                                 onChange={(e) => handleItemChange(index, 'price', parseNumber(e.target.value))}
+                                                                disabled={isLocked}
                                                                 InputProps={{ startAdornment: <InputAdornment position="start"><Typography fontSize={13} fontWeight={700} sx={{ color: C.textSub }}>Rp</Typography></InputAdornment> }}
                                                                 sx={inputStyle} />
                                                         </Box>
@@ -774,7 +853,8 @@ export default function CreateInvoicePage() {
                                                     )}
                                                 </Stack>
                                             </Box>
-                                        ))}
+                                            );
+                                        })}
                                     </Stack>
                                 </Section>
 

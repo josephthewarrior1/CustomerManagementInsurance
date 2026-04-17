@@ -132,7 +132,8 @@ export default function DashboardLayout() {
     return p.match(/^\/customers\/[^/]+$/) || 
            p.match(/^\/customers\/edit\/[^/]+$/) || 
            p.match(/^\/cars\/[^/]+$/) || 
-           p.match(/^\/cars\/edit\/[^/]+$/);
+           p.match(/^\/cars\/edit\/[^/]+$/) ||
+           p.match(/^\/payments\/[^/]+$/);
   })();
 
   useEffect(() => { if (!user && !isLoading) navigate('/login', { replace: true }); }, [user, isLoading, navigate]);

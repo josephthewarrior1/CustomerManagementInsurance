@@ -1,8 +1,8 @@
 import { Icon } from '@iconify/react';
 import {
-    Alert, Avatar, Box, Button, Chip, CircularProgress, Container, Dialog,
-    FormControl, IconButton, InputLabel, MenuItem, Paper, Select,
-    Stack, TextField, Typography, useMediaQuery, useTheme
+    Alert, Avatar, Box, Button, Chip, CircularProgress, Dialog,
+    FormControl, IconButton, InputLabel, Menu, MenuItem, Paper, Select,
+    Stack, TextField, Typography
 } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -14,11 +14,11 @@ import CarDAO from '../../daos/CarDao';
 
 /* ─── helpers ─── */
 const formatDate = (d) => {
-    if (!d) return 'Tidak tersedia';
+    if (!d) return '-';
     return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 };
 const formatCurrency = (v) => {
-    if (!v && v !== 0) return 'Tidak tersedia';
+    if (!v && v !== 0) return '-';
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
 };
 const toInputDate = (d) => {
@@ -28,56 +28,25 @@ const toInputDate = (d) => {
 };
 
 const STATUS_CONFIG = {
-    Pending:   { bg: '#FEF3C7', color: '#92400E', icon: 'mdi:clock-outline',         label: 'Menunggu' },
-    Paid:      { bg: '#D1FAE5', color: '#065F46', icon: 'mdi:check-circle-outline',  label: 'Lunas' },
-    Overdue:   { bg: '#FEE2E2', color: '#991B1B', icon: 'mdi:alert-circle-outline',  label: 'Terlambat' },
-    Cancelled: { bg: '#F1F5F9', color: '#475569', icon: 'mdi:close-circle-outline',  label: 'Dibatalkan' },
+    Pending:   { bg: '#FEF3C7', color: '#92400E', icon: 'mdi:clock-outline',         label: 'MENUNGGU' },
+    Paid:      { bg: '#D1FAE5', color: '#065F46', icon: 'mdi:check-circle-outline',  label: 'LUNAS' },
+    Overdue:   { bg: '#FEE2E2', color: '#991B1B', icon: 'mdi:alert-circle-outline',  label: 'TERLAMBAT' },
+    Cancelled: { bg: '#F1F5F9', color: '#475569', icon: 'mdi:close-circle-outline',  label: 'DIBATALKAN' },
 };
 const ALLOWED_STATUSES = ['Pending', 'Paid', 'Overdue', 'Cancelled'];
-
-/* ─── InfoCard ─── */
-function InfoCard({ title, children }) {
-    return (
-        <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 2.5, fontSize: '1rem' }}>
-                {title}
-            </Typography>
-            <Stack spacing={2.5}>{children}</Stack>
-        </Paper>
-    );
-}
-
-/* ─── InfoRow ─── */
-function InfoRow({ label, value, icon, fullWidth }) {
-    return (
-        <Stack direction="row" spacing={1.5} alignItems="flex-start">
-            <Box sx={{ mt: 0.5, width: 36, height: 36, borderRadius: 2, bgcolor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon icon={icon} width={18} color="#1E40AF" />
-            </Box>
-            <Box flex={1}>
-                <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.8125rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', mb: 0.5 }}>
-                    {label}
-                </Typography>
-                <Typography variant="body1" sx={{ color: '#1E293B', fontSize: '0.9375rem', fontWeight: 500, lineHeight: 1.6, wordBreak: fullWidth ? 'break-word' : 'normal' }}>
-                    {value || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Tidak tersedia</span>}
-                </Typography>
-            </Box>
-        </Stack>
-    );
-}
 
 export default function PaymentDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const loadingProvider = useLoading();
     const message = useAlert();
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const [payment, setPayment]       = useState(null);
     const [loading, setLoading]       = useState(true);
     const [customerName, setCustomerName] = useState('');
     const [carLabel, setCarLabel]     = useState('');
+
+    const [tabValue, setTabValue] = useState(0);
 
     const [editing, setEditing]       = useState(false);
     const [editData, setEditData]     = useState({});
@@ -93,6 +62,10 @@ export default function PaymentDetailPage() {
     const [deleting, setDeleting]         = useState(false);
 
     const [previewOpen, setPreviewOpen] = useState(false);
+
+    // Top right menu
+    const [anchorEl, setAnchorEl] = useState(null);
+    const isMenuOpen = Boolean(anchorEl);
 
     const fetchPayment = async () => {
         try {
@@ -127,7 +100,7 @@ export default function PaymentDetailPage() {
         }
     };
 
-    useEffect(() => { fetchPayment(); }, [id]);
+    useEffect(() => { fetchPayment(); }, [id]); // eslint-disable-line
 
     const startEdit = () => {
         setEditData({
@@ -140,6 +113,8 @@ export default function PaymentDetailPage() {
             notes: payment.notes || '',
         });
         setEditing(true);
+        setTabValue(0);
+        setAnchorEl(null);
     };
 
     const handleSave = async () => {
@@ -220,7 +195,7 @@ export default function PaymentDetailPage() {
     };
 
     if (loading) return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#fff' }}>
             <CircularProgress />
         </Box>
     );
@@ -231,142 +206,145 @@ export default function PaymentDetailPage() {
     const isCancelled = payment.status === 'Cancelled';
     const isTerminal  = isPaid || isCancelled;
 
-    const initials = customerName ? customerName[0].toUpperCase() : '?';
+    const tabs = [
+        { label: 'Info' },
+        { label: 'Bukti' },
+    ];
 
     return (
-        <Box sx={{ bgcolor: '#F8FAFC', minHeight: '100vh', pb: 8 }}>
-            <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 5 }, px: { xs: 1.5, sm: 2 } }}>
+        <Box sx={{ bgcolor: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            {/* Header / App Bar */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2 }}>
+                <IconButton onClick={() => navigate('/payments')} sx={{ color: '#2563EB', pl: 1 }}>
+                    <Icon icon="mdi:arrow-left" width={24} />
+                </IconButton>
+                <Typography sx={{ fontWeight: 600, fontSize: '1.05rem', color: '#1E293B' }}>
+                    Payment Detail
+                </Typography>
+                <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ color: '#94A3B8', pr: 1 }}>
+                    <Icon icon="mdi:dots-vertical" width={24} />
+                </IconButton>
+            </Box>
 
-                {/* Back */}
-                <Box sx={{ mb: 3 }}>
-                    <Button onClick={() => navigate('/payments')} startIcon={<Icon icon="mdi:arrow-left" />}
-                        sx={{ color: '#64748B', fontWeight: 600, textTransform: 'none', fontSize: '0.9375rem', px: 1, '&:hover': { bgcolor: 'transparent', color: '#1E40AF' } }}>
-                        Kembali ke Payment
-                    </Button>
+            <Menu
+                anchorEl={anchorEl}
+                open={isMenuOpen}
+                onClose={() => setAnchorEl(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                sx={{ '& .MuiPaper-root': { borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' } }}
+            >
+                <MenuItem onClick={startEdit} sx={{ fontSize: '0.9rem', color: '#1E293B' }}>
+                    <Icon icon="mdi:pencil" width={20} style={{ marginRight: 8, color: '#64748B' }} />
+                    Edit Payment
+                </MenuItem>
+                {!isTerminal && (
+                    <MenuItem onClick={() => { setAnchorEl(null); setCompleteDialog(true); }} sx={{ fontSize: '0.9rem', color: '#059669' }}>
+                        <Icon icon="mdi:check-circle" width={20} style={{ marginRight: 8 }} />
+                        Tandai Lunas
+                    </MenuItem>
+                )}
+                <MenuItem onClick={() => { setAnchorEl(null); setDeleteDialog(true); }} sx={{ fontSize: '0.9rem', color: '#DC2626' }}>
+                    <Icon icon="mdi:trash-can" width={20} style={{ marginRight: 8 }} />
+                    Hapus Payment
+                </MenuItem>
+            </Menu>
+
+            <Box sx={{ p: 3, pt: 1, flex: 1, maxWidth: '600px', mx: 'auto', width: '100%' }}>
+                {/* Profile Card */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3.5 }}>
+                    <Box sx={{ position: 'relative' }}>
+                        <Avatar sx={{ width: 90, height: 90, bgcolor: '#E0F2FE', color: '#1E3A8A', fontSize: '2.5rem' }}>
+                            <Icon icon="mdi:cash-multiple" />
+                        </Avatar>
+                        <Box sx={{ position: 'absolute', bottom: -2, right: -2, width: 26, height: 26, bgcolor: '#ffffff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Icon icon={isPaid ? "mdi:check-decagram" : "mdi:clock"} color={isPaid ? "#059669" : "#D97706"} width={22} />
+                        </Box>
+                    </Box>
+                    <Typography sx={{ mt: 2.5, fontSize: '1.45rem', fontWeight: 800, color: '#1E293B' }}>
+                        {formatCurrency(payment.amount)}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 500, color: '#64748B', mt: 0.25 }}>
+                        {customerName || payment.customerId || '-'}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                        <Chip
+                            label={statusCfg.label}
+                            size="small"
+                            sx={{
+                                bgcolor: statusCfg.bg,
+                                color: statusCfg.color,
+                                fontWeight: 800, fontSize: '0.65rem', height: 20, px: 0.5
+                            }}
+                        />
+                        {carLabel && (
+                            <Typography sx={{ color: '#64748B', fontSize: '0.85rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Icon icon="mdi:car" width={16} />
+                                {carLabel}
+                            </Typography>
+                        )}
+                    </Box>
                 </Box>
 
-                {/* ── Profile card ── */}
-                <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 4 }, mb: 4, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff', position: 'relative' }}>
-                    {/* action icon buttons */}
-                    <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
-                        <Stack direction="row" spacing={1}>
-                            <IconButton onClick={startEdit} sx={{ color: '#1E40AF', bgcolor: '#EFF6FF', borderRadius: 2 }}>
-                                <Icon icon="mdi:pencil" width={22} />
-                            </IconButton>
-                            {!isTerminal && (
-                                <IconButton onClick={() => setCompleteDialog(true)} sx={{ color: '#059669', bgcolor: '#D1FAE5', borderRadius: 2 }}>
-                                    <Icon icon="mdi:check-circle-outline" width={22} />
-                                </IconButton>
-                            )}
-                            <IconButton onClick={() => setDeleteDialog(true)} sx={{ color: '#DC2626', bgcolor: '#FEF2F2', borderRadius: 2 }}>
-                                <Icon icon="mdi:trash-can" width={22} />
-                            </IconButton>
-                        </Stack>
-                    </Box>
-
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems="center" sx={{ pr: { xs: 0, sm: 14 } }}>
-                        <Avatar sx={{ width: 72, height: 72, bgcolor: '#1E40AF', fontSize: '2rem', fontWeight: 700, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', flexShrink: 0 }}>
-                            {initials}
-                        </Avatar>
-                        <Box flex={1} sx={{ textAlign: { xs: 'center', sm: 'left' }, minWidth: 0 }}>
-                            <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ fontWeight: 800, color: '#1E293B', mb: 0.5 }}>
-                                {customerName || payment.customerId}
+                {/* Paid Alert */}
+                {isPaid && (
+                    <Box sx={{ mb: 3, p: 2, bgcolor: '#F0FDF4', borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Icon icon="mdi:check-circle" width={24} color="#059669" />
+                        <Box>
+                            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#065F46' }}>
+                                Pembayaran Lunas
                             </Typography>
-                            {carLabel && (
-                                <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 500, mb: 1, display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
-                                    <Icon icon="mdi:car" width={16} />
-                                    {carLabel}
-                                </Typography>
-                            )}
-                            <Chip
-                                label={statusCfg.label}
-                                size="small"
-                                icon={<Icon icon={statusCfg.icon} width={14} style={{ color: statusCfg.color }} />}
-                                sx={{ bgcolor: statusCfg.bg, color: statusCfg.color, fontWeight: 700, fontSize: '0.75rem', borderRadius: '8px' }}
-                            />
+                            <Typography sx={{ fontSize: '0.75rem', color: '#059669' }}>
+                                {formatDate(payment.paidDate)}
+                            </Typography>
                         </Box>
-                    </Stack>
+                    </Box>
+                )}
 
-                    {isPaid && (
-                        <Alert severity="success" sx={{ mt: 3, borderRadius: 2 }} icon={<Icon icon="mdi:check-circle" />}>
-                            Pembayaran telah lunas pada {formatDate(payment.paidDate)}.
-                        </Alert>
-                    )}
-                </Paper>
+                {/* Segmented Tabs */}
+                <Box sx={{ bgcolor: '#F8FAFC', borderRadius: '12px', p: 0.5, display: 'flex', gap: 0.5, mb: 4, overflowX: 'auto', '&::-webkit-scrollbar': { display: 'none' } }}>
+                    {tabs.map((tab, idx) => (
+                        <Box
+                            key={idx}
+                            onClick={() => setTabValue(idx)}
+                            sx={{
+                                flex: 1, textAlign: 'center',
+                                px: 2, py: 1.25, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s',
+                                bgcolor: tabValue === idx ? '#ffffff' : 'transparent',
+                                color: tabValue === idx ? '#2563EB' : '#64748B',
+                                fontWeight: tabValue === idx ? 700 : 600,
+                                boxShadow: tabValue === idx ? '0 1px 4px rgba(0,0,0,0.05)' : 'none',
+                                fontSize: '0.85rem', whiteSpace: 'nowrap'
+                            }}
+                        >
+                            {tab.label}
+                        </Box>
+                    ))}
+                </Box>
 
-                {/* ── Info cards ── */}
-                <Stack spacing={3}>
-
-                    {/* Tagihan */}
-                    <InfoCard title="Informasi Tagihan">
-                        <InfoRow label="Total Tagihan" value={formatCurrency(payment.amount)} icon="mdi:cash-multiple" />
-                        <InfoRow label="Jatuh Tempo" value={formatDate(payment.dueDate)} icon="mdi:calendar-alert" />
-                        <InfoRow label="Metode Pembayaran" value={payment.paymentMethod} icon="mdi:credit-card" />
-                        {isPaid && <InfoRow label="Tanggal Dibayar" value={formatDate(payment.paidDate)} icon="mdi:calendar-check" />}
-                    </InfoCard>
-
-                    {/* Bukti pembayaran */}
-                    <InfoCard title="Bukti Pembayaran">
-                        {payment.proofUrl ? (
-                            <Box>
-                                <Box
-                                    onClick={() => setPreviewOpen(true)}
-                                    sx={{
-                                        width: '100%', height: { xs: 200, sm: 260 },
-                                        borderRadius: 2, overflow: 'hidden',
-                                        border: '1px solid #E2E8F0', bgcolor: '#F8FAFC',
-                                        cursor: 'pointer', transition: 'all 0.2s',
-                                        '&:hover': { borderColor: '#1E40AF', boxShadow: '0 4px 12px rgba(30,64,175,0.1)' }
-                                    }}>
-                                    <img src={payment.proofUrl} alt="Bukti Pembayaran" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                {/* Tab 0: Info */}
+                {tabValue === 0 && (
+                    <Box>
+                        {editing ? (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                    <Icon icon="mdi:pencil" width={18} color="#2563EB" />
+                                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#2563EB' }}>Edit Payment</Typography>
                                 </Box>
-                                <Typography variant="caption" sx={{ color: '#94A3B8', mt: 1, display: 'block' }}>
-                                    Klik gambar untuk memperbesar
-                                </Typography>
-                                {!isPaid && (
-                                    <Button variant="outlined" component="label" disabled={isUploading} size="small"
-                                        startIcon={isUploading ? <CircularProgress size={14} /> : <Icon icon="mdi:upload" />}
-                                        sx={{ mt: 1.5, textTransform: 'none', fontWeight: 600, borderRadius: 2, borderColor: '#E2E8F0', color: '#475569' }}>
-                                        Unggah Ulang
-                                        <input type="file" hidden accept="image/*" onChange={handleUploadProof} ref={fileInputRef} />
-                                    </Button>
-                                )}
-                            </Box>
-                        ) : (
-                            <Box sx={{ textAlign: 'center', py: 6, border: '2px dashed #E2E8F0', borderRadius: 2, bgcolor: '#F8FAFC' }}>
-                                <Icon icon="mdi:cloud-upload-outline" width={48} color="#CBD5E1" />
-                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#64748B', mt: 2, mb: 0.5 }}>
-                                    Belum ada bukti pembayaran
-                                </Typography>
-                                {!isPaid && (
-                                    <Button variant="contained" component="label" disabled={isUploading} size="small"
-                                        startIcon={isUploading ? <CircularProgress size={14} color="inherit" /> : <Icon icon="mdi:upload" />}
-                                        sx={{ mt: 1.5, textTransform: 'none', fontWeight: 600, bgcolor: '#1E40AF', '&:hover': { bgcolor: '#1E3A8A' }, borderRadius: 2 }}>
-                                        Unggah Bukti Sekarang
-                                        <input type="file" hidden accept="image/*" onChange={handleUploadProof} ref={fileInputRef} />
-                                    </Button>
-                                )}
-                            </Box>
-                        )}
-                    </InfoCard>
-
-                    {/* Edit form */}
-                    {editing && (
-                        <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '2px solid #1E40AF', bgcolor: '#EFF6FF' }}>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E40AF', mb: 2.5, display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                                <Icon icon="mdi:pencil" width={20} /> Edit Payment
-                            </Typography>
-                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                                 <TextField size="small" label="Nomor Invoice" value={editData.invoiceNumber || ''}
-                                    onChange={e => setEditData(p => ({ ...p, invoiceNumber: e.target.value }))} />
+                                    onChange={e => setEditData(p => ({ ...p, invoiceNumber: e.target.value }))}
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
                                 <TextField size="small" label="Total Tagihan (Rp)" value={editData.amount || ''}
                                     onChange={e => setEditData(p => ({ ...p, amount: e.target.value }))}
-                                    helperText={editData.amount ? formatCurrency(Number(editData.amount)) : ''} />
+                                    helperText={editData.amount ? formatCurrency(Number(editData.amount)) : ''}
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
                                 <TextField size="small" type="date" label="Jatuh Tempo" InputLabelProps={{ shrink: true }}
-                                    value={editData.dueDate || ''} onChange={e => setEditData(p => ({ ...p, dueDate: e.target.value }))} />
+                                    value={editData.dueDate || ''} onChange={e => setEditData(p => ({ ...p, dueDate: e.target.value }))}
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
                                 <TextField size="small" type="date" label="Tanggal Bayar" InputLabelProps={{ shrink: true }}
-                                    value={editData.paidDate || ''} onChange={e => setEditData(p => ({ ...p, paidDate: e.target.value }))} />
-                                <FormControl size="small">
+                                    value={editData.paidDate || ''} onChange={e => setEditData(p => ({ ...p, paidDate: e.target.value }))}
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+                                <FormControl size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}>
                                     <InputLabel>Status</InputLabel>
                                     <Select value={editData.status || ''} label="Status" onChange={e => setEditData(p => ({ ...p, status: e.target.value }))}>
                                         {ALLOWED_STATUSES.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
@@ -374,34 +352,127 @@ export default function PaymentDetailPage() {
                                 </FormControl>
                                 <TextField size="small" label="Metode Pembayaran" value={editData.paymentMethod || ''}
                                     onChange={e => setEditData(p => ({ ...p, paymentMethod: e.target.value }))}
-                                    placeholder="Bank Transfer, Cash..." />
-                                <TextField size="small" label="Catatan" multiline rows={2} value={editData.notes || ''}
+                                    placeholder="Bank Transfer, Cash..."
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+                                <TextField size="small" label="Catatan" multiline rows={3} value={editData.notes || ''}
                                     onChange={e => setEditData(p => ({ ...p, notes: e.target.value }))}
-                                    sx={{ gridColumn: { sm: 'span 2' } }} />
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+                                <Stack direction="row" spacing={1.5} sx={{ mt: 1 }}>
+                                    <Button fullWidth variant="outlined" onClick={() => setEditing(false)} disabled={saving}
+                                        sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 3, borderColor: '#E2E8F0', color: '#475569', py: 1.5 }}>
+                                        Batal
+                                    </Button>
+                                    <Button fullWidth variant="contained" onClick={handleSave} disabled={saving}
+                                        sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 3, bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' }, py: 1.5, boxShadow: 'none' }}>
+                                        {saving ? <CircularProgress size={20} color="inherit" /> : 'Simpan'}
+                                    </Button>
+                                </Stack>
                             </Box>
-                            <Stack direction="row" spacing={1.5} justifyContent="flex-end" sx={{ mt: 2.5 }}>
-                                <Button variant="outlined" onClick={() => setEditing(false)} disabled={saving}
-                                    sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, borderColor: '#BFDBFE', color: '#1E40AF' }}>Batal</Button>
-                                <Button variant="contained" onClick={handleSave} disabled={saving}
-                                    sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2, bgcolor: '#1E40AF', '&:hover': { bgcolor: '#1E3A8A' } }}>
-                                    {saving ? <CircularProgress size={18} color="inherit" /> : 'Simpan Perubahan'}
-                                </Button>
-                            </Stack>
-                        </Paper>
-                    )}
-                </Stack>
-            </Container>
+                        ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <Box sx={{ bgcolor: '#F8FAFC', p: 2.5, borderRadius: 3 }}>
+                                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#94A3B8', mb: 0.5, letterSpacing: 0.5 }}>NOMOR INVOICE</Typography>
+                                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#334155' }}>{payment.invoiceNumber || '-'}</Typography>
+                                </Box>
+                                <Box sx={{ bgcolor: '#F8FAFC', p: 2.5, borderRadius: 3 }}>
+                                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#94A3B8', mb: 0.5, letterSpacing: 0.5 }}>TOTAL TAGIHAN</Typography>
+                                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#334155' }}>{formatCurrency(payment.amount)}</Typography>
+                                </Box>
+                                <Box sx={{ bgcolor: '#F8FAFC', p: 2.5, borderRadius: 3 }}>
+                                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#94A3B8', mb: 0.5, letterSpacing: 0.5 }}>JATUH TEMPO</Typography>
+                                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#334155' }}>{formatDate(payment.dueDate)}</Typography>
+                                </Box>
+                                <Box sx={{ bgcolor: '#F8FAFC', p: 2.5, borderRadius: 3 }}>
+                                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#94A3B8', mb: 0.5, letterSpacing: 0.5 }}>METODE PEMBAYARAN</Typography>
+                                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#334155' }}>{payment.paymentMethod || '-'}</Typography>
+                                </Box>
+                                {isPaid && (
+                                    <Box sx={{ bgcolor: '#F8FAFC', p: 2.5, borderRadius: 3 }}>
+                                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#94A3B8', mb: 0.5, letterSpacing: 0.5 }}>TANGGAL DIBAYAR</Typography>
+                                        <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#334155' }}>{formatDate(payment.paidDate)}</Typography>
+                                    </Box>
+                                )}
+                            </Box>
+                        )}
+                    </Box>
+                )}
 
-            {/* ── Tandai Lunas ── */}
-            <Dialog open={completeDialog} onClose={() => setCompleteDialog(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3, m: 2 } }}>
+                {/* Tab 1: Bukti Pembayaran */}
+                {tabValue === 1 && (
+                    <Box>
+                        {payment.proofUrl ? (
+                            <Box>
+                                <Box
+                                    onClick={() => setPreviewOpen(true)}
+                                    sx={{
+                                        width: '100%', height: 260,
+                                        borderRadius: 3, overflow: 'hidden',
+                                        border: '1px solid #E2E8F0', bgcolor: '#F8FAFC',
+                                        cursor: 'pointer', transition: 'all 0.2s',
+                                        '&:hover': { borderColor: '#2563EB' }
+                                    }}>
+                                    <img src={payment.proofUrl} alt="Bukti Pembayaran" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                </Box>
+                                <Typography sx={{ color: '#94A3B8', fontSize: '0.8rem', mt: 1.5, textAlign: 'center' }}>
+                                    Klik gambar untuk memperbesar
+                                </Typography>
+                                {!isPaid && (
+                                    <Button variant="outlined" component="label" fullWidth disabled={isUploading}
+                                        startIcon={isUploading ? <CircularProgress size={14} /> : <Icon icon="mdi:upload" />}
+                                        sx={{ mt: 2, textTransform: 'none', fontWeight: 700, borderRadius: 3, borderColor: '#E2E8F0', color: '#475569', py: 1.5 }}>
+                                        Unggah Ulang
+                                        <input type="file" hidden accept="image/*" onChange={handleUploadProof} ref={fileInputRef} />
+                                    </Button>
+                                )}
+                            </Box>
+                        ) : (
+                            <Box sx={{ textAlign: 'center', py: 6, border: '2px dashed #E2E8F0', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+                                <Icon icon="mdi:cloud-upload-outline" width={48} color="#CBD5E1" />
+                                <Typography sx={{ fontWeight: 700, color: '#64748B', mt: 2, mb: 0.5, fontSize: '0.95rem' }}>
+                                    Belum ada bukti pembayaran
+                                </Typography>
+                                <Typography sx={{ color: '#94A3B8', fontSize: '0.8rem', mb: 2 }}>
+                                    Unggah foto bukti transfer atau kwitansi
+                                </Typography>
+                                {!isPaid && (
+                                    <Button variant="contained" component="label" disabled={isUploading}
+                                        startIcon={isUploading ? <CircularProgress size={14} color="inherit" /> : <Icon icon="mdi:upload" />}
+                                        sx={{ textTransform: 'none', fontWeight: 700, bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' }, borderRadius: 3, px: 4 }}>
+                                        Unggah Bukti
+                                        <input type="file" hidden accept="image/*" onChange={handleUploadProof} ref={fileInputRef} />
+                                    </Button>
+                                )}
+                            </Box>
+                        )}
+                    </Box>
+                )}
+            </Box>
+
+            {/* Bottom Action */}
+            {!isTerminal && (
+                <Box sx={{ p: 3, maxWidth: '600px', mx: 'auto', width: '100%', mt: 'auto' }}>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={() => setCompleteDialog(true)}
+                        startIcon={<Icon icon="mdi:check-circle" width={20} />}
+                        sx={{
+                            bgcolor: '#059669', color: '#ffffff', borderRadius: 3, py: 1.8,
+                            fontWeight: 700, textTransform: 'none', fontSize: '0.95rem',
+                            boxShadow: 'none',
+                            '&:hover': { bgcolor: '#047857', boxShadow: 'none' }
+                        }}
+                    >
+                        Tandai Sebagai Lunas
+                    </Button>
+                </Box>
+            )}
+
+            {/* ── Tandai Lunas Dialog ── */}
+            <Dialog open={completeDialog} onClose={() => setCompleteDialog(false)} maxWidth="xs" fullWidth PaperProps={{ style: { borderRadius: '16px' } }}>
                 <Box sx={{ p: 3 }}>
-                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
-                        <Box sx={{ bgcolor: '#D1FAE5', borderRadius: 2, p: 1, display: 'flex' }}>
-                            <Icon icon="mdi:check-circle" width={24} color="#059669" />
-                        </Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>Tandai Sebagai Lunas</Typography>
-                    </Stack>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Tandai Sebagai Lunas</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontWeight: 500 }}>
                         Status akan diubah menjadi <b>Paid</b> dan waktu pembayaran dicatat saat ini.
                     </Typography>
                     {!payment.proofUrl && (
@@ -409,29 +480,29 @@ export default function PaymentDetailPage() {
                             Belum ada bukti bayar yang diunggah.
                         </Alert>
                     )}
-                    <Stack direction="row" spacing={1.5} justifyContent="flex-end">
-                        <Button variant="outlined" onClick={() => setCompleteDialog(false)} disabled={completing}
-                            sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, borderColor: '#E2E8F0', color: '#475569' }}>Batal</Button>
+                    <Stack direction="row" spacing={2} justifyContent="flex-end">
+                        <Button onClick={() => setCompleteDialog(false)} disabled={completing}
+                            sx={{ textTransform: 'none', fontWeight: 700, color: '#475569' }}>Batal</Button>
                         <Button variant="contained" onClick={handleMarkAsPaid} disabled={completing}
-                            sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2, bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}>
+                            sx={{ textTransform: 'none', fontWeight: 700, bgcolor: '#059669', '&:hover': { bgcolor: '#047857' }, borderRadius: 2, boxShadow: 'none' }}>
                             {completing ? <CircularProgress size={20} color="inherit" /> : 'Ya, Lunas'}
                         </Button>
                     </Stack>
                 </Box>
             </Dialog>
 
-            {/* ── Hapus ── */}
-            <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)} maxWidth="xs" fullWidth PaperProps={{ style: { borderRadius: '16px', margin: '16px' } }}>
+            {/* ── Hapus Dialog ── */}
+            <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)} maxWidth="xs" fullWidth PaperProps={{ style: { borderRadius: '16px' } }}>
                 <Box sx={{ p: 3 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Hapus Payment?</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Hapus Payment?</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontWeight: 500 }}>
                         Data yang sudah dihapus tidak dapat dikembalikan.
                     </Typography>
-                    <Stack direction="row" spacing={1.5} justifyContent="flex-end">
-                        <Button variant="outlined" onClick={() => setDeleteDialog(false)} disabled={deleting}
-                            sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, borderColor: '#E2E8F0', color: '#475569' }}>Batal</Button>
+                    <Stack direction="row" spacing={2} justifyContent="flex-end">
+                        <Button onClick={() => setDeleteDialog(false)} disabled={deleting}
+                            sx={{ textTransform: 'none', fontWeight: 700, color: '#475569' }}>Batal</Button>
                         <Button variant="contained" onClick={handleDelete} disabled={deleting}
-                            sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2, bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>
+                            sx={{ textTransform: 'none', fontWeight: 700, bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, borderRadius: 2, boxShadow: 'none' }}>
                             {deleting ? <CircularProgress size={20} color="inherit" /> : 'Hapus'}
                         </Button>
                     </Stack>
@@ -439,11 +510,11 @@ export default function PaymentDetailPage() {
             </Dialog>
 
             {/* ── Preview ── */}
-            <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} maxWidth="md" fullWidth PaperProps={{ style: { background: '#000', borderRadius: 0 } }}>
-                <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, p: 2 }}>
-                    <Button onClick={() => setPreviewOpen(false)} sx={{ position: 'absolute', top: 8, right: 8, color: '#fff', minWidth: 0 }}>
+            <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} fullScreen PaperProps={{ style: { background: 'rgba(0,0,0,0.95)' } }}>
+                <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', p: 2 }}>
+                    <IconButton onClick={() => setPreviewOpen(false)} sx={{ position: 'absolute', top: 16, right: 16, color: '#fff', zIndex: 10 }}>
                         <Icon icon="mdi:close" width={28} />
-                    </Button>
+                    </IconButton>
                     {payment.proofUrl && <img src={payment.proofUrl} alt="Bukti" style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain' }} />}
                 </Box>
             </Dialog>
