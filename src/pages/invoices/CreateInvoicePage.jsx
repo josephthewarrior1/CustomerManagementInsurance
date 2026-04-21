@@ -755,11 +755,11 @@ export default function CreateInvoicePage() {
                                                         <TextField fullWidth size="small" type="date" value={invoiceEndDate} onChange={(e) => setInvoiceEndDate(e.target.value)} sx={inputStyle} />
                                                     </Field>
                                                 </Grid>
-                                                {/* <Grid item xs={12} sm={4}>
+                                                <Grid item xs={12} sm={4}>
                                                     <Field label="Jatuh Tempo Pembayaran" required={true}>
                                                         <TextField fullWidth size="small" type="date" value={invoiceDueDate} onChange={(e) => setInvoiceDueDate(e.target.value)} sx={inputStyle} />
                                                     </Field>
-                                                </Grid> */}
+                                                </Grid>
                                             </Grid>
                                         </Box>
                                     )}
