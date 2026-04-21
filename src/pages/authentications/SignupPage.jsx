@@ -5,8 +5,10 @@ import { useAlert } from '../../hooks/SnackbarProvider';
 import { useNavigate } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useUser } from '../../hooks/UserProvider';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import UserDAO from '../../daos/UserDAO';
+import { InputAdornment, IconButton } from '@mui/material';
+import { Icon } from '@iconify/react';
 
 const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
@@ -303,6 +305,8 @@ export default function SignUpPage() {
     const loading = useLoading();
     const message = useAlert();
     const navigate = useNavigate();
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     useEffect(() => {
         if (user && !isLoading) {
@@ -440,11 +444,11 @@ export default function SignUpPage() {
                             </div>
 
                             <div>
-                                    <label className="signup-field-label">Alamat Email</label>
-                                    <CustomTextInput
-                                        name="email"
-                                        fullWidth
-                                        placeholder="Masukkan alamat email"
+                                <label className="signup-field-label">Alamat Email</label>
+                                <CustomTextInput
+                                    name="email"
+                                    fullWidth
+                                    placeholder="Masukkan alamat email"
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
                                     value={formik.values.email}
@@ -466,7 +470,18 @@ export default function SignUpPage() {
                                         value={formik.values.password}
                                         error={formik.touched.password && Boolean(formik.errors.password)}
                                         helperText={formik.touched.password && formik.errors.password}
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
+                                        endAdornment={
+                                            <InputAdornment position="end">
+                                                <IconButton
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    edge="end"
+                                                    size="small"
+                                                >
+                                                    <Icon icon={showPassword ? "mdi:eye-outline" : "mdi:eye-off-outline"} color="#8a94b2" width={22} />
+                                                </IconButton>
+                                            </InputAdornment>
+                                        }
                                     />
                                 </div>
                                 <div>
@@ -480,7 +495,18 @@ export default function SignUpPage() {
                                         value={formik.values.confirmPassword}
                                         error={formik.touched.confirmPassword && Boolean(formik.errors.confirmPassword)}
                                         helperText={formik.touched.confirmPassword && formik.errors.confirmPassword}
-                                        type="password"
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        endAdornment={
+                                            <InputAdornment position="end">
+                                                <IconButton
+                                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                    edge="end"
+                                                    size="small"
+                                                >
+                                                    <Icon icon={showConfirmPassword ? "mdi:eye-outline" : "mdi:eye-off-outline"} color="#8a94b2" width={22} />
+                                                </IconButton>
+                                            </InputAdornment>
+                                        }
                                     />
                                 </div>
                             </div>
@@ -494,7 +520,7 @@ export default function SignUpPage() {
                         >
                             {formik.isSubmitting ? (
                                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                                    <svg style={{ animation: 'spin 0.8s linear infinite' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <svg style={{ animation: 'spin 0.8s linear infinite' }} width="16" height="16" viewBox="0 0 100 20" fill="none" stroke="currentColor" strokeWidth="2.5">
                                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                                     </svg>
                                     Sedang membuat akun...

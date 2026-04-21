@@ -101,7 +101,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
                     <FormInput
                         label="Nama Pelanggan"
                         name="name"
-                        placeholder="Michael Santoso"
                         icon="lucide:user"
                         required
                         value={formData.name}
@@ -114,7 +113,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
                             label="Email (Opsional)"
                             name="email"
                             type="email"
-                            placeholder="john@example.com"
                             icon="lucide:mail"
                             value={formData.email}
                             onChange={handleChange}
@@ -123,7 +121,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
                         <FormInput
                             label="Nomor Telepon"
                             name="phone"
-                            placeholder="+62 812 3456 7890"
                             icon="lucide:phone"
                             value={formData.phone}
                             onChange={handleChange}
@@ -134,7 +131,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
                     <FormInput
                         label="Alamat"
                         name="address"
-                        placeholder="Jl. Pademangan III Raya No. 14"
                         icon="lucide:map-pin"
                         value={formData.address}
                         onChange={handleChange}
@@ -144,7 +140,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
                     <FormInput
                         label="Catatan"
                         name="notes"
-                        placeholder="Tambahkan keterangan tambahan mengenai pelanggan..."
                         icon="lucide:file-text"
                         multiline
                         value={formData.notes}

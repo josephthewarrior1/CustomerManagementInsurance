@@ -172,7 +172,7 @@ export default function CreateQuotationPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [activeStep, setActiveStep] = useState(0);
-  const [quotationType, setQuotationType] = useState('car'); // 'car' | 'property'
+  const [quotationType, setQuotationType] = useState('car');
   const [companyProfile, setCompanyProfile] = useState(null);
   const [companyName, setCompanyName] = useState('PT. JAYAINDO ARTHA SUKSES');
   const [companySubtitle, setCompanySubtitle] = useState('INSURANCE AGENCY');
@@ -195,7 +195,7 @@ export default function CreateQuotationPage() {
     typhoonAndStorm: { enabled: false, percentage: 0.05, freeInclude: false },
     landslide: { enabled: false, percentage: 0.05, freeInclude: false },
     waterHammer: { enabled: false, percentage: 0.05, freeInclude: true },
-    thirdPartyLiability: { enabled: false, percentage: 0.5, freeInclude: false },
+    thirdPartyLiability: { enabled: false, percentage: '', isFixedAmount: true, freeInclude: false },
     authorizedWorkshop: { enabled: false, percentage: 0.05, freeInclude: true },
   });
 
@@ -239,10 +239,9 @@ export default function CreateQuotationPage() {
       loading.start();
       const [carRes, propRes] = await Promise.allSettled([
         CarDAO.getAllCars(),
-        Promise.resolve({ properties: [] }), // PropertyDAO.getAllProperties(),
+        Promise.resolve({ properties: [] }),
       ]);
       if (carRes.status === 'fulfilled' && carRes.value?.cars) setCars(carRes.value.cars);
-      // if (propRes.status === 'fulfilled' && propRes.value?.properties) setProperties(propRes.value.properties);
     } catch (e) { console.error(e); message('Failed to load data', 'error'); }
     finally { loading.stop(); }
   };
@@ -273,9 +272,26 @@ export default function CreateQuotationPage() {
 
   const toggleCoverage = (key) => setCoverages(p => ({ ...p, [key]: { ...p[key], enabled: !p[key].enabled } }));
   const toggleFree = (key) => setCoverages(p => ({ ...p, [key]: { ...p[key], freeInclude: !p[key].freeInclude } }));
+
   const setPct = (key, val) => {
-    const n = parseFloat(val);
-    setCoverages(p => ({ ...p, [key]: { ...p[key], percentage: Number.isFinite(n) ? n : 0 } }));
+    const c = coverages[key];
+    let n = val;
+
+    if (c.isFixedAmount) {
+      // Untuk fixed amount (seperti thirdPartyLiability), biarkan string kosong atau konversi ke number
+      if (val === '' || val === null || val === undefined) {
+        n = '';
+      } else {
+        const num = Number(val);
+        n = isNaN(num) ? '' : num;
+      }
+    } else {
+      // Untuk percentage
+      const num = parseFloat(val);
+      n = isNaN(num) ? 0 : num;
+    }
+
+    setCoverages(p => ({ ...p, [key]: { ...p[key], percentage: n } }));
   };
 
   const calculateTotals = () => {
@@ -285,7 +301,14 @@ export default function CreateQuotationPage() {
     Object.keys(coverages).forEach((k) => {
       const c = coverages[k];
       if (!c.enabled || c.freeInclude) { itemAmounts[k] = 0; return; }
-      const amt = roundIDR((tv * (Number(c.percentage) || 0)) / 100);
+
+      let amt = 0;
+      if (c.isFixedAmount) {
+        const fixedVal = Number(c.percentage);
+        amt = isNaN(fixedVal) ? 0 : fixedVal;
+      } else {
+        amt = roundIDR((tv * (Number(c.percentage) || 0)) / 100);
+      }
       itemAmounts[k] = amt;
       subtotal += amt;
     });
@@ -312,7 +335,7 @@ export default function CreateQuotationPage() {
       typhoonAndStorm: { enabled: false, percentage: 0.05, freeInclude: false },
       landslide: { enabled: false, percentage: 0.05, freeInclude: false },
       waterHammer: { enabled: false, percentage: 0.05, freeInclude: true },
-      thirdPartyLiability: { enabled: false, percentage: 0.5, freeInclude: false },
+      thirdPartyLiability: { enabled: false, percentage: '', isFixedAmount: true, freeInclude: false },
       authorizedWorkshop: { enabled: false, percentage: 0.05, freeInclude: true },
     });
     generateQuotationNumber();
@@ -325,30 +348,30 @@ export default function CreateQuotationPage() {
   };
 
   const handleConfirmDownload = async () => {
-    try { 
-        loading.start(); 
+    try {
+      loading.start();
 
-        const payload = {
-            customerId: selectedItem?.customerId || selectedItem?.id,
-            policyType: quotationType,
-            policyId: selectedItem?.id,
-            quotationNumber,
-            tsi: Number(tsi),
-            insuranceProvider: quotationType === 'car' ? insuranceProvider.trim() : undefined,
-            insuranceType: quotationType === 'car' ? insuranceType : undefined,
-            coverages,
-            totalPremium: calculations.totalPremium
-        };
-        
-        const res = await QuotationDAO.createQuotation(payload);
-        if (!res.success) {
-            message(res.error || 'Failed to save quotation to database', 'error');
-            return;
-        }
+      const payload = {
+        customerId: selectedItem?.customerId || selectedItem?.id,
+        policyType: quotationType,
+        policyId: selectedItem?.id,
+        quotationNumber,
+        tsi: Number(tsi),
+        insuranceProvider: quotationType === 'car' ? insuranceProvider.trim() : undefined,
+        insuranceType: quotationType === 'car' ? insuranceType : undefined,
+        coverages,
+        totalPremium: calculations.totalPremium
+      };
 
-        generatePDF(); 
-        message('Quotation saved successfully & PDF generated!', 'success'); 
-        setOpenPreviewDialog(false); 
+      const res = await QuotationDAO.createQuotation(payload);
+      if (!res.success) {
+        message(res.error || 'Failed to save quotation to database', 'error');
+        return;
+      }
+
+      generatePDF();
+      message('Quotation saved successfully & PDF generated!', 'success');
+      setOpenPreviewDialog(false);
     }
     catch (e) { console.error(e); message('Failed to process Quotation', 'error'); }
     finally { loading.stop(); }
@@ -405,7 +428,7 @@ export default function CreateQuotationPage() {
 
     row(currentY, 'Nama', quotationType === 'car' ? (selectedItem?.carData?.ownerName || 'TBA') : (selectedItem?.ownerName || selectedItem?.customerName || 'TBA'));
     currentY += 7;
-    row(currentY, 'Alamat', quotationType === 'car' ? '-' : (selectedItem?.propertyData?.address || '-'));
+    row(currentY, 'Alamat', quotationType === 'car' ? (selectedItem?.customerData?.address || selectedItem?.carData?.address || '-') : (selectedItem?.propertyData?.address || selectedItem?.customerData?.address || '-'));
     currentY += 7;
     row(currentY, 'Perhitungan Premi', quotationType === 'car' ? `${selectedItem?.carData?.carBrand || ''} ${selectedItem?.carData?.carModel || ''}`.trim() : `${selectedItem?.propertyData?.propertyType || ''}`.trim());
     currentY += 7;
@@ -418,7 +441,15 @@ export default function CreateQuotationPage() {
       .filter((key) => coverages[key].enabled)
       .map((key) => {
         const c = coverages[key];
-        const rateText = c.freeInclude ? 'FREE INCLUDE' : `${c.percentage} %`;
+        let rateText = '';
+        if (c.freeInclude) {
+          rateText = 'FREE INCLUDE';
+        } else if (c.isFixedAmount) {
+          const fixedVal = Number(c.percentage);
+          rateText = isNaN(fixedVal) ? 'Rp 0' : fmt(fixedVal);
+        } else {
+          rateText = `${c.percentage} %`;
+        }
         return [coverageLabels[key], rateText];
       });
 
@@ -469,17 +500,26 @@ export default function CreateQuotationPage() {
       if (!c.enabled) return;
       if (c.freeInclude) return;
 
-      const pct = Number(c.percentage) || 0;
-      const amount = roundIDR((tsiValue * pct) / 100);
-
-      const formattedBase = `Rp ${fmtShort(tsiValue)}`;
-
-      calcBody.push([
-        coverageLabels[key],
-        formattedBase,
-        `x ${pct} %`,
-        fmt(amount)
-      ]);
+      if (c.isFixedAmount) {
+        const fixedVal = Number(c.percentage);
+        const amt = isNaN(fixedVal) ? 0 : fixedVal;
+        calcBody.push([
+          coverageLabels[key],
+          '-',
+          '-',
+          fmt(amt)
+        ]);
+      } else {
+        const pct = Number(c.percentage) || 0;
+        const amount = roundIDR((tsiValue * pct) / 100);
+        const formattedBase = `Rp ${fmtShort(tsiValue)}`;
+        calcBody.push([
+          coverageLabels[key],
+          formattedBase,
+          `${pct} %`,
+          fmt(amount)
+        ]);
+      }
     });
 
     if ((calculations.adminFee ?? 0) > 0) {
@@ -654,7 +694,7 @@ export default function CreateQuotationPage() {
 
         <WizardStepper active={activeStep} />
 
-        {/* â”€â”€ STEP 1 â”€â”€ */}
+        {/* STEP 1 */}
         {activeStep === 0 && (
           <Fade in key="s1">
             <Box>
@@ -750,7 +790,7 @@ export default function CreateQuotationPage() {
           </Fade>
         )}
 
-        {/* ── STEP 2 ── */}
+        {/* STEP 2 */}
         {activeStep === 1 && (
           <Fade in key="s2">
             <Box>
@@ -766,8 +806,8 @@ export default function CreateQuotationPage() {
                       <Box flex={1}>
                         <Field label="Jenis Asuransi" required hint="Pilih tipe perlindungan">
                           <TextField select fullWidth size="small" value={insuranceType} onChange={e => setInsuranceType(e.target.value)} sx={inputStyle} SelectProps={{ native: true }}>
-                              <option value="All Risk">All Risk (Comprehensive)</option>
-                              <option value="TLO">Total Loss Only (TLO)</option>
+                            <option value="All Risk">All Risk (Comprehensive)</option>
+                            <option value="TLO">Total Loss Only (TLO)</option>
                           </TextField>
                         </Field>
                       </Box>
@@ -825,13 +865,21 @@ export default function CreateQuotationPage() {
                                   sx={{ m: 0 }}
                                 />
                                 <Box display="flex" alignItems="center" gap={1}>
-                                  <TextField size="small" type="number" value={c.percentage} disabled={c.freeInclude}
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={c.percentage === '' ? '' : c.percentage}
+                                    disabled={c.freeInclude}
                                     onChange={(e) => setPct(key, e.target.value)}
-                                    inputProps={{ step: 0.01, min: 0, max: 100 }}
-                                    InputProps={{ endAdornment: <InputAdornment position="end"><Typography fontSize={12} sx={{ color: '#606770' }}>%</Typography></InputAdornment> }}
-                                    sx={{ width: 100, '& .MuiOutlinedInput-root': { borderRadius: '6px', fontSize: 13, bgcolor: c.freeInclude ? '#F0F0F0' : '#FFFFFF', '& fieldset': { borderColor: '#E4E6EA' }, '&.Mui-focused fieldset': { borderColor: '#1971C2' } } }}
+                                    placeholder={c.isFixedAmount ? "Masukkan nominal" : "0"}
+                                    inputProps={c.isFixedAmount ? { min: 0, step: 1000 } : { step: 0.01, min: 0, max: 100 }}
+                                    InputProps={{
+                                      endAdornment: !c.isFixedAmount && <InputAdornment position="end"><Typography fontSize={12} sx={{ color: '#606770' }}>%</Typography></InputAdornment>,
+                                      startAdornment: c.isFixedAmount && <InputAdornment position="start"><Typography fontSize={12} sx={{ color: '#606770' }}>Rp</Typography></InputAdornment>
+                                    }}
+                                    sx={{ width: c.isFixedAmount ? 180 : 100, '& .MuiOutlinedInput-root': { borderRadius: '6px', fontSize: 13, bgcolor: c.freeInclude ? '#F0F0F0' : '#FFFFFF', '& fieldset': { borderColor: '#E4E6EA' }, '&.Mui-focused fieldset': { borderColor: '#1971C2' } } }}
                                   />
-                                  <Typography fontSize={12} sx={{ color: '#606770' }}>dari TSI</Typography>
+                                  <Typography fontSize={12} sx={{ color: '#606770' }}>{c.isFixedAmount ? '' : 'dari TSI'}</Typography>
                                 </Box>
                               </Stack>
                             </Box>
@@ -892,7 +940,7 @@ export default function CreateQuotationPage() {
           </Fade>
         )}
 
-        {/* â”€â”€ STEP 3 â”€â”€ */}
+        {/* STEP 3 */}
         {activeStep === 2 && (
           <Fade in key="s3">
             <Box>
@@ -945,7 +993,7 @@ export default function CreateQuotationPage() {
                             <Icon icon="mdi:check-circle-outline" width={15} color="#1971C2" />
                             <Typography fontSize={13} sx={{ color: '#606770' }}>{coverageLabels[key]}</Typography>
                           </Box>
-                          <Chip label={c.freeInclude ? 'FREE' : `${c.percentage}%`} size="small"
+                          <Chip label={c.freeInclude ? 'FREE' : (c.isFixedAmount ? (c.percentage === '' ? 'Rp 0' : fmt(Number(c.percentage))) : `${c.percentage}%`)} size="small"
                             sx={{ height: 20, fontSize: 11, fontWeight: 700, bgcolor: c.freeInclude ? '#EBF8EF' : '#EBF4FF', color: c.freeInclude ? '#1E8840' : '#1971C2' }} />
                         </Box>
                       );
@@ -1071,7 +1119,7 @@ export default function CreateQuotationPage() {
           <Box sx={{ p: 2.5, borderRadius: '8px', bgcolor: '#F8F9FA', border: '1px solid #E4E6EA' }}>
             <Box textAlign="center" mb={2}>
               <Typography fontSize={14} fontWeight={700} sx={{ color: '#1C1E21' }}>{companyName}</Typography>
-              <Typography fontSize={12} sx={{ color: '#606770' }}>{companySubtitle} Â· {companyCity}</Typography>
+              <Typography fontSize={12} sx={{ color: '#606770' }}>{companySubtitle} · {companyCity}</Typography>
             </Box>
             <Divider sx={{ borderColor: '#E4E6EA', my: 1.5 }} />
             <Stack spacing={0.75}>
@@ -1100,4 +1148,3 @@ export default function CreateQuotationPage() {
     </Box>
   );
 }
-

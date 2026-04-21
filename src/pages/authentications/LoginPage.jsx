@@ -306,29 +306,29 @@ export default function LoginPage() {
     }, [user, isLoading, navigate]);
 
     const validationSchema = Yup.object({
-        login: Yup.string().required('Username or email is required!'),
-        password: Yup.string().required('Password is required!'),
+        login: Yup.string().required('Username atau email wajib diisi!'),
+        password: Yup.string().required('Password wajib diisi!'),
     });
 
     const handleSubmit = async (data) => {
         try {
             loading.start();
-            
+
             // Firebase Auth Login
             // Support both standard email or username-formatted pseudo-emails used by legacy
             const loginEmail = data.login.trim().includes('@') ? data.login.trim() : `${data.login.trim()}@kudajaya.local`;
             const userCredential = await signInWithEmailAndPassword(auth, loginEmail, data.password.trim());
-            
+
             // Get ID Token
             const token = await userCredential.user.getIdToken();
             localStorage.setItem('authToken', token);
-            
+
             // Fetch Profile for Role and Data
             const profileResult = await UserDAO.getProfile();
-            if (!profileResult.success) throw new Error('Failed to retrieve user profile');
-            
+            if (!profileResult.success) throw new Error('Gagal mengambil profil pengguna');
+
             const userData = profileResult.user;
-            
+
             login({
                 id: userData.id,
                 username: userData.username,
@@ -336,18 +336,18 @@ export default function LoginPage() {
                 role: userData.role || 'user',
                 email: userData.email || '',
             });
-            
+
             // Welcome back message
             const userName = userData.fullName || userData.username;
-            message(`✨ Welcome back, ${userName}! ✨`, 'success');
-            
+            message(`✨ Selamat datang kembali, ${userName}! ✨`, 'success');
+
             navigate('/dashboard', { replace: true });
         } catch (error) {
             console.error('Login error:', error);
             // Translate Firebase specific errors if necessary
-            let errMsg = 'Login failed. Please check your credentials.';
+            let errMsg = 'Login gagal. Periksa kembali username/password Anda.';
             if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-                errMsg = 'Invalid email or password.';
+                errMsg = 'Email atau password salah.';
             }
             message(errMsg, 'error');
         } finally {
@@ -377,7 +377,7 @@ export default function LoginPage() {
                         borderRadius: '50%', animation: 'spin 0.8s linear infinite',
                         margin: '0 auto 12px'
                     }} />
-                    <p style={{ color: '#8a94b2', fontFamily: 'DM Sans, sans-serif', fontSize: 13 }}>Loading...</p>
+                    <p style={{ color: '#8a94b2', fontFamily: 'DM Sans, sans-serif', fontSize: 13 }}>Memuat...</p>
                 </div>
             </div>
         );
@@ -409,17 +409,17 @@ export default function LoginPage() {
 
                 {/* Card */}
                 <div className="login-card">
-                    <h1 className="login-title">Agent Login</h1>
-                    <p className="login-sub">Hey, enter your details to get sign in<br />to your account</p>
+                    <h1 className="login-title">Login Agen</h1>
+                    <p className="login-sub">Masukkan detail Anda untuk masuk<br />ke akun Anda</p>
 
                     <form onSubmit={formik.handleSubmit}>
                         <div className="login-field-group">
                             <div>
-                                <label className="login-field-label">Enter Email / Username</label>
+                                <label className="login-field-label">Email / Username</label>
                                 <CustomTextInput
                                     name="login"
                                     fullWidth
-                                    placeholder="Enter your email or username"
+                                    placeholder="Masukkan email atau username Anda"
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
                                     value={formik.values.login}
@@ -432,7 +432,7 @@ export default function LoginPage() {
                                 <CustomTextInput
                                     name="password"
                                     fullWidth
-                                    placeholder="Enter your password"
+                                    placeholder="Masukkan password Anda"
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
                                     value={formik.values.password}
@@ -455,8 +455,8 @@ export default function LoginPage() {
                         </div>
 
                         <div className="login-trouble">
-                            <button type="button" onClick={() => message('Feature coming soon!', 'info')}>
-                                Having trouble in sign in?
+                            <button type="button" onClick={() => message('Fitur akan segera hadir!', 'info')}>
+                                Kesulitan masuk?
                             </button>
                         </div>
 
@@ -471,20 +471,20 @@ export default function LoginPage() {
                                     <svg style={{ animation: 'spin 0.8s linear infinite' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                                     </svg>
-                                    Signing in...
+                                    Memasuki...
                                 </span>
-                            ) : 'Sign In'}
+                            ) : 'Masuk'}
                         </CustomButton>
                     </form>
 
                     <div className="login-signup-link">
-                        Don't have an account?{' '}
-                        <button type="button" onClick={() => navigate('/signup')}>Request Now</button>
+                        Belum punya akun?{' '}
+                        <button type="button" onClick={() => navigate('/signup')}>Daftar Sekarang</button>
                     </div>
                 </div>
 
                 <div className="login-copyright">
-                    Copyright @2025 &nbsp;|&nbsp; <a href="#">Privacy Policy</a>
+                    Hak Cipta @2025 &nbsp;|&nbsp; <a href="#">Kebijakan Privasi</a>
                 </div>
 
             </div>
