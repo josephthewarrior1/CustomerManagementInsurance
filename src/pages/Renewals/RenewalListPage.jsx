@@ -24,19 +24,14 @@ const formatDate = (d) => {
     if (isNaN(parsed.getTime())) return '-';
     return parsed.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 };
-const formatCurrency = (v) => {
-    if (!v && v !== 0) return '-';
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
-};
 
 const STATUS_CONFIG = {
     Pending:   { bg: '#FEF3C7', color: '#92400E' },
     Approved:  { bg: '#DBEAFE', color: '#1E40AF' },
-    Paid:      { bg: '#D1FAE5', color: '#065F46' },
     Completed: { bg: '#EDE9FE', color: '#5B21B6' },
     Cancelled: { bg: '#F1F5F9', color: '#475569' },
 };
-const ALL_STATUSES = ['ALL', 'Pending', 'Approved', 'Paid', 'Completed', 'Cancelled'];
+const ALL_STATUSES = ['ALL', 'Pending', 'Approved', 'Completed', 'Cancelled'];
 
 /* ── main component ─────────────────────────────────────────────────── */
 export default function RenewalListPage() {
@@ -166,10 +161,6 @@ export default function RenewalListPage() {
             )
         },
         {
-            title: 'Premi', dataIndex: 'premium', key: 'premium', sortable: true,
-            render: (v) => <Typography variant="body2" fontWeight={500}>{formatCurrency(v)}</Typography>
-        },
-        {
             title: 'Status', dataIndex: 'status', key: 'status', sortable: true,
             render: (v) => {
                 const cfg = STATUS_CONFIG[v] || STATUS_CONFIG.Pending;
@@ -289,9 +280,6 @@ export default function RenewalListPage() {
                                                     {formatDate(r.newStartDate)} – {formatDate(r.newEndDate)}
                                                 </Typography>
                                             </Stack>
-                                            <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', flexShrink: 0 }}>
-                                                {r.premium > 0 ? formatCurrency(r.premium) : '—'}
-                                            </Typography>
                                             <Box sx={{
                                                 width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
                                                 bgcolor: r.paymentId ? '#10B981' : '#F59E0B'

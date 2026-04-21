@@ -249,7 +249,7 @@ export default function CarDetailPage() {
     const msInDay = 24 * 60 * 60 * 1000;
     const isNearExpire = dueDate && !isNaN(dueDate.getTime()) && (dueDate.getTime() - Date.now() <= 30 * msInDay);
     const needsRenewal = isExpired || isNearExpire;
-    const hasOngoingRenewal = renewals.some(r => ['Pending', 'Approved', 'Paid'].includes(r.status));
+    const hasOngoingRenewal = renewals.some(r => ['Pending', 'Approved'].includes(r.status));
 
     const tabs = [
         { label: 'Info' },
@@ -456,7 +456,13 @@ export default function CarDetailPage() {
                     <Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                             <Typography sx={{ fontWeight: 700, color: '#1E293B', fontSize: '0.95rem' }}>Daftar Penawaran</Typography>
-                            <Button startIcon={<Icon icon="mdi:plus-circle" width={18}/>} onClick={() => navigate('/quotations/create')} sx={{fontWeight: 700, textTransform: 'none', px: 1, color: '#2563EB', fontSize: '0.85rem'}}>Buat Penawaran</Button>
+                            <Button
+                                startIcon={<Icon icon="mdi:plus-circle" width={18}/>}
+                                onClick={() => navigate(`/quotations/create?policyId=${encodeURIComponent(id)}`)}
+                                sx={{fontWeight: 700, textTransform: 'none', px: 1, color: '#2563EB', fontSize: '0.85rem'}}
+                            >
+                                Buat Penawaran
+                            </Button>
                         </Box>
                         {loadingQuotations ? (
                             <Box textAlign="center" py={4}><CircularProgress size={24} /></Box>

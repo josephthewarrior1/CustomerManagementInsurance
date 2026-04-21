@@ -33,6 +33,7 @@ import { useAlert } from '../../hooks/SnackbarProvider';
 import CompanyDAO from '../../daos/CompanyDao';
 import CarDAO from '../../daos/CarDao';
 import QuotationDAO from '../../daos/QuotationDao';
+import { useLocation } from 'react-router';
 // import PropertyDAO from '../../daos/propertyDao';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -170,6 +171,11 @@ export default function CreateQuotationPage() {
   const message = useAlert();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const location = useLocation();
+
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const prefillPolicyId = searchParams.get('policyId') || '';
+  const renewalId = (searchParams.get('renewalId') || '').trim();
 
   const [activeStep, setActiveStep] = useState(0);
   const [quotationType, setQuotationType] = useState('car');
@@ -245,6 +251,14 @@ export default function CreateQuotationPage() {
     } catch (e) { console.error(e); message('Failed to load data', 'error'); }
     finally { loading.stop(); }
   };
+
+  // Auto-select car when policyId is passed (e.g. from Renewal flow)
+  useEffect(() => {
+    if (!prefillPolicyId || !cars?.length) return;
+    if (quotationType !== 'car') setQuotationType('car');
+    const found = cars.find(c => c.id === prefillPolicyId);
+    if (found) setSelectedItem(found);
+  }, [prefillPolicyId, cars, quotationType]);
 
   const handleTypeChange = (type) => {
     setQuotationType(type);
@@ -355,6 +369,7 @@ export default function CreateQuotationPage() {
         customerId: selectedItem?.customerId || selectedItem?.id,
         policyType: quotationType,
         policyId: selectedItem?.id,
+        renewalId: renewalId || undefined,
         quotationNumber,
         tsi: Number(tsi),
         insuranceProvider: quotationType === 'car' ? insuranceProvider.trim() : undefined,
@@ -690,6 +705,15 @@ export default function CreateQuotationPage() {
           <Typography fontSize={13} align="center" sx={{ color: '#606770', mt: 0.5 }}>
             Generate an insurance quotation PDF for your customer
           </Typography>
+          {renewalId && (
+            <Box sx={{ mt: 1.5, textAlign: 'center' }}>
+              <Chip
+                icon={<Icon icon="mdi:arrow-u-right-top" width={16} />}
+                label={`Quotation untuk Renewal: ${renewalId}`}
+                sx={{ bgcolor: '#EBF4FF', color: '#1971C2', fontWeight: 700 }}
+              />
+            </Box>
+          )}
         </Box>
 
         <WizardStepper active={activeStep} />

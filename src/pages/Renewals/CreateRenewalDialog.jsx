@@ -9,24 +9,21 @@ import { useAlert } from '../../hooks/SnackbarProvider';
 import CarDAO from '../../daos/CarDao';
 import CustomerDAO from '../../daos/CustomerDao';
 import RenewalDAO from '../../daos/RenewalDao';
-import QuotationDAO from '../../daos/QuotationDao';
 
 const formatDate = (d) => {
     if (!d) return '-';
     return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-const formatCurrency = (v) => {
-    if (!v && v !== 0) return '-';
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
-};
-
 /**
  * CreateRenewalDialog
  *
- * Creates a renewal. Backend will auto-create a linked Pending Payment.
- * When that Payment is marked Paid, the Renewal auto-completes and the Car's
- * dueDate + status are updated automatically.
+ * Creates a renewal.
+ * Flow:
+ * 1) Create Renewal
+ * 2) Create Quotation for this renewal (send `renewalId`)
+ * 3) Accept Quotation → backend auto-creates Invoice + Payment
+ * 4) Mark Payment as Paid → Renewal auto-completes & policy dates updated
  */
 export default function CreateRenewalDialog({ open, onClose, onCreated, prefillCar = null, prefillCustomerId = null }) {
     const message = useAlert();
@@ -37,13 +34,10 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
     const [selectedCar, setSelectedCar] = useState(null);
     const [newStartDate, setNewStartDate] = useState('');
     const [newEndDate, setNewEndDate] = useState('');
-    const [premium, setPremium] = useState('');
     const [notes, setNotes] = useState('');
 
     const [loadingCustomers, setLoadingCustomers] = useState(false);
     const [loadingCars, setLoadingCars] = useState(false);
-    const [loadingQuotation, setLoadingQuotation] = useState(false);
-    const [acceptedQuotation, setAcceptedQuotation] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [errors, setErrors] = useState({});
 
@@ -53,7 +47,6 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
         if (!open) return;
         setErrors({});
         setNotes('');
-        setPremium('');
 
         if (prefillCar) {
             setCustomerId(prefillCar.customerId || prefillCustomerId || '');
@@ -63,15 +56,11 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
             end.setFullYear(end.getFullYear() + 1);
             setNewStartDate(base.toISOString().slice(0, 10));
             setNewEndDate(end.toISOString().slice(0, 10));
-            // Auto-fetch accepted quotation for this car
-            fetchAcceptedQuotation(prefillCar.id);
         } else {
             setCustomerId(prefillCustomerId || '');
             setSelectedCar(null);
             setNewStartDate('');
             setNewEndDate('');
-            setAcceptedQuotation(null);
-            setPremium('');
         }
     }, [open, prefillCar, prefillCustomerId]);
 
@@ -110,25 +99,6 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
         load();
     }, [customerId, isCarPrefilled]);
 
-    // Auto-fetch accepted quotation for a given car and pre-fill premium
-    const fetchAcceptedQuotation = async (carId) => {
-        if (!carId) return;
-        setLoadingQuotation(true);
-        try {
-            const res = await QuotationDAO.getQuotationsByPolicy(carId);
-            const list = res?.quotations || res?.data || (Array.isArray(res) ? res : []);
-            const accepted = list.find(q => q.status === 'Accepted');
-            setAcceptedQuotation(accepted || null);
-            if (accepted?.totalPremium) {
-                setPremium(String(accepted.totalPremium));
-            }
-        } catch {
-            // silently skip
-        } finally {
-            setLoadingQuotation(false);
-        }
-    };
-
     const validate = () => {
         const e = {};
         if (!customerId) e.customerId = 'Customer wajib dipilih';
@@ -137,9 +107,6 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
         if (!newEndDate) e.newEndDate = 'Tanggal berakhir baru wajib diisi';
         if (newStartDate && newEndDate && new Date(newEndDate) <= new Date(newStartDate)) {
             e.newEndDate = 'Tanggal berakhir harus setelah tanggal mulai';
-        }
-        if (!premium || isNaN(Number(premium)) || Number(premium) <= 0) {
-            e.premium = 'Premi wajib diisi dan harus lebih dari 0';
         }
         setErrors(e);
         return Object.keys(e).length === 0;
@@ -155,12 +122,11 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
                 policyId: selectedCar.id,
                 newStartDate,
                 newEndDate,
-                premium: premium ? Number(premium) : 0,
                 notes: notes || undefined,
             };
             const res = await RenewalDAO.createRenewal(payload);
             if (res.success) {
-                message('Renewal berhasil dibuat! Payment Pending otomatis dibuat 🎉', 'success');
+                message('Renewal berhasil dibuat. Lanjutkan buat Quotation untuk renewal ini.', 'success');
                 onCreated?.(res.renewal);
                 onClose();
             } else {
@@ -221,7 +187,8 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
                     <Alert severity="info" icon={<Icon icon="mdi:lightning-bolt" />} sx={{ borderRadius: 2 }}>
                         <Typography variant="caption" sx={{ fontWeight: 600 }}>Setelah Renewal dibuat:</Typography>
                         <Typography variant="caption" sx={{ display: 'block' }}>
-                            • Payment Pending otomatis dibuat & terhubung ke kendaraan<br />
+                            • Buat Quotation (Penawaran) untuk renewal ini<br />
+                            • Setujui Quotation → sistem buat Invoice + Payment otomatis<br />
                             • Tandai Lunas di Payment → polis otomatis aktif & dueDate diperbarui ✅
                         </Typography>
                     </Alert>
@@ -271,8 +238,6 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
                                 onChange={e => {
                                     const car = cars.find(c => c.id === e.target.value);
                                     setSelectedCar(car || null);
-                                    setAcceptedQuotation(null);
-                                    setPremium('');
                                     if (car?.carData?.dueDate) {
                                         const base = new Date(car.carData.dueDate);
                                         const end = new Date(base);
@@ -280,7 +245,6 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
                                         setNewStartDate(base.toISOString().slice(0, 10));
                                         setNewEndDate(end.toISOString().slice(0, 10));
                                     }
-                                    if (car?.id) fetchAcceptedQuotation(car.id);
                                 }}
                             >
                                 {cars.map(c => (
@@ -320,36 +284,6 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
                             helperText={errors.newEndDate}
                         />
                     </Stack>
-
-                    {/* Premium */}
-                    {loadingQuotation ? (
-                        <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 1 }}>
-                            <CircularProgress size={16} />
-                            <Typography variant="caption" color="text.secondary">Memuat premi dari penawaran...</Typography>
-                        </Stack>
-                    ) : (
-                        <Box>
-                            {acceptedQuotation && (
-                                <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Box sx={{ bgcolor: '#D1FAE5', color: '#065F46', px: 1, py: 0.3, borderRadius: 1, fontSize: 11, fontWeight: 700 }}>
-                                        AUTO dari Penawaran
-                                    </Box>
-                                    <Typography variant="caption" sx={{ color: '#64748B' }}>
-                                        {acceptedQuotation.insuranceProvider} · {acceptedQuotation.insuranceType}
-                                    </Typography>
-                                </Box>
-                            )}
-                            <TextField
-                                fullWidth size="small" label="Premi (Rp) *"
-                                value={premium}
-                                onChange={e => { setPremium(e.target.value); }}
-                                placeholder="cth: 2500000"
-                                error={!!errors.premium}
-                                helperText={errors.premium || (premium && Number(premium) > 0 ? `= ${formatCurrency(Number(premium))}` : 'Premi wajib diisi — akan jadi nominal Payment otomatis')}
-                                InputProps={{ startAdornment: <Typography variant="body2" sx={{ color: '#94A3B8', mr: 1 }}>Rp</Typography> }}
-                            />
-                        </Box>
-                    )}
 
                     <TextField
                         fullWidth size="small" label="Catatan" multiline rows={2}

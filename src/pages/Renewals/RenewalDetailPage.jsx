@@ -10,6 +10,7 @@ import { useAlert } from '../../hooks/SnackbarProvider';
 import { useLoading } from '../../hooks/LoadingProvider';
 import RenewalDAO from '../../daos/RenewalDao';
 import PaymentDAO from '../../daos/PaymentDao';
+import QuotationDAO from '../../daos/QuotationDao';
 
 /* ── helpers ─────────────────────────────────────────────────────────── */
 const formatDate = (d) => {
@@ -30,7 +31,6 @@ const toInputDate = (d) => {
 const STATUS_CONFIG = {
     Pending:   { bg: '#FEF3C7', color: '#92400E', icon: 'mdi:clock-outline' },
     Approved:  { bg: '#DBEAFE', color: '#1E40AF', icon: 'mdi:check-circle-outline' },
-    Paid:      { bg: '#D1FAE5', color: '#065F46', icon: 'mdi:cash-check' },
     Completed: { bg: '#EDE9FE', color: '#5B21B6', icon: 'mdi:flag-checkered' },
     Cancelled: { bg: '#F1F5F9', color: '#475569', icon: 'mdi:close-circle-outline' },
 };
@@ -40,7 +40,7 @@ const PAYMENT_STATUS_CONFIG = {
     Overdue:   { bg: '#FEE2E2', color: '#991B1B' },
     Cancelled: { bg: '#F1F5F9', color: '#475569' },
 };
-const ALLOWED_STATUSES = ['Pending', 'Approved', 'Paid', 'Cancelled'];
+const ALLOWED_STATUSES = ['Pending', 'Approved', 'Cancelled'];
 
 function InfoRow({ label, value, icon }) {
     return (
@@ -71,6 +71,9 @@ export default function RenewalDetailPage() {
 
     const [renewal, setRenewal] = useState(null);
     const [payment, setPayment] = useState(null);
+    const [quotation, setQuotation] = useState(null);
+    const [loadingQuotation, setLoadingQuotation] = useState(false);
+    const [acceptingQuotation, setAcceptingQuotation] = useState(false);
     const [loading, setLoading] = useState(true);
 
     // edit state
@@ -93,6 +96,16 @@ export default function RenewalDetailPage() {
             const res = await RenewalDAO.getRenewalById(id);
             if (res.success) {
                 setRenewal(res.renewal);
+                // Fetch renewal-linked quotation (by policy, then filter by renewalId)
+                setLoadingQuotation(true);
+                try {
+                    const qr = await QuotationDAO.getQuotationsByPolicy(res.renewal.policyId);
+                    const list = qr?.quotations || qr?.data || (Array.isArray(qr) ? qr : []);
+                    const linked = list.find(q => q.renewalId === res.renewal.id) || null;
+                    setQuotation(linked);
+                } catch { /* optional */ }
+                finally { setLoadingQuotation(false); }
+
                 // Fetch linked payment if any
                 if (res.renewal.paymentId) {
                     try {
@@ -204,8 +217,8 @@ export default function RenewalDetailPage() {
         ? 'Renewal sudah selesai'
         : isCancelled
             ? 'Renewal sudah dibatalkan'
-            : !renewal.paymentId 
-                ? 'Payment wajib ditautkan sebelum menyelesaikan.'
+            : !renewal.paymentId
+                ? 'Buat & setujui Quotation dulu agar Invoice + Payment terbentuk.'
                 : paymentBlocking
                     ? `Payment terkait masih berstatus "${payment?.status}". Harus Paid dulu.`
                     : noPaymentDataYet
@@ -275,6 +288,11 @@ export default function RenewalDetailPage() {
                             <strong>Renewal belum bisa diselesaikan.</strong> Payment terkait (<code>{renewal.paymentId}</code>) masih berstatus <strong>{payment?.status}</strong>. Update payment ke <strong>Paid</strong> terlebih dahulu.
                         </Alert>
                     )}
+                    {!renewal.paymentId && (
+                        <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }} icon={<Icon icon="mdi:information-outline" />}>
+                            <strong>Langkah berikutnya:</strong> buat Quotation untuk renewal ini, lalu setujui quotation tersebut agar sistem membuat Invoice + Payment otomatis.
+                        </Alert>
+                    )}
                     {isCompleted && (
                         <Alert severity="success" sx={{ mt: 2, borderRadius: 2 }} icon={<Icon icon="mdi:flag-checkered" />}>
                             Renewal selesai. Polis telah diperpanjang pada {formatDate(renewal.completedAt)}.
@@ -341,10 +359,70 @@ export default function RenewalDetailPage() {
                             )
                         ) : (
                             <Box sx={{ textAlign: 'center', py: 3 }}>
-                                <Icon icon="mdi:receipt-text-remove" width={40} color="#CBD5E1" />
-                                <Typography variant="body2" sx={{ color: '#94A3B8', mt: 1 }}>Tidak ada payment yang dihubungkan</Typography>
-                                <Typography variant="caption" sx={{ color: '#CBD5E1' }}>Renewal bisa diselesaikan tanpa payment</Typography>
+                                <Icon icon="mdi:file-document-edit-outline" width={40} color="#CBD5E1" />
+                                <Typography variant="body2" sx={{ color: '#94A3B8', mt: 1 }}>Belum ada Payment untuk renewal ini</Typography>
+                                <Typography variant="caption" sx={{ color: '#64748B', display: 'block' }}>
+                                    Buat Quotation → Setujui → Invoice + Payment otomatis terbentuk
+                                </Typography>
+                                <Stack direction="row" spacing={1} justifyContent="center" sx={{ mt: 2, flexWrap: 'wrap' }}>
+                                    <Button
+                                        variant="contained"
+                                        size="small"
+                                        onClick={() => navigate(`/quotations/create?policyId=${encodeURIComponent(renewal.policyId)}&renewalId=${encodeURIComponent(renewal.id)}`)}
+                                        sx={{ textTransform: 'none', fontWeight: 700, bgcolor: '#1E40AF', '&:hover': { bgcolor: '#1E3A8A' } }}
+                                        startIcon={<Icon icon="mdi:file-document-plus-outline" width={16} />}
+                                    >
+                                        Buat Quotation Renewal
+                                    </Button>
+                                    {quotation?.id && quotation.status === 'Pending' && (
+                                        <Button
+                                            variant="outlined"
+                                            size="small"
+                                            disabled={acceptingQuotation}
+                                            onClick={async () => {
+                                                try {
+                                                    setAcceptingQuotation(true);
+                                                    const ar = await QuotationDAO.acceptQuotation(quotation.id);
+                                                    if (ar.success) {
+                                                        message('Quotation renewal berhasil disetujui. Invoice + Payment dibuat otomatis.', 'success');
+                                                        await fetchRenewal();
+                                                    } else {
+                                                        message(ar.error || 'Gagal menyetujui quotation', 'error');
+                                                    }
+                                                } catch {
+                                                    message('Gagal menyetujui quotation', 'error');
+                                                } finally {
+                                                    setAcceptingQuotation(false);
+                                                }
+                                            }}
+                                            sx={{ textTransform: 'none', fontWeight: 700, borderColor: '#E2E8F0', color: '#059669' }}
+                                            startIcon={acceptingQuotation ? <CircularProgress size={14} /> : <Icon icon="mdi:check-circle-outline" width={16} />}
+                                        >
+                                            Setujui Quotation
+                                        </Button>
+                                    )}
+                                </Stack>
                             </Box>
+                        )}
+                    </Paper>
+
+                    {/* Quotation info */}
+                    <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#fff' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Icon icon="mdi:file-document-outline" width={20} color="#1E40AF" /> Quotation Renewal
+                        </Typography>
+                        {loadingQuotation ? (
+                            <Typography variant="body2" sx={{ color: '#94A3B8' }}>Memuat quotation...</Typography>
+                        ) : quotation ? (
+                            <Box>
+                                <InfoRow label="No. Quotation" value={quotation.quotationNumber || quotation.id} icon="mdi:identifier" />
+                                <InfoRow label="Status" value={quotation.status} icon="mdi:progress-check" />
+                                <InfoRow label="Total Premium" value={formatCurrency(quotation.totalPremium)} icon="mdi:cash-multiple" />
+                            </Box>
+                        ) : (
+                            <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+                                Belum ada quotation yang ditautkan ke renewal ini.
+                            </Typography>
                         )}
                     </Paper>
 
