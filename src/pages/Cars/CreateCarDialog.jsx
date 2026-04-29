@@ -24,6 +24,7 @@ import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CarDAO from '../../daos/CarDao';
 import CustomerDAO from '../../daos/CustomerDao';
+import imageCompression from 'browser-image-compression';
 
 // --- Styling Constants ---
 const C = {
@@ -259,8 +260,8 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
     const [carPhotoPreviews, setCarPhotoPreviews] = useState({ front: null, back: null, leftSide: null, rightSide: null });
 
     // Document photos state
-    const [docPhotos, setDocPhotos] = useState({ stnk: null, sim: null, ktp: null });
-    const [docPhotoPreviews, setDocPhotoPreviews] = useState({ stnk: null, sim: null, ktp: null });
+    const [docPhotos, setDocPhotos] = useState({ stnk: null, sim: null, ktp: null, polis: null });
+    const [docPhotoPreviews, setDocPhotoPreviews] = useState({ stnk: null, sim: null, ktp: null, polis: null });
 
     React.useEffect(() => {
         if (open) {
@@ -364,8 +365,8 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
         setCreatedCarId(null);
         setCarPhotos({ front: null, back: null, leftSide: null, rightSide: null });
         setCarPhotoPreviews({ front: null, back: null, leftSide: null, rightSide: null });
-        setDocPhotos({ stnk: null, sim: null, ktp: null });
-        setDocPhotoPreviews({ stnk: null, sim: null, ktp: null });
+        setDocPhotos({ stnk: null, sim: null, ktp: null, polis: null });
+        setDocPhotoPreviews({ stnk: null, sim: null, ktp: null, polis: null });
         onClose();
     };
 
@@ -412,10 +413,18 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
         try {
             setUploading(true);
             const fd = new FormData();
-            if (carPhotos.front) fd.append('front', carPhotos.front);
-            if (carPhotos.back) fd.append('back', carPhotos.back);
-            if (carPhotos.leftSide) fd.append('leftSide', carPhotos.leftSide);
-            if (carPhotos.rightSide) fd.append('rightSide', carPhotos.rightSide);
+            
+            const options = {
+                maxSizeMB: 0.5,
+                maxWidthOrHeight: 1920,
+                useWebWorker: true,
+            };
+
+            if (carPhotos.front) fd.append('front', await imageCompression(carPhotos.front, options));
+            if (carPhotos.back) fd.append('back', await imageCompression(carPhotos.back, options));
+            if (carPhotos.leftSide) fd.append('leftSide', await imageCompression(carPhotos.leftSide, options));
+            if (carPhotos.rightSide) fd.append('rightSide', await imageCompression(carPhotos.rightSide, options));
+            
             const res = await CarDAO.uploadCarPhotos(createdCarId, fd);
             if (!res.success) throw new Error(res.error || 'Gagal mengunggah foto');
             message('Foto kendaraan berhasil diunggah!', 'success');
@@ -435,9 +444,26 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
             try {
                 setUploading(true);
                 const fd = new FormData();
-                if (docPhotos.stnk) fd.append('stnk', docPhotos.stnk);
-                if (docPhotos.sim) fd.append('sim', docPhotos.sim);
-                if (docPhotos.ktp) fd.append('ktp', docPhotos.ktp);
+                
+                const options = {
+                    maxSizeMB: 0.5,
+                    maxWidthOrHeight: 1920,
+                    useWebWorker: true,
+                };
+
+                // Compress documents if they are images, but if it's PDF, just append it directly
+                const compressIfImage = async (file) => {
+                    if (file && file.type.startsWith('image/')) {
+                        return await imageCompression(file, options);
+                    }
+                    return file;
+                };
+
+                if (docPhotos.stnk) fd.append('stnk', await compressIfImage(docPhotos.stnk));
+                if (docPhotos.sim) fd.append('sim', await compressIfImage(docPhotos.sim));
+                if (docPhotos.ktp) fd.append('ktp', await compressIfImage(docPhotos.ktp));
+                if (docPhotos.polis) fd.append('polis', await compressIfImage(docPhotos.polis));
+                
                 const res = await CarDAO.uploadDocuments(createdCarId, fd);
                 if (!res.success) throw new Error(res.error || 'Gagal mengunggah dokumen');
                 message('Dokumen berhasil diunggah!', 'success');
@@ -767,6 +793,14 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
                                         preview={docPhotoPreviews.ktp}
                                         onSelect={(f) => handleSelectDoc('ktp', f)}
                                         onClear={() => handleClearDoc('ktp')}
+                                    />
+                                    <DocUploadBox
+                                        label="Polis Terkait"
+                                        fieldKey="polis"
+                                        file={docPhotos.polis}
+                                        preview={docPhotoPreviews.polis}
+                                        onSelect={(f) => handleSelectDoc('polis', f)}
+                                        onClear={() => handleClearDoc('polis')}
                                     />
                                 </Section>
                             </Paper>

@@ -45,6 +45,7 @@ export default function CustomerListPage() {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [errorDialogMsg, setErrorDialogMsg] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [dataSourceOptions, setDataSourceOptions] = useState({
         keyword: '',
@@ -222,11 +223,11 @@ export default function CustomerListPage() {
                 message('Pelanggan berhasil dihapus', 'success');
                 fetchCustomers();
             } else {
-                message(response.error || 'Gagal menghapus pelanggan', 'error');
+                setErrorDialogMsg(response.error || 'Gagal menghapus pelanggan');
             }
         } catch (error) {
             console.error('Error deleting customer:', error);
-            message('Gagal menghapus pelanggan', 'error');
+            setErrorDialogMsg(error.error || error.message || 'Gagal menghapus pelanggan');
         } finally {
             loading.stop();
             closeDeleteDialog();
@@ -628,6 +629,41 @@ export default function CustomerListPage() {
                     </>
                 )}
             </Drawer>
+            {/* Error Modal */}
+            <Dialog
+                open={!!errorDialogMsg}
+                onClose={() => setErrorDialogMsg('')}
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{
+                    sx: { borderRadius: '16px' }
+                }}
+            >
+                <Box sx={{ p: { xs: 3, sm: 4 }, textAlign: 'center' }}>
+                    <Icon icon="mdi:alert-circle" width={72} color="#DC2626" style={{ marginBottom: 16 }} />
+                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 1, color: '#1E293B' }}>
+                        Tidak Dapat Menghapus
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#64748B', mb: 4, lineHeight: 1.6 }}>
+                        {errorDialogMsg}
+                    </Typography>
+                    <Button
+                        variant="contained"
+                        onClick={() => setErrorDialogMsg('')}
+                        fullWidth
+                        size="large"
+                        sx={{ 
+                            bgcolor: '#1E3A8A', 
+                            borderRadius: '12px',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            '&:hover': { bgcolor: '#1e40af' } 
+                        }}
+                    >
+                        Mengerti
+                    </Button>
+                </Box>
+            </Dialog>
         </>
     );
 }

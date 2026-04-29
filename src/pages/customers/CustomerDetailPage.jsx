@@ -146,15 +146,9 @@ export default function CustomerDetailPage() {
         setCars(prev => [...prev, newCar]);
     };
 
-    if (loading) {
-        return (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', bgcolor: '#ffffff' }}>
-                <CircularProgress />
-            </Box>
-        );
+    if (loading || !customer) {
+        return null;
     }
-
-    if (!customer) return null;
 
     return (
         <Box sx={{ bgcolor: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

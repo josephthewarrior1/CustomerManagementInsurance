@@ -235,6 +235,7 @@ export default function CarDetailPage() {
         { label: 'STNK', key: 'stnk', url: car.documentPhotos?.stnk },
         { label: 'SIM', key: 'sim', url: car.documentPhotos?.sim },
         { label: 'KTP', key: 'ktp', url: car.documentPhotos?.ktp },
+        { label: 'Polis Terkait', key: 'polis', url: car.documentPhotos?.polis },
     ];
 
     const carPhotos = [
@@ -536,6 +537,14 @@ export default function CarDetailPage() {
                 onClose={() => setCreateRenewalOpen(false)} 
                 onCreated={() => { setCreateRenewalOpen(false); fetchRenewals(); }}
                 prefillCar={car}
+            />
+
+            <ImagePreviewDialog
+                open={previewState.open}
+                images={previewState.images}
+                currentIndex={previewState.index}
+                onIndexChange={(newIndex) => setPreviewState(prev => ({ ...prev, index: newIndex }))}
+                onClose={() => setPreviewState({ open: false, images: [], index: 0 })}
             />
         </Box>
     );

@@ -9,6 +9,7 @@ import { useNavigate, useParams } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CarDAO from '../../daos/CarDao';
+import imageCompression from 'browser-image-compression';
 
 /* ─── Styling ─── */
 const inputStyle = {
@@ -204,8 +205,8 @@ export default function CarEditPage() {
 
     const [carPhotos, setCarPhotos] = useState({ front: null, back: null, leftSide: null, rightSide: null });
     const [carPhotoPreviews, setCarPhotoPreviews] = useState({ front: null, back: null, leftSide: null, rightSide: null });
-    const [docPhotos, setDocPhotos] = useState({ stnk: null, sim: null, ktp: null });
-    const [docPhotoPreviews, setDocPhotoPreviews] = useState({ stnk: null, sim: null, ktp: null });
+    const [docPhotos, setDocPhotos] = useState({ stnk: null, sim: null, ktp: null, polis: null });
+    const [docPhotoPreviews, setDocPhotoPreviews] = useState({ stnk: null, sim: null, ktp: null, polis: null });
 
     useEffect(() => {
         fetchCar();
@@ -311,10 +312,18 @@ export default function CarEditPage() {
         try {
             setUploadingPhotos(true);
             const fd = new FormData();
-            if (carPhotos.front) fd.append('front', carPhotos.front);
-            if (carPhotos.back) fd.append('back', carPhotos.back);
-            if (carPhotos.leftSide) fd.append('leftSide', carPhotos.leftSide);
-            if (carPhotos.rightSide) fd.append('rightSide', carPhotos.rightSide);
+            
+            const options = {
+                maxSizeMB: 0.5,
+                maxWidthOrHeight: 1920,
+                useWebWorker: true,
+            };
+
+            if (carPhotos.front) fd.append('front', await imageCompression(carPhotos.front, options));
+            if (carPhotos.back) fd.append('back', await imageCompression(carPhotos.back, options));
+            if (carPhotos.leftSide) fd.append('leftSide', await imageCompression(carPhotos.leftSide, options));
+            if (carPhotos.rightSide) fd.append('rightSide', await imageCompression(carPhotos.rightSide, options));
+            
             const res = await CarDAO.uploadCarPhotos(id, fd);
             if (!res.success) throw new Error(res.error || 'Gagal mengunggah foto');
             message('Foto kendaraan berhasil diunggah!', 'success');
@@ -335,16 +344,32 @@ export default function CarEditPage() {
         try {
             setUploadingDocs(true);
             const fd = new FormData();
-            if (docPhotos.stnk) fd.append('stnk', docPhotos.stnk);
-            if (docPhotos.sim) fd.append('sim', docPhotos.sim);
-            if (docPhotos.ktp) fd.append('ktp', docPhotos.ktp);
+            
+            const options = {
+                maxSizeMB: 0.5,
+                maxWidthOrHeight: 1920,
+                useWebWorker: true,
+            };
+
+            const compressIfImage = async (file) => {
+                if (file && file.type.startsWith('image/')) {
+                    return await imageCompression(file, options);
+                }
+                return file;
+            };
+
+            if (docPhotos.stnk) fd.append('stnk', await compressIfImage(docPhotos.stnk));
+            if (docPhotos.sim) fd.append('sim', await compressIfImage(docPhotos.sim));
+            if (docPhotos.ktp) fd.append('ktp', await compressIfImage(docPhotos.ktp));
+            if (docPhotos.polis) fd.append('polis', await compressIfImage(docPhotos.polis));
+            
             const res = await CarDAO.uploadDocuments(id, fd);
             if (!res.success) throw new Error(res.error || 'Gagal mengunggah dokumen');
             message('Dokumen berhasil diunggah!', 'success');
             const refreshed = await CarDAO.getCarById(id);
             if (refreshed.success || refreshed.car) setCar(refreshed.car || refreshed);
-            setDocPhotos({ stnk: null, sim: null, ktp: null });
-            setDocPhotoPreviews({ stnk: null, sim: null, ktp: null });
+            setDocPhotos({ stnk: null, sim: null, ktp: null, polis: null });
+            setDocPhotoPreviews({ stnk: null, sim: null, ktp: null, polis: null });
         } catch (err) {
             console.error(err);
             message(err.message || 'Gagal mengunggah dokumen', 'error');
@@ -669,7 +694,7 @@ export default function CarEditPage() {
                         <Typography variant="body2" sx={{ color: '#64748B', mb: 3 }}>
                             Pastikan Anda mengunggah pindaian atau foto dokumen yang tajam, bisa dibaca, dan tidak terpotong (STNK, SIM, KTP).
                         </Typography>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 4 }}>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 4 }}>
                             <DocCard label="STNK"
                                 existingUrl={car?.documentPhotos?.stnk}
                                 newFile={docPhotos.stnk} newPreview={docPhotoPreviews.stnk}
@@ -685,6 +710,11 @@ export default function CarEditPage() {
                                 newFile={docPhotos.ktp} newPreview={docPhotoPreviews.ktp}
                                 onSelect={(f) => selectDocPhoto('ktp', f)}
                                 onClear={() => clearDocPhoto('ktp')} />
+                            <DocCard label="Polis Terkait"
+                                existingUrl={car?.documentPhotos?.polis}
+                                newFile={docPhotos.polis} newPreview={docPhotoPreviews.polis}
+                                onSelect={(f) => selectDocPhoto('polis', f)}
+                                onClear={() => clearDocPhoto('polis')} />
                         </Box>
 
                         <Box sx={{ mt: 5, pt: 3, borderTop: '1px dashed #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
