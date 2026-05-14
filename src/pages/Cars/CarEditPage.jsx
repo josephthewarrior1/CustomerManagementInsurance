@@ -203,8 +203,8 @@ export default function CarEditPage() {
         insuranceProvider: '', insuranceType: '', coverageExtensions: '',
     });
 
-    const [carPhotos, setCarPhotos] = useState({ front: null, back: null, leftSide: null, rightSide: null });
-    const [carPhotoPreviews, setCarPhotoPreviews] = useState({ front: null, back: null, leftSide: null, rightSide: null });
+    const [carPhotos, setCarPhotos] = useState({ front: null, back: null, leftSide: null, rightSide: null, dashboard: null });
+    const [carPhotoPreviews, setCarPhotoPreviews] = useState({ front: null, back: null, leftSide: null, rightSide: null, dashboard: null });
     const [docPhotos, setDocPhotos] = useState({ stnk: null, sim: null, ktp: null, polis: null });
     const [docPhotoPreviews, setDocPhotoPreviews] = useState({ stnk: null, sim: null, ktp: null, polis: null });
 
@@ -323,14 +323,15 @@ export default function CarEditPage() {
             if (carPhotos.back) fd.append('back', await imageCompression(carPhotos.back, options));
             if (carPhotos.leftSide) fd.append('leftSide', await imageCompression(carPhotos.leftSide, options));
             if (carPhotos.rightSide) fd.append('rightSide', await imageCompression(carPhotos.rightSide, options));
+            if (carPhotos.dashboard) fd.append('dashboard', await imageCompression(carPhotos.dashboard, options));
             
             const res = await CarDAO.uploadCarPhotos(id, fd);
             if (!res.success) throw new Error(res.error || 'Gagal mengunggah foto');
             message('Foto kendaraan berhasil diunggah!', 'success');
             const refreshed = await CarDAO.getCarById(id);
             if (refreshed.success || refreshed.car) setCar(refreshed.car || refreshed);
-            setCarPhotos({ front: null, back: null, leftSide: null, rightSide: null });
-            setCarPhotoPreviews({ front: null, back: null, leftSide: null, rightSide: null });
+            setCarPhotos({ front: null, back: null, leftSide: null, rightSide: null, dashboard: null });
+            setCarPhotoPreviews({ front: null, back: null, leftSide: null, rightSide: null, dashboard: null });
         } catch (err) {
             console.error(err);
             message(err.message || 'Gagal mengunggah foto kendaraan', 'error');
@@ -646,9 +647,9 @@ export default function CarEditPage() {
                 <TabPanel value={tabValue} index={1}>
                     <SectionCard icon="mdi:camera-burst" title="Galeri Foto Kendaraan" sx={{ mb: 0 }}>
                         <Typography variant="body2" sx={{ color: '#64748B', mb: 3 }}>
-                            Unggah foto kendaraan dari 4 sisi yang berbeda agar informasi terlihat jelas dan sesuai prosedur.
+                            Unggah foto kendaraan dari beberapa bagian yang berbeda agar informasi terlihat jelas dan sesuai prosedur.
                         </Typography>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 3 }}>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' }, gap: 3 }}>
                             <ImageCard label="Sisi Depan"
                                 existingUrl={car?.carPhotos?.front}
                                 newFile={carPhotos.front} newPreview={carPhotoPreviews.front}
@@ -669,6 +670,11 @@ export default function CarEditPage() {
                                 newFile={carPhotos.leftSide} newPreview={carPhotoPreviews.leftSide}
                                 onSelect={(f) => selectCarPhoto('leftSide', f)}
                                 onClear={() => clearCarPhoto('leftSide')} />
+                            <ImageCard label="Dashboard"
+                                existingUrl={car?.carPhotos?.dashboard}
+                                newFile={carPhotos.dashboard} newPreview={carPhotoPreviews.dashboard}
+                                onSelect={(f) => selectCarPhoto('dashboard', f)}
+                                onClear={() => clearCarPhoto('dashboard')} />
                         </Box>
 
                         <Box sx={{ mt: 5, pt: 3, borderTop: '1px dashed #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

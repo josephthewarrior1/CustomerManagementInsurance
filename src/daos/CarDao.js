@@ -59,7 +59,7 @@ export default class CarDAO {
         );
     };
 
-    // Upload car photos (leftSide, rightSide, front, back)
+    // Upload car photos (leftSide, rightSide, front, back, dashboard)
     static uploadCarPhotos = async (carId, formData) => {
         console.log('📸 CarDAO: Uploading photos for car:', carId);
         return await ApiRequest.setMultipart(

@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "host": "vite --host"
+    "host": "vite --host",
+    "seed:josep": "node scripts/seedJosepData.mjs"
   },
   "dependencies": {
     "@date-io/dayjs": "^3.2.0",

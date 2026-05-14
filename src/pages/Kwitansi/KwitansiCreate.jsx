@@ -149,7 +149,7 @@ export default function KwitansiCreate() {
   const [companySubtitle, setCompanySubtitle] = useState("INSURANCE AGENCY");
   const [companyCity, setCompanyCity] = useState("Jakarta");
   const [stampFile, setStampFile] = useState(null);
-  const [stampPreview, setStampPreview] = useState("/stamp1.png");
+  const [stampPreview, setStampPreview] = useState(null);
 
   // Payments
   const [payments, setPayments] = useState([]);
@@ -275,7 +275,7 @@ export default function KwitansiCreate() {
     reader.readAsDataURL(file);
   };
 
-  const handleRemoveStamp = () => { setStampFile(null); setStampPreview("/stamp1.png"); };
+  const handleRemoveStamp = () => { setStampFile(null); setStampPreview(null); };
 
   // ── Form handlers ──
   const handleChange = (e) => {
@@ -603,9 +603,9 @@ export default function KwitansiCreate() {
                           onClick={() => document.getElementById("stamp-upload")?.click()}
                           startIcon={<Icon icon="mdi:upload" width={14} />}
                           sx={{ textTransform: "none", fontSize: 12, fontWeight: 600, borderColor: C.border, color: C.textSub, borderRadius: "6px" }}>
-                          {stampPreview && stampPreview !== "/stamp1.png" ? "Change" : "Upload"}
+                          {stampPreview ? "Change" : "Upload"}
                         </Button>
-                        {stampPreview && stampPreview !== "/stamp1.png" && (
+                        {stampPreview && (
                           <Button size="small" variant="text" color="error" onClick={handleRemoveStamp}
                             startIcon={<Icon icon="mdi:delete" width={14} />}
                             sx={{ textTransform: "none", fontSize: 12, fontWeight: 600 }}>

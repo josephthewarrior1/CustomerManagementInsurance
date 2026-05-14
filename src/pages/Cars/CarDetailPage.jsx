@@ -243,6 +243,7 @@ export default function CarDetailPage() {
         { label: 'Belakang', url: car.carPhotos?.back },
         { label: 'Kiri', url: car.carPhotos?.leftSide },
         { label: 'Kanan', url: car.carPhotos?.rightSide },
+        { label: 'Dashboard', url: car.carPhotos?.dashboard },
     ];
 
     const dueDate = new Date(car.carData?.dueDate);

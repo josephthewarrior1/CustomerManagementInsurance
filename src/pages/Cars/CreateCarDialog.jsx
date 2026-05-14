@@ -256,8 +256,8 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
     });
 
     // Car photos state
-    const [carPhotos, setCarPhotos] = useState({ front: null, back: null, leftSide: null, rightSide: null });
-    const [carPhotoPreviews, setCarPhotoPreviews] = useState({ front: null, back: null, leftSide: null, rightSide: null });
+    const [carPhotos, setCarPhotos] = useState({ front: null, back: null, leftSide: null, rightSide: null, dashboard: null });
+    const [carPhotoPreviews, setCarPhotoPreviews] = useState({ front: null, back: null, leftSide: null, rightSide: null, dashboard: null });
 
     // Document photos state
     const [docPhotos, setDocPhotos] = useState({ stnk: null, sim: null, ktp: null, polis: null });
@@ -363,8 +363,8 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
         setActiveStep(0);
         setCustomerSearch('');
         setCreatedCarId(null);
-        setCarPhotos({ front: null, back: null, leftSide: null, rightSide: null });
-        setCarPhotoPreviews({ front: null, back: null, leftSide: null, rightSide: null });
+        setCarPhotos({ front: null, back: null, leftSide: null, rightSide: null, dashboard: null });
+        setCarPhotoPreviews({ front: null, back: null, leftSide: null, rightSide: null, dashboard: null });
         setDocPhotos({ stnk: null, sim: null, ktp: null, polis: null });
         setDocPhotoPreviews({ stnk: null, sim: null, ktp: null, polis: null });
         onClose();
@@ -424,6 +424,7 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
             if (carPhotos.back) fd.append('back', await imageCompression(carPhotos.back, options));
             if (carPhotos.leftSide) fd.append('leftSide', await imageCompression(carPhotos.leftSide, options));
             if (carPhotos.rightSide) fd.append('rightSide', await imageCompression(carPhotos.rightSide, options));
+            if (carPhotos.dashboard) fd.append('dashboard', await imageCompression(carPhotos.dashboard, options));
             
             const res = await CarDAO.uploadCarPhotos(createdCarId, fd);
             if (!res.success) throw new Error(res.error || 'Gagal mengunggah foto');
@@ -704,7 +705,7 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
                         <Box>
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
                                 <Section title="Foto Kendaraan">
-                                    <Typography fontSize={12} sx={{ color: C.textSub, mb: 2 }}>Unggah foto kendaraan dari 4 sisi. Semua bersifat opsional.</Typography>
+                                    <Typography fontSize={12} sx={{ color: C.textSub, mb: 2 }}>Unggah foto kendaraan dari beberapa bagian. Semua bersifat opsional.</Typography>
                                     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                                         <ImageUploadBox
                                             label="Depan"
@@ -741,6 +742,15 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
                                             preview={carPhotoPreviews.leftSide}
                                             onSelect={(f) => handleSelectPhoto('leftSide', f)}
                                             onClear={() => handleClearPhoto('leftSide')}
+                                        />
+                                        <ImageUploadBox
+                                            label="Dashboard"
+                                            icon="mdi:view-dashboard-outline"
+                                            fieldKey="dashboard"
+                                            file={carPhotos.dashboard}
+                                            preview={carPhotoPreviews.dashboard}
+                                            onSelect={(f) => handleSelectPhoto('dashboard', f)}
+                                            onClear={() => handleClearPhoto('dashboard')}
                                         />
                                     </Box>
                                 </Section>

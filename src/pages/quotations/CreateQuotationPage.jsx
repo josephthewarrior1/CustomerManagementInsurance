@@ -27,7 +27,7 @@ import {
   Collapse,
   Fade,
 } from '@mui/material';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CompanyDAO from '../../daos/CompanyDao';
@@ -193,6 +193,8 @@ export default function CreateQuotationPage() {
   const [insuranceProvider, setInsuranceProvider] = useState('');
   const [insuranceType, setInsuranceType] = useState('All Risk');
   const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
+  const [quotationPreviewUrl, setQuotationPreviewUrl] = useState('');
+  const pageTopRef = useRef(null);
 
   const [coverages, setCoverages] = useState({
     comprehensive: { enabled: true, percentage: 1.32, freeInclude: false },
@@ -222,11 +224,25 @@ export default function CreateQuotationPage() {
 
   useEffect(() => { fetchCompanyProfile(); fetchData(); generateQuotationNumber(); }, []); // eslint-disable-line
   useEffect(() => { calculateTotals(); }, [tsi, coverages]); // eslint-disable-line
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      pageTopRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    });
+  }, [activeStep]);
 
   const roundIDR = (n) => Math.round(Number(n) || 0);
   const fmt = (v) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(v) || 0);
   const fmtNum = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(Number(v) || 0);
   const fmtShort = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(v) || 0);
+  const formatTsiInput = (v) => {
+    const digits = String(v || '').replace(/\D/g, '');
+    return digits ? fmtShort(digits) : '';
+  };
+
+  const handleTsiChange = (e) => {
+    setTsi(e.target.value.replace(/\D/g, ''));
+  };
 
   const fetchCompanyProfile = async () => {
     try {
@@ -392,32 +408,34 @@ export default function CreateQuotationPage() {
     finally { loading.stop(); }
   };
 
-  const generatePDF = () => {
+  const generatePDF = ({ save = true } = {}) => {
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
 
     const marginX = 18;
     const rightX = pageWidth - marginX;
 
-    let currentY = 18;
+    let currentY = 20;
 
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(16);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(30, 30, 30);
     doc.text((companyName || '').toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
     currentY += 6;
 
-    doc.setFont(undefined, 'normal');
+    doc.setFont('times', 'normal');
     doc.setFontSize(10);
     doc.text((companySubtitle || '').toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
     currentY += 10;
 
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(14);
-    doc.text('QUOTATION', pageWidth / 2, currentY, { align: 'center' });
-    currentY += 11;
+    doc.setFont('times', 'normal');
+    doc.setFontSize(16);
+    doc.text('Quotation', pageWidth / 2, currentY, { align: 'center' });
+    currentY += 15;
 
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
 
     doc.text(`No. ${quotationNumber}`, marginX, currentY);
 
@@ -434,9 +452,9 @@ export default function CreateQuotationPage() {
     const valueX = marginX + 46;
 
     const row = (y, label, value) => {
-      doc.setFont(undefined, 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text(label, labelX, y);
-      doc.setFont(undefined, 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.text(':', colonX, y);
       doc.text(String(value ?? ''), valueX, y);
     };
@@ -652,8 +670,27 @@ export default function CreateQuotationPage() {
       margin: { left: marginX, right: marginX }
     });
 
-    doc.save(`Quotation_${quotationNumber}.pdf`);
+    if (save) {
+      doc.save(`Quotation_${quotationNumber}.pdf`);
+    }
+
+    return doc;
   };
+
+  useEffect(() => {
+    if (!openPreviewDialog) {
+      setQuotationPreviewUrl('');
+      return undefined;
+    }
+
+    const doc = generatePDF({ save: false });
+    const url = doc.output('bloburl');
+    setQuotationPreviewUrl(url);
+
+    return () => {
+      if (typeof url === 'string') URL.revokeObjectURL(url);
+    };
+  }, [openPreviewDialog]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredList = useMemo(() => {
     const s = selectSearch.toLowerCase();
@@ -693,8 +730,88 @@ export default function CreateQuotationPage() {
     return selectedItem.ownerName || selectedItem.customerName || '';
   };
 
+  const QuotationPreviewContent = () => {
+    if (quotationPreviewUrl) {
+      return (
+        <Box
+          component="iframe"
+          title="Quotation PDF Preview"
+          src={quotationPreviewUrl}
+          sx={{ width: '100%', height: '70vh', border: 0, display: 'block', bgcolor: '#fff' }}
+        />
+      );
+    }
+
+    return (
+    <Paper elevation={0} sx={{ width: 794, minHeight: 1123, p: 5, bgcolor: '#fff', color: '#111827', borderRadius: 0 }}>
+      <Box sx={{ textAlign: 'center', mb: 4 }}>
+        <Typography sx={{ fontSize: 20, fontWeight: 800 }}>{companyName?.toUpperCase()}</Typography>
+        <Typography sx={{ fontSize: 13, color: '#4B5563' }}>{companySubtitle}</Typography>
+        <Typography sx={{ fontSize: 13, color: '#6B7280' }}>{companyCity}</Typography>
+      </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4 }}>
+        <Box>
+          <Typography sx={{ fontSize: 24, fontWeight: 800, letterSpacing: 0.5 }}>QUOTATION</Typography>
+          <Typography sx={{ fontSize: 13, color: '#6B7280' }}>No. {quotationNumber}</Typography>
+        </Box>
+        <Box sx={{ textAlign: 'right' }}>
+          <Typography sx={{ fontSize: 13, color: '#6B7280' }}>Tanggal</Typography>
+          <Typography sx={{ fontSize: 14, fontWeight: 700 }}>{new Date().toLocaleDateString('id-ID')}</Typography>
+        </Box>
+      </Box>
+
+      <Typography sx={{ fontSize: 14, fontWeight: 800, mb: 1 }}>Customer & Policy</Typography>
+      <Grid container spacing={1.2} sx={{ mb: 3 }}>
+        {[
+          ['Pemilik', getOwnerName() || '-'],
+          [quotationType === 'car' ? 'Kendaraan' : 'Properti', getSelectedLabel() || '-'],
+          ['TSI', fmt(Number(tsi))],
+          ['Provider', quotationType === 'car' ? (insuranceProvider || '-') : '-'],
+          ['Jenis Asuransi', quotationType === 'car' ? insuranceType : quotationType],
+          ['Total Premium', fmt(calculations.totalPremium)],
+        ].map(([label, value]) => (
+          <Grid item xs={6} key={label}>
+            <Box sx={{ p: 1.3, border: '1px solid #E5E7EB', bgcolor: '#F9FAFB', minHeight: 58 }}>
+              <Typography sx={{ fontSize: 10, color: '#6B7280', textTransform: 'uppercase', mb: 0.4 }}>{label}</Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, overflowWrap: 'anywhere' }}>{value}</Typography>
+            </Box>
+          </Grid>
+        ))}
+      </Grid>
+
+      <Box sx={{ border: '1px solid #D1D5DB', mb: 3 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 110px 150px', bgcolor: '#F3F4F6', borderBottom: '1px solid #D1D5DB' }}>
+          <Typography sx={{ p: 1.2, fontSize: 12, fontWeight: 800 }}>Coverage</Typography>
+          <Typography sx={{ p: 1.2, fontSize: 12, fontWeight: 800, textAlign: 'right' }}>Rate</Typography>
+          <Typography sx={{ p: 1.2, fontSize: 12, fontWeight: 800, textAlign: 'right' }}>Amount</Typography>
+        </Box>
+        {enabledKeys.map((key) => {
+          const c = coverages[key];
+          return (
+            <Box key={key} sx={{ display: 'grid', gridTemplateColumns: '1fr 110px 150px', borderBottom: '1px solid #E5E7EB' }}>
+              <Typography sx={{ p: 1.2, fontSize: 13, fontWeight: 600 }}>{coverageLabels[key]}</Typography>
+              <Typography sx={{ p: 1.2, fontSize: 13, textAlign: 'right' }}>{c.freeInclude ? 'FREE' : (c.isFixedAmount ? '-' : `${c.percentage}%`)}</Typography>
+              <Typography sx={{ p: 1.2, fontSize: 13, fontWeight: 700, textAlign: 'right' }}>{c.freeInclude ? 'FREE' : fmt(calculations.itemAmounts?.[key] ?? 0)}</Typography>
+            </Box>
+          );
+        })}
+      </Box>
+
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Stack spacing={0.7} sx={{ width: 300 }}>
+          <Box display="flex" justifyContent="space-between"><Typography fontSize={13}>Subtotal</Typography><Typography fontSize={13} fontWeight={700}>{fmt(calculations.subtotal)}</Typography></Box>
+          <Box display="flex" justifyContent="space-between"><Typography fontSize={13}>Admin Fee</Typography><Typography fontSize={13} fontWeight={700}>{fmt(calculations.adminFee)}</Typography></Box>
+          <Box display="flex" justifyContent="space-between"><Typography fontSize={13}>Stamp Duty</Typography><Typography fontSize={13} fontWeight={700}>{fmt(calculations.stampDuty)}</Typography></Box>
+          <Divider />
+          <Box display="flex" justifyContent="space-between"><Typography fontSize={15} fontWeight={800}>TOTAL</Typography><Typography fontSize={17} fontWeight={900}>{fmt(calculations.totalPremium)}</Typography></Box>
+        </Stack>
+      </Box>
+    </Paper>
+    );
+  };
+
   return (
-    <Box sx={{ bgcolor: '#F4F5F7', minHeight: '100vh', py: 4 }}>
+    <Box ref={pageTopRef} sx={{ bgcolor: '#F4F5F7', minHeight: '100vh', py: 4 }}>
       <Container maxWidth="sm">
 
         {/* Title */}
@@ -788,20 +905,15 @@ export default function CreateQuotationPage() {
 
                 <Section title="Total Sum Insured (TSI)">
                   <Field label="Amount (IDR)" required hint="Nilai pertanggungan kendaraan">
-                    <TextField fullWidth size="small" type="number" placeholder="e.g., 400000000"
-                      value={tsi} onChange={(e) => setTsi(e.target.value)}
+                    <TextField fullWidth size="small" placeholder="e.g., 400.000.000"
+                      value={formatTsiInput(tsi)} onChange={handleTsiChange}
+                      inputProps={{ inputMode: 'numeric' }}
                       InputProps={{
                         startAdornment: <InputAdornment position="start"><Typography fontSize={13} fontWeight={700} sx={{ color: '#606770' }}>Rp</Typography></InputAdornment>,
                       }}
                       sx={inputStyle}
                     />
                   </Field>
-                  {tsi && Number(tsi) > 0 && (
-                    <Box sx={{ p: 2, borderRadius: '8px', bgcolor: '#EBF4FF', border: `1px solid ${alpha('#1971C2', 0.2)}` }}>
-                      <Typography fontSize={11} sx={{ color: '#1971C2', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.3 }}>TSI Amount</Typography>
-                      <Typography fontSize={20} fontWeight={700} sx={{ color: '#1971C2' }}>{fmt(Number(tsi))}</Typography>
-                    </Box>
-                  )}
                 </Section>
               </Paper>
 
@@ -1132,15 +1244,18 @@ export default function CreateQuotationPage() {
 
       {/* Preview Dialog */}
       <Dialog open={openPreviewDialog} onClose={() => setOpenPreviewDialog(false)}
-        maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '12px', m: 2 } }}>
-        <DialogTitle sx={{ pb: 1 }}>
-          <Box display="flex" alignItems="center" gap={1}>
+        maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: '12px' } }}>
+        <DialogTitle sx={{ p: 2.5, borderBottom: '1px solid #E4E6EA' }}>
+          <Box display="flex" alignItems="center" gap={1.5}>
             <Icon icon="mdi:file-pdf-box" width={22} color="#D32F2F" />
             <Typography fontSize={16} fontWeight={700} sx={{ color: '#1C1E21' }}>Preview Quotation</Typography>
           </Box>
         </DialogTitle>
-        <DialogContent>
-          <Box sx={{ p: 2.5, borderRadius: '8px', bgcolor: '#F8F9FA', border: '1px solid #E4E6EA' }}>
+        <DialogContent sx={{ p: 3, bgcolor: '#F4F5F7' }}>
+          <Box sx={{ overflow: 'auto', maxHeight: '70vh', display: 'flex', justifyContent: 'center', bgcolor: '#fff', borderRadius: '8px' }}>
+            <QuotationPreviewContent />
+          </Box>
+          <Box sx={{ display: 'none', p: 2.5, borderRadius: '8px', bgcolor: '#F8F9FA', border: '1px solid #E4E6EA' }}>
             <Box textAlign="center" mb={2}>
               <Typography fontSize={14} fontWeight={700} sx={{ color: '#1C1E21' }}>{companyName}</Typography>
               <Typography fontSize={12} sx={{ color: '#606770' }}>{companySubtitle} · {companyCity}</Typography>
@@ -1154,17 +1269,17 @@ export default function CreateQuotationPage() {
               <Box display="flex" justifyContent="space-between"><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>Total Premium</Typography><Typography fontSize={15} fontWeight={700} sx={{ color: '#D32F2F' }}>{fmt(calculations.totalPremium)}</Typography></Box>
             </Stack>
           </Box>
-          <Typography fontSize={12} sx={{ color: '#9EA8B3', mt: 2, display: 'block' }}>
+          <Typography fontSize={12} sx={{ color: '#9EA8B3', mt: 2, display: 'none' }}>
             PDF will include full coverage breakdown and calculation.
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ p: 2.5, pt: 0, gap: 1 }}>
+        <DialogActions sx={{ p: 2.5, borderTop: '1px solid #E4E6EA', gap: 1 }}>
           <Button onClick={() => setOpenPreviewDialog(false)} variant="outlined"
-            sx={{ flex: 1, borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: '#E4E6EA', color: '#606770' }}>
+            sx={{ borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: '#E4E6EA', color: '#606770', px: 3 }}>
             Cancel
           </Button>
           <Button onClick={handleConfirmDownload} variant="contained" startIcon={<Icon icon="mdi:download" width={15} />}
-            sx={{ flex: 1, bgcolor: '#D32F2F', borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, boxShadow: 'none', '&:hover': { bgcolor: '#B71C1C' } }}>
+            sx={{ bgcolor: '#D32F2F', borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, px: 3, boxShadow: 'none', '&:hover': { bgcolor: '#B71C1C' } }}>
             Download PDF
           </Button>
         </DialogActions>
