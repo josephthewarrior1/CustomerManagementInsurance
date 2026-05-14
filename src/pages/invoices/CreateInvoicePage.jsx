@@ -5,7 +5,7 @@ import {
     Stack, InputAdornment, Avatar, Fade, Chip,
     DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CompanyDAO from '../../daos/CompanyDao';
@@ -16,6 +16,14 @@ import InvoiceDAO from '../../daos/InvoiceDao';
 import QuotationDAO from '../../daos/QuotationDao';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url
+).toString();
 
 // â”€â”€â”€ Design Tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const C = {
@@ -185,12 +193,15 @@ export default function CreateInvoicePage() {
     const [adminFee, setAdminFee] = useState('');
     const [stampDuty, setStampDuty] = useState('');
     const [invoicePreviewUrl, setInvoicePreviewUrl] = useState('');
+    const [invoicePreviewPages, setInvoicePreviewPages] = useState(0);
+    const [invoicePreviewWidth, setInvoicePreviewWidth] = useState(794);
 
     const parseNumber = (val) => {
         const numStr = String(val).replace(/\D/g, '');
         return numStr === '' ? '' : numStr;
     };
     const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
+    const invoicePreviewRef = useRef(null);
 
     // Dates for Invoice Form
     const [invoiceStartDate, setInvoiceStartDate] = useState('');
@@ -608,104 +619,47 @@ export default function CreateInvoicePage() {
         return doc;
     };
 
-    const InvoicePreviewContent = () => {
-        if (invoicePreviewUrl && !isMobile) {
-            return (
-                <Box
-                    component="iframe"
-                    title="Invoice PDF Preview"
-                    src={invoicePreviewUrl}
-                    sx={{ width: '100%', height: '70vh', border: 0, display: 'block', bgcolor: '#fff' }}
-                />
-            );
-        }
-
-        const validItems = items.filter(it => it.description?.trim());
-        const billRows = invoiceType === 'car' ? [
-            ['Pemilik', selectedItem?.carData?.ownerName || '-'],
-            ['Kendaraan', `${selectedItem?.carData?.carBrand || ''} ${selectedItem?.carData?.carModel || ''}`.trim() || '-'],
-            ['No. Plat', selectedItem?.carData?.plateNumber || '-'],
-            ['No. Rangka', selectedItem?.carData?.chassisNumber || '-'],
-            ['No. Mesin', selectedItem?.carData?.engineNumber || '-'],
-            ['Harga Mobil', selectedItem?.carData?.carPrice ? formatCurrency(selectedItem.carData.carPrice) : '-'],
-        ] : [
-            ['Pemilik', selectedItem?.ownerName || selectedItem?.customerName || '-'],
-            ['Tipe Properti', selectedItem?.propertyData?.propertyType || '-'],
-            ['Kota', selectedItem?.propertyData?.city || '-'],
-            ['Alamat', selectedItem?.propertyData?.address || '-'],
-            ['Nilai Properti', selectedItem?.propertyData?.propertyValue ? formatCurrency(selectedItem.propertyData.propertyValue) : '-'],
-            ['Jatuh Tempo', selectedItem?.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID') : '-'],
-        ];
-
-        return (
-            <Paper elevation={0} sx={{
-                width: isMobile ? '100%' : 794,
-                minWidth: isMobile ? 0 : 794,
-                minHeight: isMobile ? 'auto' : 1123,
-                p: isMobile ? 2 : 5,
-                bgcolor: '#fff',
-                color: '#111827',
-                borderRadius: 0,
-            }}>
-                <Box sx={{ textAlign: 'center', mb: 4 }}>
-                    <Typography sx={{ fontSize: 20, fontWeight: 800 }}>{companyName?.toUpperCase()}</Typography>
-                    <Typography sx={{ fontSize: 13, color: '#4B5563' }}>{companySubtitle}</Typography>
-                    <Typography sx={{ fontSize: 13, color: '#6B7280' }}>{companyCity}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 1.5 : 0, justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-start', mb: 4 }}>
-                    <Box>
-                        <Typography sx={{ fontSize: 24, fontWeight: 800, letterSpacing: 0.5 }}>INVOICE</Typography>
-                        <Typography sx={{ fontSize: 13, color: '#6B7280' }}>No. {invoiceNumber}</Typography>
-                    </Box>
-                    <Box sx={{ textAlign: isMobile ? 'left' : 'right' }}>
-                        <Typography sx={{ fontSize: 13, color: '#6B7280' }}>Tanggal</Typography>
-                        <Typography sx={{ fontSize: 14, fontWeight: 700 }}>{new Date().toLocaleDateString('id-ID')}</Typography>
-                    </Box>
-                </Box>
-                <Typography sx={{ fontSize: 14, fontWeight: 800, mb: 1 }}>Bill To</Typography>
-                <Grid container spacing={1.2} sx={{ mb: 3 }}>
-                    {billRows.map(([label, value]) => (
-                        <Grid item xs={12} sm={6} key={label}>
-                            <Box sx={{ p: 1.3, border: `1px solid ${C.border}`, bgcolor: '#F9FAFB', minHeight: 58 }}>
-                                <Typography sx={{ fontSize: 10, color: '#6B7280', textTransform: 'uppercase', mb: 0.4 }}>{label}</Typography>
-                                <Typography sx={{ fontSize: 13, fontWeight: 700, overflowWrap: 'anywhere' }}>{value}</Typography>
-                            </Box>
-                        </Grid>
-                    ))}
-                </Grid>
-                <Box sx={{ border: '1px solid #D1D5DB', mb: 3 }}>
-                    <Box sx={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 112px' : '1fr 180px', bgcolor: '#F3F4F6', borderBottom: '1px solid #D1D5DB' }}>
-                        <Typography sx={{ p: 1.2, fontSize: 12, fontWeight: 800 }}>Description</Typography>
-                        <Typography sx={{ p: 1.2, fontSize: 12, fontWeight: 800, textAlign: 'right' }}>Amount</Typography>
-                    </Box>
-                    {validItems.map((item, i) => (
-                        <Box key={i} sx={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 112px' : '1fr 180px', borderBottom: i === validItems.length - 1 ? 'none' : '1px solid #E5E7EB' }}>
-                            <Box sx={{ p: 1.2 }}>
-                                <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{item.description}</Typography>
-                                <Typography sx={{ fontSize: 11, color: '#6B7280' }}>{formatCurrency(item.price)}</Typography>
-                            </Box>
-                            <Typography sx={{ p: 1.2, fontSize: 13, fontWeight: 700, textAlign: 'right', overflowWrap: 'anywhere' }}>{formatCurrency(Number(item.quantity) * Number(item.price))}</Typography>
+    const InvoicePreviewContent = () => (
+        <Box
+            ref={invoicePreviewRef}
+            sx={{
+                width: '100%',
+                minHeight: isMobile ? 'calc(100vh - 172px)' : '70vh',
+                display: 'flex',
+                justifyContent: 'center',
+                bgcolor: '#E5E7EB',
+                py: isMobile ? 1 : 2,
+            }}
+        >
+            {invoicePreviewUrl ? (
+                <Document
+                    file={invoicePreviewUrl}
+                    onLoadSuccess={({ numPages }) => setInvoicePreviewPages(numPages)}
+                    loading={<Typography sx={{ p: 3, color: C.textSub }}>Loading preview...</Typography>}
+                    error={<Typography sx={{ p: 3, color: C.error }}>Preview PDF gagal dimuat.</Typography>}
+                >
+                    {Array.from(new Array(invoicePreviewPages), (_, index) => (
+                        <Box key={`invoice-page-${index + 1}`} sx={{ mb: index + 1 === invoicePreviewPages ? 0 : 2 }}>
+                            <Page
+                                pageNumber={index + 1}
+                                width={invoicePreviewWidth}
+                                renderAnnotationLayer={false}
+                                renderTextLayer={false}
+                            />
                         </Box>
                     ))}
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Stack spacing={0.7} sx={{ width: isMobile ? '100%' : 300 }}>
-                        <Box display="flex" justifyContent="space-between"><Typography fontSize={13}>Subtotal</Typography><Typography fontSize={13} fontWeight={700}>{formatCurrency(calculateSubtotal())}</Typography></Box>
-                        {Number(discount) > 0 && <Box display="flex" justifyContent="space-between"><Typography fontSize={13}>Discount</Typography><Typography fontSize={13} fontWeight={700}>-{formatCurrency(discount)}</Typography></Box>}
-                        {Number(adminFee) > 0 && <Box display="flex" justifyContent="space-between"><Typography fontSize={13}>Admin Fee</Typography><Typography fontSize={13} fontWeight={700}>{formatCurrency(adminFee)}</Typography></Box>}
-                        {Number(stampDuty) > 0 && <Box display="flex" justifyContent="space-between"><Typography fontSize={13}>Stamp Duty</Typography><Typography fontSize={13} fontWeight={700}>{formatCurrency(stampDuty)}</Typography></Box>}
-                        <Divider />
-                        <Box display="flex" justifyContent="space-between"><Typography fontSize={15} fontWeight={800}>TOTAL</Typography><Typography fontSize={17} fontWeight={900}>{formatCurrency(calculateTotal())}</Typography></Box>
-                    </Stack>
-                </Box>
-            </Paper>
-        );
-    };
+                </Document>
+            ) : (
+                <Typography sx={{ p: 3, color: C.textSub }}>Menyiapkan preview...</Typography>
+            )}
+        </Box>
+    );
     // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     useEffect(() => {
         if (!openPreviewDialog) {
             setInvoicePreviewUrl('');
+            setInvoicePreviewPages(0);
             return undefined;
         }
 
@@ -718,6 +672,26 @@ export default function CreateInvoicePage() {
             if (typeof url === 'string') URL.revokeObjectURL(url);
         };
     }, [openPreviewDialog]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        if (!openPreviewDialog) return undefined;
+
+        const updatePreviewWidth = () => {
+            const containerWidth = invoicePreviewRef.current?.clientWidth || (isMobile ? window.innerWidth - 24 : 794);
+            setInvoicePreviewWidth(Math.max(260, Math.min(containerWidth - (isMobile ? 16 : 32), 794)));
+        };
+
+        updatePreviewWidth();
+
+        if (typeof ResizeObserver !== 'undefined' && invoicePreviewRef.current) {
+            const observer = new ResizeObserver(updatePreviewWidth);
+            observer.observe(invoicePreviewRef.current);
+            return () => observer.disconnect();
+        }
+
+        window.addEventListener('resize', updatePreviewWidth);
+        return () => window.removeEventListener('resize', updatePreviewWidth);
+    }, [openPreviewDialog, isMobile]);
 
     // Filtered list for dialog
     const filteredList = useMemo(() => {
