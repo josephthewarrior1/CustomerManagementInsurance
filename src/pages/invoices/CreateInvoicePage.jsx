@@ -673,8 +673,7 @@ export default function CreateInvoicePage() {
         }
 
         const doc = generatePDF({ save: false });
-        const pdfData = new Uint8Array(doc.output('arraybuffer'));
-        setInvoicePreviewFile({ data: pdfData });
+        setInvoicePreviewFile(doc.output('datauristring'));
 
         return undefined;
     }, [openPreviewDialog]); // eslint-disable-line react-hooks/exhaustive-deps
