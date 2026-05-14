@@ -21,7 +21,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
+    'pdfjs-dist/legacy/build/pdf.worker.min.mjs',
     import.meta.url
 ).toString();
 
@@ -192,9 +192,10 @@ export default function CreateInvoicePage() {
     const [discount, setDiscount] = useState('');
     const [adminFee, setAdminFee] = useState('');
     const [stampDuty, setStampDuty] = useState('');
-    const [invoicePreviewUrl, setInvoicePreviewUrl] = useState('');
+    const [invoicePreviewFile, setInvoicePreviewFile] = useState(null);
     const [invoicePreviewPages, setInvoicePreviewPages] = useState(0);
     const [invoicePreviewWidth, setInvoicePreviewWidth] = useState(794);
+    const [invoicePreviewError, setInvoicePreviewError] = useState('');
 
     const parseNumber = (val) => {
         const numStr = String(val).replace(/\D/g, '');
@@ -631,12 +632,19 @@ export default function CreateInvoicePage() {
                 py: isMobile ? 1 : 2,
             }}
         >
-            {invoicePreviewUrl ? (
+            {invoicePreviewFile ? (
                 <Document
-                    file={invoicePreviewUrl}
-                    onLoadSuccess={({ numPages }) => setInvoicePreviewPages(numPages)}
+                    file={invoicePreviewFile}
+                    onLoadSuccess={({ numPages }) => {
+                        setInvoicePreviewPages(numPages);
+                        setInvoicePreviewError('');
+                    }}
+                    onLoadError={(error) => {
+                        console.error('Invoice preview PDF load failed:', error);
+                        setInvoicePreviewError(error?.message || 'PDF tidak bisa dibaca di browser ini.');
+                    }}
                     loading={<Typography sx={{ p: 3, color: C.textSub }}>Loading preview...</Typography>}
-                    error={<Typography sx={{ p: 3, color: C.error }}>Preview PDF gagal dimuat.</Typography>}
+                    error={<Typography sx={{ p: 3, color: C.error }}>{invoicePreviewError || 'Preview PDF gagal dimuat.'}</Typography>}
                 >
                     {Array.from(new Array(invoicePreviewPages), (_, index) => (
                         <Box key={`invoice-page-${index + 1}`} sx={{ mb: index + 1 === invoicePreviewPages ? 0 : 2 }}>
@@ -658,19 +666,17 @@ export default function CreateInvoicePage() {
 
     useEffect(() => {
         if (!openPreviewDialog) {
-            setInvoicePreviewUrl('');
+            setInvoicePreviewFile(null);
             setInvoicePreviewPages(0);
+            setInvoicePreviewError('');
             return undefined;
         }
 
         const doc = generatePDF({ save: false });
-        const pdfBlob = doc.output('blob');
-        const url = URL.createObjectURL(pdfBlob);
-        setInvoicePreviewUrl(url);
+        const pdfData = new Uint8Array(doc.output('arraybuffer'));
+        setInvoicePreviewFile({ data: pdfData });
 
-        return () => {
-            if (typeof url === 'string') URL.revokeObjectURL(url);
-        };
+        return undefined;
     }, [openPreviewDialog]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
