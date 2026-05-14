@@ -684,12 +684,9 @@ export default function CreateQuotationPage() {
     }
 
     const doc = generatePDF({ save: false });
-    const url = doc.output('bloburl');
-    setQuotationPreviewUrl(url);
+    setQuotationPreviewUrl(doc.output('datauristring'));
 
-    return () => {
-      if (typeof url === 'string') URL.revokeObjectURL(url);
-    };
+    return undefined;
   }, [openPreviewDialog]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredList = useMemo(() => {
@@ -737,76 +734,15 @@ export default function CreateQuotationPage() {
           component="iframe"
           title="Quotation PDF Preview"
           src={quotationPreviewUrl}
-          sx={{ width: '100%', height: '70vh', border: 0, display: 'block', bgcolor: '#fff' }}
+          sx={{ width: '100%', height: isMobile ? 'calc(100vh - 160px)' : '70vh', border: 0, display: 'block', bgcolor: '#fff' }}
         />
       );
     }
 
     return (
-    <Paper elevation={0} sx={{ width: 794, minHeight: 1123, p: 5, bgcolor: '#fff', color: '#111827', borderRadius: 0 }}>
-      <Box sx={{ textAlign: 'center', mb: 4 }}>
-        <Typography sx={{ fontSize: 20, fontWeight: 800 }}>{companyName?.toUpperCase()}</Typography>
-        <Typography sx={{ fontSize: 13, color: '#4B5563' }}>{companySubtitle}</Typography>
-        <Typography sx={{ fontSize: 13, color: '#6B7280' }}>{companyCity}</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: isMobile ? 'calc(100vh - 160px)' : '70vh', bgcolor: '#E5E7EB' }}>
+        <Typography sx={{ p: 3, color: C.textSub }}>Menyiapkan preview...</Typography>
       </Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4 }}>
-        <Box>
-          <Typography sx={{ fontSize: 24, fontWeight: 800, letterSpacing: 0.5 }}>QUOTATION</Typography>
-          <Typography sx={{ fontSize: 13, color: '#6B7280' }}>No. {quotationNumber}</Typography>
-        </Box>
-        <Box sx={{ textAlign: 'right' }}>
-          <Typography sx={{ fontSize: 13, color: '#6B7280' }}>Tanggal</Typography>
-          <Typography sx={{ fontSize: 14, fontWeight: 700 }}>{new Date().toLocaleDateString('id-ID')}</Typography>
-        </Box>
-      </Box>
-
-      <Typography sx={{ fontSize: 14, fontWeight: 800, mb: 1 }}>Customer & Policy</Typography>
-      <Grid container spacing={1.2} sx={{ mb: 3 }}>
-        {[
-          ['Pemilik', getOwnerName() || '-'],
-          [quotationType === 'car' ? 'Kendaraan' : 'Properti', getSelectedLabel() || '-'],
-          ['TSI', fmt(Number(tsi))],
-          ['Provider', quotationType === 'car' ? (insuranceProvider || '-') : '-'],
-          ['Jenis Asuransi', quotationType === 'car' ? insuranceType : quotationType],
-          ['Total Premium', fmt(calculations.totalPremium)],
-        ].map(([label, value]) => (
-          <Grid item xs={6} key={label}>
-            <Box sx={{ p: 1.3, border: '1px solid #E5E7EB', bgcolor: '#F9FAFB', minHeight: 58 }}>
-              <Typography sx={{ fontSize: 10, color: '#6B7280', textTransform: 'uppercase', mb: 0.4 }}>{label}</Typography>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, overflowWrap: 'anywhere' }}>{value}</Typography>
-            </Box>
-          </Grid>
-        ))}
-      </Grid>
-
-      <Box sx={{ border: '1px solid #D1D5DB', mb: 3 }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 110px 150px', bgcolor: '#F3F4F6', borderBottom: '1px solid #D1D5DB' }}>
-          <Typography sx={{ p: 1.2, fontSize: 12, fontWeight: 800 }}>Coverage</Typography>
-          <Typography sx={{ p: 1.2, fontSize: 12, fontWeight: 800, textAlign: 'right' }}>Rate</Typography>
-          <Typography sx={{ p: 1.2, fontSize: 12, fontWeight: 800, textAlign: 'right' }}>Amount</Typography>
-        </Box>
-        {enabledKeys.map((key) => {
-          const c = coverages[key];
-          return (
-            <Box key={key} sx={{ display: 'grid', gridTemplateColumns: '1fr 110px 150px', borderBottom: '1px solid #E5E7EB' }}>
-              <Typography sx={{ p: 1.2, fontSize: 13, fontWeight: 600 }}>{coverageLabels[key]}</Typography>
-              <Typography sx={{ p: 1.2, fontSize: 13, textAlign: 'right' }}>{c.freeInclude ? 'FREE' : (c.isFixedAmount ? '-' : `${c.percentage}%`)}</Typography>
-              <Typography sx={{ p: 1.2, fontSize: 13, fontWeight: 700, textAlign: 'right' }}>{c.freeInclude ? 'FREE' : fmt(calculations.itemAmounts?.[key] ?? 0)}</Typography>
-            </Box>
-          );
-        })}
-      </Box>
-
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Stack spacing={0.7} sx={{ width: 300 }}>
-          <Box display="flex" justifyContent="space-between"><Typography fontSize={13}>Subtotal</Typography><Typography fontSize={13} fontWeight={700}>{fmt(calculations.subtotal)}</Typography></Box>
-          <Box display="flex" justifyContent="space-between"><Typography fontSize={13}>Admin Fee</Typography><Typography fontSize={13} fontWeight={700}>{fmt(calculations.adminFee)}</Typography></Box>
-          <Box display="flex" justifyContent="space-between"><Typography fontSize={13}>Stamp Duty</Typography><Typography fontSize={13} fontWeight={700}>{fmt(calculations.stampDuty)}</Typography></Box>
-          <Divider />
-          <Box display="flex" justifyContent="space-between"><Typography fontSize={15} fontWeight={800}>TOTAL</Typography><Typography fontSize={17} fontWeight={900}>{fmt(calculations.totalPremium)}</Typography></Box>
-        </Stack>
-      </Box>
-    </Paper>
     );
   };
 
@@ -1244,7 +1180,7 @@ export default function CreateQuotationPage() {
 
       {/* Preview Dialog */}
       <Dialog open={openPreviewDialog} onClose={() => setOpenPreviewDialog(false)}
-        maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: '12px' } }}>
+        maxWidth="lg" fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: isMobile ? 0 : '12px' } }}>
         <DialogTitle sx={{ p: 2.5, borderBottom: '1px solid #E4E6EA' }}>
           <Box display="flex" alignItems="center" gap={1.5}>
             <Icon icon="mdi:file-pdf-box" width={22} color="#D32F2F" />

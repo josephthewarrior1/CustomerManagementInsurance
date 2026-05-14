@@ -854,32 +854,34 @@ export default function KwitansiCreate() {
 
       {/* ── Preview Dialog ── */}
       <Dialog open={openPreviewDialog} onClose={() => setOpenPreviewDialog(false)}
-        maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: "12px" } }}>
+        maxWidth="lg" fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: isMobile ? 0 : '12px' } }}>
         <DialogTitle sx={{ p: 2.5, borderBottom: `1px solid ${C.border}` }}>
           <Box display="flex" alignItems="center" gap={1.5}>
             <Icon icon="mdi:file-pdf-box" width={22} color="#D32F2F" />
             <Typography fontSize={16} fontWeight={700} sx={{ color: C.text }}>Preview Kwitansi</Typography>
           </Box>
         </DialogTitle>
-        <DialogContent sx={{ p: 3, bgcolor: "#F4F5F7" }}>
-          <Box sx={{ overflow: "auto", maxHeight: "70vh", display: "flex", justifyContent: "center", bgcolor: C.white, borderRadius: "8px" }}>
+        <DialogContent sx={{ p: isMobile ? 1 : 3, bgcolor: "#F4F5F7", overflow: 'auto' }}>
+          <Box sx={{ overflow: "auto", maxHeight: isMobile ? 'calc(100vh - 160px)' : "70vh", display: "flex", justifyContent: "center", bgcolor: C.white, borderRadius: "8px" }}>
             <ReceiptContent />
           </Box>
-          <Box sx={{ mt: 2, p: 2, bgcolor: C.white, borderRadius: "8px", border: `1px solid ${C.border}` }}>
-            <Typography fontSize={12} sx={{ color: C.textSub, display: "flex", alignItems: "center", gap: 1 }}>
-              <Icon icon="mdi:information" width={15} color={C.primary} />
-              PDF will include company information, customer details, payment amount, and company stamp.
-            </Typography>
-          </Box>
+          {!isMobile && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: C.white, borderRadius: "8px", border: `1px solid ${C.border}` }}>
+              <Typography fontSize={12} sx={{ color: C.textSub, display: "flex", alignItems: "center", gap: 1 }}>
+                <Icon icon="mdi:information" width={15} color={C.primary} />
+                PDF will include company information, customer details, payment amount, and company stamp.
+              </Typography>
+            </Box>
+          )}
         </DialogContent>
-        <DialogActions sx={{ p: 2.5, borderTop: `1px solid ${C.border}`, gap: 1 }}>
+        <DialogActions sx={{ p: isMobile ? 1.5 : 2.5, borderTop: `1px solid ${C.border}`, gap: 1, flexDirection: isMobile ? 'column-reverse' : 'row', alignItems: isMobile ? 'stretch' : 'center' }}>
           <Button onClick={() => setOpenPreviewDialog(false)} variant="outlined"
-            sx={{ borderRadius: "8px", textTransform: "none", fontSize: 13, fontWeight: 600, borderColor: C.border, color: C.textSub, px: 3 }}>
+            sx={{ borderRadius: "8px", textTransform: "none", fontSize: 13, fontWeight: 600, borderColor: C.border, color: C.textSub, px: 3, m: 0 }}>
             Cancel
           </Button>
           <Button onClick={downloadPDF} variant="contained"
             startIcon={<Icon icon="mdi:download" width={16} />}
-            sx={{ bgcolor: "#D32F2F", borderRadius: "8px", textTransform: "none", fontSize: 13, fontWeight: 600, px: 3, boxShadow: "none", "&:hover": { bgcolor: "#B71C1C" } }}>
+            sx={{ bgcolor: "#D32F2F", borderRadius: "8px", textTransform: "none", fontSize: 13, fontWeight: 600, px: 3, boxShadow: "none", m: 0, "&:hover": { bgcolor: "#B71C1C" } }}>
             Download PDF
           </Button>
         </DialogActions>

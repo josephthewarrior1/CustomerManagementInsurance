@@ -16,14 +16,6 @@ import InvoiceDAO from '../../daos/InvoiceDao';
 import QuotationDAO from '../../daos/QuotationDao';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
-
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/legacy/build/pdf.worker.min.mjs',
-    import.meta.url
-).toString();
 
 // â”€â”€â”€ Design Tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const C = {
@@ -192,10 +184,7 @@ export default function CreateInvoicePage() {
     const [discount, setDiscount] = useState('');
     const [adminFee, setAdminFee] = useState('');
     const [stampDuty, setStampDuty] = useState('');
-    const [invoicePreviewFile, setInvoicePreviewFile] = useState(null);
-    const [invoicePreviewPages, setInvoicePreviewPages] = useState(0);
-    const [invoicePreviewWidth, setInvoicePreviewWidth] = useState(794);
-    const [invoicePreviewError, setInvoicePreviewError] = useState('');
+    const [invoicePreviewUrl, setInvoicePreviewUrl] = useState('');
 
     const parseNumber = (val) => {
         const numStr = String(val).replace(/\D/g, '');
@@ -625,40 +614,22 @@ export default function CreateInvoicePage() {
             ref={invoicePreviewRef}
             sx={{
                 width: '100%',
-                minHeight: isMobile ? 'calc(100vh - 172px)' : '70vh',
+                height: isMobile ? 'calc(100vh - 172px)' : '70vh',
                 display: 'flex',
-                justifyContent: 'center',
-                bgcolor: '#E5E7EB',
-                py: isMobile ? 1 : 2,
+                flexDirection: 'column',
             }}
         >
-            {invoicePreviewFile ? (
-                <Document
-                    file={invoicePreviewFile}
-                    onLoadSuccess={({ numPages }) => {
-                        setInvoicePreviewPages(numPages);
-                        setInvoicePreviewError('');
-                    }}
-                    onLoadError={(error) => {
-                        console.error('Invoice preview PDF load failed:', error);
-                        setInvoicePreviewError(error?.message || 'PDF tidak bisa dibaca di browser ini.');
-                    }}
-                    loading={<Typography sx={{ p: 3, color: C.textSub }}>Loading preview...</Typography>}
-                    error={<Typography sx={{ p: 3, color: C.error }}>{invoicePreviewError || 'Preview PDF gagal dimuat.'}</Typography>}
-                >
-                    {Array.from(new Array(invoicePreviewPages), (_, index) => (
-                        <Box key={`invoice-page-${index + 1}`} sx={{ mb: index + 1 === invoicePreviewPages ? 0 : 2 }}>
-                            <Page
-                                pageNumber={index + 1}
-                                width={invoicePreviewWidth}
-                                renderAnnotationLayer={false}
-                                renderTextLayer={false}
-                            />
-                        </Box>
-                    ))}
-                </Document>
+            {invoicePreviewUrl ? (
+                <Box
+                    component="iframe"
+                    title="Invoice PDF Preview"
+                    src={invoicePreviewUrl}
+                    sx={{ width: '100%', height: '100%', border: 0, display: 'block' }}
+                />
             ) : (
-                <Typography sx={{ p: 3, color: C.textSub }}>Menyiapkan preview...</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', bgcolor: '#E5E7EB' }}>
+                    <Typography sx={{ p: 3, color: C.textSub }}>Menyiapkan preview...</Typography>
+                </Box>
             )}
         </Box>
     );
@@ -666,37 +637,16 @@ export default function CreateInvoicePage() {
 
     useEffect(() => {
         if (!openPreviewDialog) {
-            setInvoicePreviewFile(null);
-            setInvoicePreviewPages(0);
-            setInvoicePreviewError('');
+            setInvoicePreviewUrl('');
             return undefined;
         }
 
         const doc = generatePDF({ save: false });
-        setInvoicePreviewFile(doc.output('datauristring'));
+        setInvoicePreviewUrl(doc.output('datauristring'));
 
         return undefined;
     }, [openPreviewDialog]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => {
-        if (!openPreviewDialog) return undefined;
-
-        const updatePreviewWidth = () => {
-            const containerWidth = invoicePreviewRef.current?.clientWidth || (isMobile ? window.innerWidth - 24 : 794);
-            setInvoicePreviewWidth(Math.max(260, Math.min(containerWidth - (isMobile ? 16 : 32), 794)));
-        };
-
-        updatePreviewWidth();
-
-        if (typeof ResizeObserver !== 'undefined' && invoicePreviewRef.current) {
-            const observer = new ResizeObserver(updatePreviewWidth);
-            observer.observe(invoicePreviewRef.current);
-            return () => observer.disconnect();
-        }
-
-        window.addEventListener('resize', updatePreviewWidth);
-        return () => window.removeEventListener('resize', updatePreviewWidth);
-    }, [openPreviewDialog, isMobile]);
 
     // Filtered list for dialog
     const filteredList = useMemo(() => {
@@ -1230,10 +1180,8 @@ export default function CreateInvoicePage() {
                         <Typography fontSize={16} fontWeight={700} sx={{ color: C.text }}>Preview Invoice</Typography>
                     </Box>
                 </DialogTitle>
-                <DialogContent sx={{ p: isMobile ? 1.5 : 3, bgcolor: '#F4F5F7' }}>
-                    <Box sx={{ overflow: 'auto', maxHeight: isMobile ? 'calc(100vh - 172px)' : '70vh', display: 'flex', justifyContent: 'center', bgcolor: C.white, borderRadius: isMobile ? 0 : '8px' }}>
-                        <InvoicePreviewContent />
-                    </Box>
+                <DialogContent sx={{ p: 0, bgcolor: '#F4F5F7' }}>
+                    <InvoicePreviewContent />
                 </DialogContent>
                 <DialogActions sx={{ p: isMobile ? 1.5 : 2.5, borderTop: `1px solid ${C.border}`, gap: 1, flexDirection: isMobile ? 'column-reverse' : 'row', alignItems: isMobile ? 'stretch' : 'center' }}>
                     <Button onClick={() => setOpenPreviewDialog(false)} variant="outlined"
