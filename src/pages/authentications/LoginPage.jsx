@@ -7,7 +7,7 @@ import { useLoading } from '../../hooks/LoadingProvider';
 import { useUser } from '../../hooks/UserProvider';
 import { useEffect, useState } from 'react';
 import UserDAO from '../../daos/UserDAO';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import { auth } from '../../config/firebaseConfig';
 import { InputAdornment, IconButton } from '@mui/material';
 import { Icon } from '@iconify/react';
@@ -313,21 +313,16 @@ export default function LoginPage() {
     const handleSubmit = async (data) => {
         try {
             loading.start();
+            const result = await UserDAO.login({
+                login: data.login.trim(),
+                password: data.password.trim(),
+            });
 
-            // Firebase Auth Login
-            // Support both standard email or username-formatted pseudo-emails used by legacy
-            const loginEmail = data.login.trim().includes('@') ? data.login.trim() : `${data.login.trim()}@kudajaya.local`;
-            const userCredential = await signInWithEmailAndPassword(auth, loginEmail, data.password.trim());
+            if (!result.success) throw new Error(result.error || 'Login gagal');
+            await signOut(auth).catch(() => {});
+            localStorage.setItem('authToken', result.token);
 
-            // Get ID Token
-            const token = await userCredential.user.getIdToken();
-            localStorage.setItem('authToken', token);
-
-            // Fetch Profile for Role and Data
-            const profileResult = await UserDAO.getProfile();
-            if (!profileResult.success) throw new Error('Gagal mengambil profil pengguna');
-
-            const userData = profileResult.user;
+            const userData = result.user;
 
             login({
                 id: userData.id,
@@ -491,3 +486,6 @@ export default function LoginPage() {
         </>
     );
 }
+
+
+

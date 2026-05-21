@@ -4,17 +4,16 @@ import { auth } from '../config/firebaseConfig';
 export default class ApiRequest {
     // Regular API call untuk JSON
     static set = async (endpoint, method, body, apiUrl = null) => {
-        // Always get a fresh Firebase token (auto-refreshes if expired)
-        let token = null;
-        try {
-            if (auth.currentUser) {
+        // Prefer the backend-issued token stored at login/signup.
+        // A stale Firebase client session can belong to a previous user and must not override it.
+        let token = localStorage.getItem('authToken');
+        if (!token && auth.currentUser) {
+            try {
                 token = await auth.currentUser.getIdToken();
                 localStorage.setItem('authToken', token);
-            } else {
-                token = localStorage.getItem('authToken');
+            } catch (e) {
+                token = null;
             }
-        } catch (e) {
-            token = localStorage.getItem('authToken');
         }
         
         // Prepare headers
@@ -76,17 +75,15 @@ export default class ApiRequest {
 
     // ⭐ DEDICATED method untuk multipart/form-data (file upload)
     static setMultipart = async (endpoint, method, formData, apiUrl = null) => {
-        // Always get a fresh Firebase token
-        let token = null;
-        try {
-            if (auth.currentUser) {
+        // Prefer the backend-issued token stored at login/signup.
+        let token = localStorage.getItem('authToken');
+        if (!token && auth.currentUser) {
+            try {
                 token = await auth.currentUser.getIdToken();
                 localStorage.setItem('authToken', token);
-            } else {
-                token = localStorage.getItem('authToken');
+            } catch (e) {
+                token = null;
             }
-        } catch (e) {
-            token = localStorage.getItem('authToken');
         }
         
         // Untuk multipart, HANYA set Authorization
@@ -157,3 +154,4 @@ export default class ApiRequest {
         DELETE: 'DELETE',
     };
 }
+

@@ -7,6 +7,8 @@ import { useLoading } from '../../hooks/LoadingProvider';
 import { useUser } from '../../hooks/UserProvider';
 import { useEffect, useState } from 'react';
 import UserDAO from '../../daos/UserDAO';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../config/firebaseConfig';
 import { InputAdornment, IconButton } from '@mui/material';
 import { Icon } from '@iconify/react';
 
@@ -338,6 +340,7 @@ export default function SignUpPage() {
                 role: 'user',
             });
             if (!result.success) throw new Error(result.error || 'Pendaftaran gagal');
+            await signOut(auth).catch(() => {});
             if (result.token) localStorage.setItem('authToken', result.token);
             login({
                 id: result.user.id,
