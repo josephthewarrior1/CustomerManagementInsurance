@@ -147,7 +147,6 @@ export default function DashboardLayout() {
     { icon: 'heroicons:arrow-path', label: 'Renewal', url: '/renewals', title: 'Manajemen Renewal' },
     { icon: 'heroicons:calendar', label: 'Quotation', url: '/quotations/create', title: 'Create Quotation' },
     { icon: 'heroicons:document-currency-dollar', label: 'Invoice', url: '/invoices/create', title: 'Create Invoice' },
-    { icon: 'heroicons:shield-check', label: 'Admin Management', url: '/admin-management', title: 'Admin Management', adminOnly: true },
     { icon: 'heroicons:document-text', label: 'Kwitansi', url: '/kwitansi', title: 'Kwitansi' },
   ];
 
@@ -183,7 +182,6 @@ export default function DashboardLayout() {
               if (p.startsWith('/renewals')) return 'Renewal';
               if (p.startsWith('/quotations')) return 'Quotation';
               if (p.startsWith('/invoices')) return 'Invoice';
-              if (p.startsWith('/admin-management')) return 'Admin Management';
               if (p.startsWith('/kwitansi')) return 'Kwitansi';
               return sections.find(s => s.url === p)?.label || 'Dashboard';
             })()}
@@ -211,10 +209,8 @@ export default function DashboardLayout() {
 function DrawerContent({ sections, onClose, user, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const filteredSections = sections.filter(s => !(s.adminOnly && user?.role !== 'superadmin'));
-  const mainNav = filteredSections.filter(s => ['Dashboard', 'Customers', /* 'Properti', */ 'Kendaraan', 'Payment', 'Renewal'].includes(s.label));
-  const docNav = filteredSections.filter(s => ['Quotation', 'Invoice', 'Kwitansi'].includes(s.label));
-  const adminNav = filteredSections.filter(s => s.adminOnly);
+  const mainNav = sections.filter(s => ['Dashboard', 'Customers', /* 'Properti', */ 'Kendaraan', 'Payment', 'Renewal'].includes(s.label));
+  const docNav = sections.filter(s => ['Quotation', 'Invoice', 'Kwitansi'].includes(s.label));
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#fff' }}>
@@ -231,7 +227,7 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12.5, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.username || 'Demo User'}</div>
-            <div style={{ fontSize: 10.5, color: '#94a3b8', textTransform: 'capitalize' }}>{user?.role || 'user'}</div>
+            <div style={{ fontSize: 10.5, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email || user?.fullName || 'User'}</div>
           </div>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
         </div>
@@ -245,11 +241,6 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
         <NavGroup label="Dokumen">
           {docNav.map(s => <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose} />)}
         </NavGroup>
-        {adminNav.length > 0 && (
-          <NavGroup label="Admin">
-            {adminNav.map(s => <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose} />)}
-          </NavGroup>
-        )}
       </div>
 
       {/* Logout */}

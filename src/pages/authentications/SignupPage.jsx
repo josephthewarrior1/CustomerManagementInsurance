@@ -337,7 +337,6 @@ export default function SignUpPage() {
                 username: data.username.trim(),
                 email: data.email.trim().toLowerCase(),
                 password: data.password.trim(),
-                role: 'user',
             });
             if (!result.success) throw new Error(result.error || 'Pendaftaran gagal');
             await signOut(auth).catch(() => {});
@@ -346,7 +345,6 @@ export default function SignUpPage() {
                 id: result.user.id,
                 username: result.user.username,
                 fullName: result.user.fullName,
-                role: result.user.role || 'user',
                 email: result.user.email || '',
             });
             message('Akun berhasil dibuat!', 'success');

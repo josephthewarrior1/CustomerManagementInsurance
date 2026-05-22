@@ -328,7 +328,6 @@ export default function LoginPage() {
                 id: userData.id,
                 username: userData.username,
                 fullName: userData.fullName,
-                role: userData.role || 'user',
                 email: userData.email || '',
             });
 

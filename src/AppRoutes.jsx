@@ -3,10 +3,6 @@ import Page404 from './pages/miscellaneous/Page404';
 import DashboardLayout from './reusables/layouts/DashboardLayout';
 import LoginPage from './pages/authentications/LoginPage';
 import SignUpPage from './pages/authentications/SignupPage';
-import AdminList from './pages/Admin/AdminList';
-import CreateAdmin from './pages/Admin/CreateAdmin';
-import AdminEdit from './pages/Admin/AdminEdit';
-import AdminAssignPage from './pages/Admin/AdminAssignPage';
 import Kwitansi from './pages/Kwitansi/KwitansiCreate';
 import CustomerListPage from './pages/customers/CustomerListPage';
 import CustomerEditPage from './pages/customers/CustomerEditPage';
@@ -82,10 +78,6 @@ export default function AppRoutes() {
 
                 {/* Other Routes */}
 
-                <Route path="admin-management" element={<AdminList />} />
-                <Route path="create-admin" element={<CreateAdmin />} />
-                <Route path="edit-admin/:id" element={<AdminEdit />} />
-                <Route path="assign-admin/:id" element={<AdminAssignPage />} />
                 <Route path="kwitansi" element={<Kwitansi />} />
 
             </Route>
