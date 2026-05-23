@@ -102,13 +102,16 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
         load();
     }, [customerId]);
 
-    const activePayment = customerPayments.find(p => p.policyId === policyId && p.status !== 'Cancelled');
+    const activePayment = customerPayments.find(p => p.policyId === policyId && !['Paid', 'Cancelled'].includes(p.status));
+    const selectedCarObj = cars.find(c => c.id === policyId);
+    const activeCarName = selectedCarObj ? `${selectedCarObj.carData?.carBrand || ''} ${selectedCarObj.carData?.carModel || ''}`.trim() : 'kendaraan';
+    const activePaymentAmount = activePayment ? formatCurrency(activePayment.amount) : '';
 
     const validate = () => {
         const e = {};
         if (!customerId) e.customerId = 'Customer wajib dipilih';
         if (!policyId) e.policyId = 'Kendaraan/Polis wajib dipilih';
-        if (policyId && activePayment) e.policyId = 'Kendaraan ini masih memiliki pembayaran aktif';
+        if (policyId && activePayment) e.policyId = `Kendaraan ${activeCarName} masih memiliki pembayaran aktif sebesar ${activePaymentAmount}`;
         if (!amount || isNaN(Number(amount))) e.amount = 'Nominal harus berupa angka yang valid';
         if (!dueDate) e.dueDate = 'Tanggal jatuh tempo wajib diisi';
         setErrors(e);
@@ -171,7 +174,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                 <Stack spacing={2.5}>
                     {policyId && activePayment && (
                         <Alert severity="error" sx={{ borderRadius: 2 }}>
-                            Pembayaran gagal dibuat. Mobil/polis ini sudah memiliki pembayaran aktif dengan status <b>{activePayment.status}</b> (ID: {activePayment.id}). Harap selesaikan atau batalkan pembayaran tersebut terlebih dahulu.
+                            Pembayaran gagal dibuat. Mobil/polis <b>{activeCarName}</b> sudah memiliki pembayaran aktif sebesar <b>{activePaymentAmount}</b> dengan status <b>{activePayment.status}</b>. Harap selesaikan atau batalkan pembayaran tersebut terlebih dahulu.
                         </Alert>
                     )}
 
