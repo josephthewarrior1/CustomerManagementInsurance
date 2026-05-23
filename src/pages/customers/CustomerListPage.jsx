@@ -560,7 +560,7 @@ export default function CustomerListPage() {
                             Yakin ingin menghapus pelanggan <b>{selectedCustomer?.name}</b>?
                         </Typography>
                         <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-                            Tindakan ini tidak dapat dibatalkan. Semua data pelanggan termasuk foto kendaraan akan dihapus permanen.
+                            Tindakan ini tidak dapat dibatalkan. Menghapus pelanggan ini juga akan menghapus secara permanen semua data kendaraan, polis, penawaran (quotation), tagihan (invoice), kuitansi, dan pembayaran yang terkait.
                         </Typography>
                         <Box sx={{
                             display: 'flex',

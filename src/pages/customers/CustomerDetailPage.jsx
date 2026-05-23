@@ -580,7 +580,7 @@ export default function CustomerDetailPage() {
                 <Box sx={{ p: 3 }}>
                     <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Hapus Pelanggan</Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontWeight: 500 }}>
-                        Yakin ingin menghapus <b>{customer.name}</b>? Tindakan ini tidak dapat dibatalkan.
+                        Yakin ingin menghapus <b>{customer.name}</b>? Tindakan ini tidak dapat dibatalkan. Menghapus pelanggan ini juga akan menghapus secara permanen semua data kendaraan, polis, penawaran (quotation), tagihan (invoice), kuitansi, dan pembayaran yang terkait.
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                         <Button onClick={() => setIsDeleteDialogOpen(false)} sx={{ textTransform: 'none', fontWeight: 700, color: '#475569' }}>Batal</Button>
