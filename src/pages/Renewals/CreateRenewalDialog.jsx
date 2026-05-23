@@ -43,6 +43,11 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
 
     const isCarPrefilled = Boolean(prefillCar);
 
+    const car = prefillCar || selectedCar;
+    const dueDate = car?.carData?.dueDate;
+    const daysLeft = dueDate ? Math.round((new Date(dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+    const isTooEarly = daysLeft !== null && daysLeft > 30;
+
     useEffect(() => {
         if (!open) return;
         setErrors({});
@@ -103,6 +108,9 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
         const e = {};
         if (!customerId) e.customerId = 'Customer wajib dipilih';
         if (!selectedCar) e.carId = 'Kendaraan wajib dipilih';
+        if (selectedCar && isTooEarly) {
+            e.carId = `Tidak dapat membuat renewal. Sisa masa aktif polis kendaraan masih ${daysLeft} hari (> 30 hari).`;
+        }
         if (!newStartDate) e.newStartDate = 'Tanggal mulai baru wajib diisi';
         if (!newEndDate) e.newEndDate = 'Tanggal berakhir baru wajib diisi';
         if (newStartDate && newEndDate && new Date(newEndDate) <= new Date(newStartDate)) {
@@ -164,25 +172,17 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
 
             <DialogContent sx={{ pt: 2 }}>
                 <Stack spacing={2.5}>
-                    {/* Active Policy Warning */}
-                    {(() => {
-                        const car = prefillCar || selectedCar;
-                        const dueDate = car?.carData?.dueDate;
-                        if (!dueDate) return null;
-                        const msLeft = new Date(dueDate).getTime() - Date.now();
-                        const daysLeft = Math.round(msLeft / (1000 * 60 * 60 * 24));
-                        if (daysLeft <= 30) return null; // near expiry = normal to renew
-                        return (
-                            <Alert severity="warning" icon={<Icon icon="mdi:shield-alert" />} sx={{ borderRadius: 2 }}>
-                                <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
-                                    ⚠️ Polis masih aktif — jatuh tempo {daysLeft} hari lagi
-                                </Typography>
-                                <Typography variant="caption">
-                                    Pastikan ini memang renewal yang disengaja, bukan input duplikat. Sistem akan menolak jika sudah ada renewal aktif untuk kendaraan ini.
-                                </Typography>
-                            </Alert>
-                        );
-                    })()}
+                    {/* Active Policy Warning (Error for Too Early Renewal) */}
+                    {isTooEarly && (
+                        <Alert severity="error" icon={<Icon icon="mdi:shield-alert" />} sx={{ borderRadius: 2 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
+                                ⚠️ Perpanjangan Dinonaktifkan — Sisa {daysLeft} Hari Lagi (> 30 Hari)
+                            </Typography>
+                            <Typography variant="caption">
+                                Pengajuan renewal diblokir karena polis masih memiliki masa aktif lebih dari 30 hari. Perpanjangan baru dapat dibuat ketika masa aktif kurang dari atau sama dengan 30 hari.
+                            </Typography>
+                        </Alert>
+                    )}
 
                     <Alert severity="info" icon={<Icon icon="mdi:lightning-bolt" />} sx={{ borderRadius: 2 }}>
                         <Typography variant="caption" sx={{ fontWeight: 600 }}>Setelah Renewal dibuat:</Typography>
@@ -299,7 +299,7 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
                     sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#E2E8F0', color: '#475569' }}>
                     Batal
                 </Button>
-                <Button variant="contained" onClick={handleSubmit} disabled={submitting}
+                <Button variant="contained" onClick={handleSubmit} disabled={submitting || isTooEarly}
                     sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#1E40AF', '&:hover': { bgcolor: '#1E3A8A' }, px: 3 }}
                     startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:arrow-u-right-top" width={18} />}>
                     {submitting ? 'Menyimpan...' : 'Buat Renewal'}

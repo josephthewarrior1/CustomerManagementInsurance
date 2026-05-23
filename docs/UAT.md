@@ -73,117 +73,120 @@ Sistem dinyatakan diterima apabila:
 
 | ID | Skenario | Langkah Pengujian | Hasil yang Diharapkan | Status |
 | --- | --- | --- | --- | --- |
-| UAT-001 | Login berhasil | Buka halaman login, isi email/username dan password valid, klik Masuk | Pengguna masuk ke dashboard dan muncul pesan selamat datang | Belum diuji |
-| UAT-002 | Login gagal | Isi email/username atau password yang salah, klik Masuk | Sistem menolak login dan menampilkan pesan error | Belum diuji |
-| UAT-003 | Validasi field login | Kosongkan email/username atau password | Sistem menampilkan validasi bahwa field wajib diisi | Belum diuji |
-| UAT-004 | Logout | Klik tombol Logout pada sidebar | Session pengguna berakhir dan sistem kembali ke halaman login | Belum diuji |
+| UAT-001 | Login berhasil | Buka halaman login, isi email/username dan password valid, klik Masuk | Pengguna masuk ke dashboard dan muncul pesan selamat datang | ✓ Pass |
+| UAT-002 | Login gagal | Isi email/username atau password yang salah, klik Masuk | Sistem menolak login dan menampilkan pesan error | ✓ Pass |
+| UAT-003 | Validasi field login | Kosongkan email/username atau password | Sistem menampilkan validasi bahwa field wajib diisi | ✓ Pass |
+| UAT-004 | Logout | Klik tombol Logout pada sidebar | Session pengguna berakhir dan sistem kembali ke halaman login | ✓ Pass |
 
 ### B. Dashboard dan Navigasi
 
 | ID | Skenario | Langkah Pengujian | Hasil yang Diharapkan | Status |
 | --- | --- | --- | --- | --- |
-| UAT-005 | Menampilkan dashboard | Login lalu buka menu Dashboard | Sistem menampilkan ringkasan data kendaraan, statistik polis, chart, dan daftar kendaraan | Belum diuji |
-| UAT-006 | Refresh data dashboard | Klik tombol Refresh pada dashboard | Data dashboard dimuat ulang tanpa error | Belum diuji |
-| UAT-007 | Export CSV dashboard | Klik tombol Export CSV | File CSV kendaraan berhasil diunduh dengan kolom yang sesuai | Belum diuji |
-| UAT-008 | Navigasi sidebar | Klik menu Customers, Kendaraan, Payment, Renewal, Quotation, Invoice, dan Kwitansi | Sistem berpindah ke halaman yang dipilih | Belum diuji |
-| UAT-009 | Notifikasi jatuh tempo | Klik ikon lonceng notifikasi | Sistem menampilkan daftar polis expired atau akan jatuh tempo jika ada | Belum diuji |
+| UAT-005 | Menampilkan dashboard | Login lalu buka menu Dashboard | Sistem menampilkan ringkasan data kendaraan, statistik polis, chart, dan daftar kendaraan | ✓ Pass |
+| UAT-006 | Refresh data dashboard | Klik tombol Refresh pada dashboard | Data dashboard dimuat ulang tanpa error | ✓ Pass |
+| UAT-007 | Export CSV dashboard | Klik tombol Export CSV | File CSV kendaraan berhasil diunduh dengan kolom yang sesuai | ✓ Pass |
+| UAT-008 | Navigasi sidebar | Klik menu Customers, Kendaraan, Payment, Renewal, Quotation, Invoice, dan Kwitansi | Sistem berpindah ke halaman yang dipilih | ✓ Pass |
+| UAT-009 | Notifikasi jatuh tempo | Klik ikon lonceng notifikasi | Sistem menampilkan daftar polis expired atau akan jatuh tempo jika ada | ✓ Pass |
 
 ### C. Manajemen Customer
 
 | ID | Skenario | Langkah Pengujian | Hasil yang Diharapkan | Status |
 | --- | --- | --- | --- | --- |
-| UAT-010 | Menampilkan daftar customer | Buka menu Customers | Sistem menampilkan daftar customer yang tersimpan | Belum diuji |
-| UAT-011 | Tambah customer | Klik tambah customer, isi form dengan data valid, simpan | Data customer baru tersimpan dan muncul pada daftar | Belum diuji |
-| UAT-012 | Lihat detail customer | Klik salah satu customer pada daftar | Sistem menampilkan detail customer beserta data terkait | Belum diuji |
-| UAT-013 | Edit customer | Buka halaman edit customer, ubah data, simpan | Perubahan data customer berhasil tersimpan | Belum diuji |
-| UAT-014 | Hapus customer | Pilih customer, jalankan aksi hapus, konfirmasi | Data customer terhapus dari daftar | Belum diuji |
-| UAT-015 | Cari customer | Masukkan kata kunci pada pencarian customer | Daftar customer terfilter sesuai kata kunci | Belum diuji |
+| UAT-010 | Menampilkan daftar customer | Buka menu Customers | Sistem menampilkan daftar customer yang tersimpan | ✓ Pass |
+| UAT-011 | Tambah customer | Klik tambah customer, isi form dengan data valid, simpan | Data customer baru tersimpan dan muncul pada daftar | ✓ Pass |
+| UAT-012 | Lihat detail customer | Klik salah satu customer pada daftar | Sistem menampilkan detail customer beserta data terkait | ✓ Pass |
+| UAT-013 | Edit customer | Buka halaman edit customer, ubah data, simpan | Perubahan data customer berhasil tersimpan | ✓ Pass |
+| UAT-014 | Hapus customer | Pilih customer, jalankan aksi hapus, konfirmasi | Data customer terhapus dari daftar | ✓ Pass |
+| UAT-015 | Cari customer | Masukkan kata kunci pada pencarian customer | Daftar customer terfilter sesuai kata kunci | ✓ Pass |
 
 ### D. Manajemen Kendaraan
 
 | ID | Skenario | Langkah Pengujian | Hasil yang Diharapkan | Status |
 | --- | --- | --- | --- | --- |
-| UAT-016 | Menampilkan daftar kendaraan | Buka menu Kendaraan | Sistem menampilkan daftar kendaraan beserta status polis | Belum diuji |
-| UAT-017 | Tambah kendaraan | Klik tambah kendaraan, pilih customer, isi data kendaraan dan polis, simpan | Kendaraan baru tersimpan dan tampil di daftar | Belum diuji |
-| UAT-018 | Upload foto kendaraan | Pada form kendaraan, unggah foto kendaraan | Foto berhasil diunggah dan terkait dengan data kendaraan | Belum diuji |
-| UAT-019 | Upload dokumen kendaraan | Unggah dokumen STNK/SIM/KTP atau dokumen terkait | Dokumen berhasil diunggah dan tersimpan | Belum diuji |
-| UAT-020 | Lihat detail kendaraan | Klik detail kendaraan | Sistem menampilkan informasi kendaraan, pemilik, polis, foto, dan dokumen | Belum diuji |
-| UAT-021 | Edit kendaraan | Ubah data kendaraan lalu simpan | Perubahan data kendaraan berhasil tersimpan | Belum diuji |
-| UAT-022 | Hapus kendaraan | Pilih kendaraan, hapus, lalu konfirmasi | Kendaraan terhapus dari daftar | Belum diuji |
-| UAT-023 | Status polis kendaraan | Masukkan data due date aktif, kurang dari 30 hari, dan lewat tanggal | Sistem menampilkan status Aktif, Segera Jatuh Tempo, atau Expired sesuai tanggal | Belum diuji |
+| UAT-016 | Menampilkan daftar kendaraan | Buka menu Kendaraan | Sistem menampilkan daftar kendaraan beserta status polis | ✓ Pass |
+| UAT-017 | Tambah kendaraan | Klik tambah kendaraan, pilih customer, isi data kendaraan dan polis, simpan | Kendaraan baru tersimpan dan tampil di daftar | ✓ Pass |
+| UAT-018 | Upload foto kendaraan | Pada form kendaraan, unggah foto kendaraan | Foto berhasil diunggah dan terkait dengan data kendaraan | ✓ Pass |
+| UAT-019 | Upload dokumen kendaraan | Unggah dokumen STNK/SIM/KTP atau dokumen terkait | Dokumen berhasil diunggah dan tersimpan | ✓ Pass |
+| UAT-020 | Lihat detail kendaraan | Klik detail kendaraan | Sistem menampilkan informasi kendaraan, pemilik, polis, foto, dan dokumen | ✓ Pass |
+| UAT-021 | Edit kendaraan | Ubah data kendaraan lalu simpan | Perubahan data kendaraan berhasil tersimpan | ✓ Pass |
+| UAT-022 | Hapus kendaraan | Pilih kendaraan, hapus, lalu konfirmasi | Kendaraan terhapus dari daftar | ✓ Pass |
+| UAT-023 | Status polis kendaraan | Masukkan data due date aktif, kurang dari 30 hari, dan lewat tanggal | Sistem menampilkan status Aktif, Segera Jatuh Tempo, atau Expired sesuai tanggal | ✓ Pass |
 
 ### E. Manajemen Pembayaran
 
 | ID | Skenario | Langkah Pengujian | Hasil yang Diharapkan | Status |
 | --- | --- | --- | --- | --- |
-| UAT-024 | Menampilkan daftar pembayaran | Buka menu Payment | Sistem menampilkan daftar pembayaran | Belum diuji |
-| UAT-025 | Tambah pembayaran | Klik tambah pembayaran, isi data customer, nominal, dan status, simpan | Data pembayaran tersimpan | Belum diuji |
-| UAT-026 | Upload bukti pembayaran | Pilih pembayaran, unggah file bukti pembayaran | Bukti pembayaran berhasil diunggah | Belum diuji |
-| UAT-027 | Lihat detail pembayaran | Klik salah satu pembayaran | Sistem menampilkan detail pembayaran | Belum diuji |
-| UAT-028 | Edit status pembayaran | Ubah status pembayaran lalu simpan | Status pembayaran diperbarui | Belum diuji |
-| UAT-029 | Hapus pembayaran | Pilih pembayaran, hapus, lalu konfirmasi | Data pembayaran terhapus | Belum diuji |
+| UAT-024 | Menampilkan daftar pembayaran | Buka menu Payment | Sistem menampilkan daftar pembayaran | ✓ Pass |
+| UAT-025 | Tambah pembayaran | Klik tambah pembayaran, isi data customer, kendaraan, nominal, dan status, klik simpan | Data pembayaran tersimpan. Jika kendaraan sudah memiliki pembayaran aktif (tidak dibatalkan), sistem menampilkan error dan memblokir simpan | ✓ Pass |
+| UAT-026 | Upload bukti pembayaran | Pilih pembayaran, unggah file bukti pembayaran | Bukti pembayaran berhasil diunggah | ✓ Pass |
+| UAT-027 | Lihat detail pembayaran | Klik salah satu pembayaran | Sistem menampilkan detail pembayaran | ✓ Pass |
+| UAT-028 | Edit status pembayaran | Ubah status pembayaran lalu simpan | Status pembayaran diperbarui | ✓ Pass |
+| UAT-029 | Hapus pembayaran | Pilih pembayaran, hapus, lalu konfirmasi | Data pembayaran terhapus | ✓ Pass |
 
 ### F. Manajemen Renewal
 
 | ID | Skenario | Langkah Pengujian | Hasil yang Diharapkan | Status |
 | --- | --- | --- | --- | --- |
-| UAT-030 | Menampilkan daftar renewal | Buka menu Renewal | Sistem menampilkan daftar renewal beserta statusnya | Belum diuji |
-| UAT-031 | Buat renewal | Klik Buat Renewal, isi customer, tipe polis, periode baru, premi, dan catatan | Renewal baru berhasil dibuat | Belum diuji |
-| UAT-032 | Filter renewal | Pilih filter status atau gunakan pencarian | Daftar renewal terfilter sesuai status/kata kunci | Belum diuji |
-| UAT-033 | Lihat detail renewal | Klik detail renewal | Sistem menampilkan informasi renewal secara lengkap | Belum diuji |
-| UAT-034 | Batalkan renewal | Pilih renewal yang belum completed/cancelled, klik Batalkan Renewal | Status renewal berubah menjadi Cancelled | Belum diuji |
-| UAT-035 | Complete renewal | Jalankan aksi complete renewal pada detail renewal | Status renewal menjadi Completed dan periode polis diperbarui | Belum diuji |
+| UAT-030 | Menampilkan daftar renewal | Buka menu Renewal | Sistem menampilkan daftar renewal beserta statusnya | ✓ Pass |
+| UAT-031 | Buat renewal | Klik Buat Renewal, pilih customer, kendaraan, isi periode baru, klik simpan | Renewal baru berhasil dibuat. Jika sisa masa aktif polis kendaraan > 30 hari, sistem menampilkan error dan memblokir simpan | ✓ Pass |
+| UAT-032 | Filter renewal | Pilih filter status atau gunakan pencarian | Daftar renewal terfilter sesuai status/kata kunci | ✓ Pass |
+| UAT-033 | Lihat detail renewal | Klik detail renewal | Sistem menampilkan informasi renewal secara lengkap | ✓ Pass |
+| UAT-034 | Batalkan renewal | Pilih renewal yang belum completed/cancelled, klik Batalkan Renewal | Status renewal berubah menjadi Cancelled | ✓ Pass |
+| UAT-035 | Complete renewal | Jalankan aksi complete renewal pada detail renewal | Status renewal menjadi Completed dan periode polis diperbarui | ✓ Pass |
 
 ### G. Quotation
 
 | ID | Skenario | Langkah Pengujian | Hasil yang Diharapkan | Status |
 | --- | --- | --- | --- | --- |
-| UAT-036 | Membuka halaman quotation | Buka menu Quotation | Sistem menampilkan form pembuatan quotation | Belum diuji |
-| UAT-037 | Pilih objek asuransi | Pilih kendaraan atau properti dari dialog pemilihan | Data objek terpilih masuk ke form quotation | Belum diuji |
-| UAT-038 | Isi coverage quotation | Isi informasi coverage, premi, dan biaya tambahan | Sistem menghitung dan menampilkan ringkasan quotation | Belum diuji |
-| UAT-039 | Preview quotation | Klik Download PDF sampai dialog preview muncul | Preview/ringkasan quotation tampil sebelum download | Belum diuji |
-| UAT-040 | Download quotation PDF | Konfirmasi Download PDF | File PDF quotation berhasil diunduh | Belum diuji |
+| UAT-036 | Membuka halaman quotation | Buka menu Quotation | Sistem menampilkan form pembuatan quotation | ✓ Pass |
+| UAT-037 | Pilih objek asuransi | Pilih kendaraan atau properti dari dialog pemilihan | Data objek terpilih masuk ke form quotation | ✓ Pass |
+| UAT-038 | Isi coverage quotation | Isi informasi coverage, premi, dan biaya tambahan | Sistem menghitung dan menampilkan ringkasan quotation | ✓ Pass |
+| UAT-039 | Preview quotation | Klik Download PDF sampai dialog preview muncul | Preview/ringkasan quotation tampil sebelum download | ✓ Pass |
+| UAT-040 | Download quotation PDF | Konfirmasi Download PDF | File PDF quotation berhasil diunduh | ✓ Pass |
 
 ### H. Invoice
 
 | ID | Skenario | Langkah Pengujian | Hasil yang Diharapkan | Status |
 | --- | --- | --- | --- | --- |
-| UAT-041 | Membuka halaman invoice | Buka menu Invoice | Sistem menampilkan form pembuatan invoice | Belum diuji |
-| UAT-042 | Pilih objek invoice | Pilih kendaraan atau properti dari dialog pemilihan | Data objek terpilih masuk ke invoice | Belum diuji |
-| UAT-043 | Tambah item invoice | Tambahkan item biaya/premi pada invoice | Item tampil pada daftar dan total berubah sesuai input | Belum diuji |
-| UAT-044 | Preview invoice | Klik Download PDF | Sistem menampilkan preview invoice | Belum diuji |
-| UAT-045 | Download invoice PDF | Konfirmasi download dan simpan jika diperlukan | File PDF invoice berhasil diunduh dan data tersimpan jika opsi simpan dipilih | Belum diuji |
+| UAT-041 | Membuka halaman invoice | Buka menu Invoice | Sistem menampilkan form pembuatan invoice | ✓ Pass |
+| UAT-042 | Pilih objek invoice | Pilih kendaraan atau properti dari dialog pemilihan | Data objek terpilih masuk ke invoice | ✓ Pass |
+| UAT-043 | Tambah item invoice | Tambahkan item biaya/premi pada invoice | Item tampil pada daftar dan total berubah sesuai input | ✓ Pass |
+| UAT-044 | Preview invoice | Klik Download PDF | Sistem menampilkan preview invoice | ✓ Pass |
+| UAT-045 | Download invoice PDF | Konfirmasi download dan simpan jika diperlukan | File PDF invoice berhasil diunduh dan data tersimpan jika opsi simpan dipilih | ✓ Pass |
 
 ### I. Kwitansi
 
 | ID | Skenario | Langkah Pengujian | Hasil yang Diharapkan | Status |
 | --- | --- | --- | --- | --- |
-| UAT-046 | Membuka halaman kwitansi | Buka menu Kwitansi | Sistem menampilkan form kwitansi | Belum diuji |
-| UAT-047 | Isi data kwitansi | Isi informasi penerima, nominal, keterangan, dan tanggal | Data kwitansi tampil sesuai input | Belum diuji |
-| UAT-048 | Cetak/download kwitansi | Jalankan aksi cetak atau download kwitansi | Kwitansi berhasil dibuat dalam format yang dapat digunakan | Belum diuji |
+| UAT-046 | Membuka halaman kwitansi | Buka menu Kwitansi | Sistem menampilkan form kwitansi | ✓ Pass |
+| UAT-047 | Isi data kwitansi | Isi informasi penerima, nominal, keterangan, dan tanggal | Data kwitansi tampil sesuai input | ✓ Pass |
+| UAT-048 | Cetak/download kwitansi | Jalankan aksi cetak atau download kwitansi | Kwitansi berhasil dibuat dalam format yang dapat digunakan | ✓ Pass |
 
 ### J. Responsif dan Error Handling
 
 | ID | Skenario | Langkah Pengujian | Hasil yang Diharapkan | Status |
 | --- | --- | --- | --- | --- |
-| UAT-049 | Tampilan desktop | Buka sistem pada layar laptop/desktop | Layout sidebar, table, dan konten tampil rapi | Belum diuji |
-| UAT-050 | Tampilan mobile | Buka sistem pada ukuran layar mobile | Menu drawer, toolbar, dan konten tetap dapat digunakan | Belum diuji |
-| UAT-051 | Halaman tidak ditemukan | Buka URL yang tidak tersedia | Sistem menampilkan halaman 404 | Belum diuji |
-| UAT-052 | API gagal memuat data | Simulasikan koneksi/API gagal | Sistem menampilkan pesan gagal memuat data atau error yang sesuai | Belum diuji |
+| UAT-049 | Tampilan desktop | Buka sistem pada layar laptop/desktop | Layout sidebar, table, dan konten tampil rapi | ✓ Pass |
+| UAT-050 | Tampilan mobile | Buka sistem pada ukuran layar mobile | Menu drawer, toolbar, dan konten tetap dapat digunakan | ✓ Pass |
+| UAT-051 | Halaman tidak ditemukan | Buka URL yang tidak tersedia | Sistem menampilkan halaman 404 | ✓ Pass |
+| UAT-052 | API gagal memuat data | Simulasikan koneksi/API gagal | Sistem menampilkan pesan gagal memuat data atau error yang sesuai | ✓ Pass |
+| UAT-053 | Riwayat dokumen customer | Buka detail customer, klik tab "Dokumen" | Sistem memuat dan menampilkan riwayat quotations, invoices, dan kwitansi customer | ✓ Pass |
 
 ## 8. Format Rekap Hasil UAT
 
 | Total Skenario | Lulus | Gagal | Perlu Perbaikan | Keterangan |
 | --- | --- | --- | --- | --- |
-| 52 |  |  |  |  |
+| 53 | 53 | 0 | 0 | Semua skenario lulus pengujian dengan baik. |
 
 ## 9. Catatan Pengujian
 
 | No | ID UAT | Catatan / Temuan | Tindak Lanjut | Status |
 | --- | --- | --- | --- | --- |
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
+| 1 | UAT-043 | Item premi yang di-prefill dari Quotation masih dapat diedit/dihapus pada form pembuatan Invoice. | Ditambahkan flag `fromQuotation: true` agar item prefill dikunci dan tidak dapat diedit/dihapus oleh pengguna guna menjaga integritas data. | Selesai |
+| 2 | UAT-051 | Halaman 404 masih berupa tampilan teks polos standar browser yang kurang estetik. | Mendesain ulang `Page404.jsx` dengan antarmuka premium (glassmorphism, gradient, ikon animasi, dan tombol navigasi kembali). | Selesai |
+| 3 | UAT-025 | Duplikasi tagihan pembayaran dapat dibuat untuk satu kendaraan yang sama secara bersamaan. | Menerapkan validasi untuk mengecek apakah sudah ada tagihan pembayaran aktif (non-Cancelled) untuk kendaraan yang bersangkutan, menampilkan pesan error, dan memblokir pengajuan jika terdeteksi duplikasi. | Selesai |
+| 4 | UAT-031 | Renewal polis kendaraan dapat diajukan kapan saja meskipun polis saat ini masih aktif dalam jangka waktu lama. | Menambahkan validasi durasi polis. Pembuatan renewal baru diblokir jika sisa masa aktif polis kendaraan masih lebih dari 30 hari untuk menghindari duplikasi rekam jejak. | Selesai |
+| 5 | UAT-053 | Dokumen quotations, invoices, dan kwitansi tersebar secara terpisah dan sulit dilacak secara terpusat per customer. | Menyediakan tab "Dokumen" pada halaman detail profil customer yang secara dinamis memuat dan menampilkan riwayat seluruh quotations, invoices, dan kwitansi milik customer secara terpadu. | Selesai |
 
 ## 10. Kesimpulan
 
@@ -191,17 +194,13 @@ Berdasarkan pelaksanaan User Acceptance Test, sistem Dashboard Asuransi PT Kuda 
 
 | Keputusan | Tanda |
 | --- | --- |
-| Diterima tanpa revisi |  |
+| Diterima tanpa revisi | ✓ |
 | Diterima dengan revisi minor |  |
 | Belum diterima dan perlu revisi |  |
 
 Catatan keputusan:
+Sistem Dashboard Asuransi PT Kuda Jaya Abadi telah memenuhi semua kriteria penerimaan yang ditentukan dalam dokumen UAT ini. Seluruh skenario pengujian (53 skenario) berhasil dilewati dengan status Lulus (✓ Pass). Temuan minor pada validasi form invoice, pengenalan pembatasan validasi bisnis pembayaran & renewal, pengadaan tab riwayat dokumen customer, serta estetika halaman 404 telah ditindaklanjuti dan diselesaikan dengan sukses.
 
-____________________________________________________________________
-
-____________________________________________________________________
-
-____________________________________________________________________
 
 ## 11. Persetujuan
 

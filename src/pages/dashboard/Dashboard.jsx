@@ -1350,7 +1350,7 @@ export default function DashboardPage() {
     } finally {
       setExporting(false);
     }
-  }, [activeTab, customers, properties]);
+  }, [activeTab, cars, properties]);
 
   const load = useCallback(async () => {
     setLoading(true);

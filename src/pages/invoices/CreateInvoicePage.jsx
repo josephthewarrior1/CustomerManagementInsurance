@@ -301,7 +301,7 @@ export default function CreateInvoicePage() {
                     setAcceptedQuotation(accepted);
                     const premiumAmount = Number(accepted.totalPremium) || 0;
                     const quotationItems = [
-                        { description: 'Premi', quantity: 1, price: premiumAmount },
+                        { description: 'Premi', quantity: 1, price: premiumAmount, fromQuotation: true },
                     ];
                     setItems([...quotationItems]);
                     setDiscount('');

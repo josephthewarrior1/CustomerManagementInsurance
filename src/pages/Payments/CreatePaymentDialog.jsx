@@ -2,7 +2,7 @@ import { Icon } from '@iconify/react';
 import {
     Box, Button, CircularProgress, Dialog, DialogContent, DialogTitle,
     Divider, FormControl, FormHelperText, InputLabel, MenuItem,
-    Select, Stack, TextField, Typography, IconButton
+    Select, Stack, TextField, Typography, IconButton, Alert
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useAlert } from '../../hooks/SnackbarProvider';
@@ -20,6 +20,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
 
     const [customers, setCustomers] = useState([]);
     const [cars, setCars] = useState([]); // cars for selected customer (optional policyId)
+    const [customerPayments, setCustomerPayments] = useState([]);
 
     const [customerId, setCustomerId] = useState('');
     const [policyId, setPolicyId] = useState('');
@@ -31,6 +32,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
 
     const [loadingCustomers, setLoadingCustomers] = useState(false);
     const [loadingCars, setLoadingCars] = useState(false);
+    const [loadingPayments, setLoadingPayments] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [errors, setErrors] = useState({});
 
@@ -44,6 +46,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
         setAmount('');
         setNotes('');
         setStatus('Pending');
+        setCustomerPayments([]);
         
         // default due date: today
         const today = new Date();
@@ -68,32 +71,44 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
         load();
     }, [open]);
 
-    // Load cars when customer changes
+    // Load cars and payments when customer changes
     useEffect(() => {
         if (!customerId) {
             setCars([]);
+            setCustomerPayments([]);
             return;
         }
         const load = async () => {
             setLoadingCars(true);
+            setLoadingPayments(true);
             setPolicyId('');
             try {
-                const res = await CarDAO.getCarsByCustomer(customerId);
-                const list = res?.cars || res?.data || (Array.isArray(res) ? res : []);
-                setCars(list);
-            } catch {
-                message('Gagal memuat kendaraan', 'error');
+                const [carsRes, paymentsRes] = await Promise.all([
+                    CarDAO.getCarsByCustomer(customerId),
+                    PaymentDAO.getPaymentsByCustomer(customerId)
+                ]);
+                const carList = carsRes?.cars || carsRes?.data || (Array.isArray(carsRes) ? carsRes : []);
+                setCars(carList);
+                const paymentList = paymentsRes?.payments || paymentsRes?.data || (Array.isArray(paymentsRes) ? paymentsRes : []);
+                setCustomerPayments(paymentList);
+            } catch (err) {
+                console.error(err);
+                message('Gagal memuat data kendaraan atau pembayaran', 'error');
             } finally {
                 setLoadingCars(false);
+                setLoadingPayments(false);
             }
         };
         load();
     }, [customerId]);
 
+    const activePayment = customerPayments.find(p => p.policyId === policyId && p.status !== 'Cancelled');
+
     const validate = () => {
         const e = {};
         if (!customerId) e.customerId = 'Customer wajib dipilih';
         if (!policyId) e.policyId = 'Kendaraan/Polis wajib dipilih';
+        if (policyId && activePayment) e.policyId = 'Kendaraan ini masih memiliki pembayaran aktif';
         if (!amount || isNaN(Number(amount))) e.amount = 'Nominal harus berupa angka yang valid';
         if (!dueDate) e.dueDate = 'Tanggal jatuh tempo wajib diisi';
         setErrors(e);
@@ -154,6 +169,12 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
 
             <DialogContent sx={{ pt: 2 }}>
                 <Stack spacing={2.5}>
+                    {policyId && activePayment && (
+                        <Alert severity="error" sx={{ borderRadius: 2 }}>
+                            Pembayaran gagal dibuat. Mobil/polis ini sudah memiliki pembayaran aktif dengan status <b>{activePayment.status}</b> (ID: {activePayment.id}). Harap selesaikan atau batalkan pembayaran tersebut terlebih dahulu.
+                        </Alert>
+                    )}
+
                     {/* Customer */}
                     <FormControl fullWidth size="small" error={!!errors.customerId}>
                         <InputLabel>Customer *</InputLabel>
@@ -246,7 +267,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                     sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#E2E8F0', color: '#475569' }}>
                     Batal
                 </Button>
-                <Button variant="contained" onClick={handleSubmit} disabled={submitting}
+                <Button variant="contained" onClick={handleSubmit} disabled={submitting || (policyId && !!activePayment)}
                     sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, px: 3 }}
                     startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:content-save" width={18} />}>
                     {submitting ? 'Menyimpan...' : 'Simpan Pembayaran'}

@@ -457,7 +457,7 @@ export default function LoginPage() {
                         <CustomButton
                             fullWidth
                             type="submit"
-                            disabled={!formik.isValid || formik.isSubmitting}
+                            disabled={formik.isSubmitting}
                             className="login-submit-btn"
                         >
                             {formik.isSubmitting ? (

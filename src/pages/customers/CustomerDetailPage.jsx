@@ -10,7 +10,8 @@ import {
     Fade,
     CircularProgress,
     Menu,
-    MenuItem
+    MenuItem,
+    Stack
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -18,6 +19,20 @@ import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CustomerDAO from '../../daos/CustomerDao';
 import CreateCarDialog from '../Cars/CreateCarDialog';
+import QuotationDAO from '../../daos/QuotationDao';
+import InvoiceDAO from '../../daos/InvoiceDao';
+import KwitansiDAO from '../../daos/KwitansiDao';
+import PaymentDAO from '../../daos/PaymentDao';
+
+const formatDate = (d) => {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const formatCurrency = (value) => {
+    if (!value && value !== 0) return 'Tidak tersedia';
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
+};
 
 /* ---------------- IMAGE PREVIEW DIALOG ---------------- */
 function ImagePreviewDialog({ open, images, currentIndex, onIndexChange, onClose }) {
@@ -87,11 +102,16 @@ export default function CustomerDetailPage() {
     const [customer, setCustomer] = useState(null);
     const [cars, setCars] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [tabValue, setTabValue] = useState(0); // 0 = Info Pribadi, 1 = Kendaraan
+    const [tabValue, setTabValue] = useState(0); // 0 = Info Pribadi, 1 = Kendaraan, 2 = Dokumen
     const [previewState, setPreviewState] = useState({ open: false, images: [], index: 0 });
     const [isCarDialogOpen, setIsCarDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    const [quotations, setQuotations] = useState([]);
+    const [invoices, setInvoices] = useState([]);
+    const [kwitansis, setKwitansis] = useState([]);
+    const [loadingDocs, setLoadingDocs] = useState(false);
     
     // Top right menu
     const [anchorEl, setAnchorEl] = useState(null);
@@ -101,13 +121,55 @@ export default function CustomerDetailPage() {
         fetchCustomer();
     }, [id]);
 
+    const fetchDocuments = async (customerCars) => {
+        try {
+            setLoadingDocs(true);
+            const [invoicesRes, kwitansisRes, paymentsRes] = await Promise.all([
+                InvoiceDAO.getAllInvoices(),
+                KwitansiDAO.getAllKwitansi(),
+                PaymentDAO.getPaymentsByCustomer(id)
+            ]);
+
+            // Filter Invoices
+            const rawInvoices = invoicesRes?.data || invoicesRes?.invoices || (Array.isArray(invoicesRes) ? invoicesRes : []);
+            const customerInvoices = rawInvoices.filter(inv => inv.customerId === id);
+            setInvoices(customerInvoices);
+
+            // Filter Kwitansis
+            const rawKwitansis = kwitansisRes?.data || kwitansisRes?.kwitansis || (Array.isArray(kwitansisRes) ? kwitansisRes : []);
+            const paymentList = paymentsRes?.payments || paymentsRes?.data || (Array.isArray(paymentsRes) ? paymentsRes : []);
+            const paymentIds = new Set(paymentList.map(p => p.id));
+            const customerKwitansis = rawKwitansis.filter(k => paymentIds.has(k.paymentId));
+            setKwitansis(customerKwitansis);
+
+            // Fetch Quotations by car policies
+            const accumulatedQuotes = [];
+            if (customerCars && customerCars.length > 0) {
+                const quotePromises = customerCars.map(car => QuotationDAO.getQuotationsByPolicy(car.id));
+                const quoteResponses = await Promise.all(quotePromises);
+                quoteResponses.forEach(res => {
+                    const list = res?.quotations || res?.data || (Array.isArray(res) ? res : []);
+                    accumulatedQuotes.push(...list);
+                });
+            }
+            setQuotations(accumulatedQuotes);
+        } catch (error) {
+            console.error('Error fetching customer documents:', error);
+            message('Gagal memuat dokumen riwayat customer', 'error');
+        } finally {
+            setLoadingDocs(false);
+        }
+    };
+
     const fetchCustomer = async () => {
         try {
             loadingProvider.start();
             const response = await CustomerDAO.getCustomerById(id);
             if (response.success) {
                 setCustomer(response.customer);
-                setCars(response.cars || []);
+                const carList = response.cars || [];
+                setCars(carList);
+                await fetchDocuments(carList);
             } else {
                 message(response.error || 'Pelanggan tidak ditemukan', 'error');
                 navigate('/customers');
@@ -235,6 +297,20 @@ export default function CustomerDetailPage() {
                     >
                         Kendaraan ({cars.length})
                     </Box>
+                    <Box
+                        onClick={() => setTabValue(2)}
+                        sx={{
+                            flex: 1, textAlign: 'center', py: 1.25, borderRadius: '8px',
+                            cursor: 'pointer', transition: 'all 0.2s',
+                            bgcolor: tabValue === 2 ? '#ffffff' : 'transparent',
+                            color: tabValue === 2 ? '#2563EB' : '#64748B',
+                            fontWeight: tabValue === 2 ? 700 : 600,
+                            boxShadow: tabValue === 2 ? '0 1px 4px rgba(0,0,0,0.05)' : 'none',
+                            fontSize: '0.85rem'
+                        }}
+                    >
+                        Dokumen ({quotations.length + invoices.length + kwitansis.length})
+                    </Box>
                 </Box>
 
                 {/* Tab Content */}
@@ -306,6 +382,177 @@ export default function CustomerDetailPage() {
                             <Box sx={{ py: 4, textAlign: 'center' }}>
                                 <Typography sx={{ color: '#94A3B8', fontSize: '0.9rem', fontWeight: 500 }}>Belum ada kendaraan</Typography>
                             </Box>
+                        )}
+                    </Box>
+                )}
+
+                {tabValue === 2 && (
+                    <Box>
+                        {loadingDocs ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                                <CircularProgress size={32} />
+                            </Box>
+                        ) : (
+                            <Stack spacing={4}>
+                                {/* SECTION 1: PENAWARAN (QUOTATIONS) */}
+                                <Box>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                        <Typography sx={{ fontWeight: 700, color: '#1E293B', fontSize: '1rem' }}>
+                                            Penawaran (Quotation)
+                                        </Typography>
+                                        <Button
+                                            startIcon={<Icon icon="mdi:plus-circle" width={18} />}
+                                            onClick={() => navigate(`/quotations/create?customerId=${id}`)}
+                                            sx={{ color: '#2563EB', fontWeight: 700, textTransform: 'none', px: 1, minWidth: 0, fontSize: '0.85rem' }}
+                                        >
+                                            Buat Penawaran
+                                        </Button>
+                                    </Box>
+                                    {quotations.length > 0 ? (
+                                        <Stack spacing={1.5}>
+                                            {quotations.map(q => (
+                                                <Box
+                                                    key={q.id}
+                                                    sx={{
+                                                        bgcolor: '#F8FAFC', p: 2.5, borderRadius: 3,
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                        border: '1px solid #F1F5F9'
+                                                    }}
+                                                >
+                                                    <Box>
+                                                        <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#1E293B' }}>
+                                                            {q.quotationNumber}
+                                                        </Typography>
+                                                        <Typography sx={{ fontSize: '0.75rem', color: '#64748B', mt: 0.5 }}>
+                                                            {q.insuranceProvider || 'Asuransi'} · {q.insuranceType || 'Tipe'}
+                                                        </Typography>
+                                                        <Typography sx={{ fontSize: '0.75rem', color: '#64748B', mt: 0.2 }}>
+                                                            TSI: {formatCurrency(q.sumInsured || q.tsi)} · Premi: {formatCurrency(q.totalPremium || q.premium)}
+                                                        </Typography>
+                                                        <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mt: 0.5 }}>
+                                                            Dibuat: {formatDate(q.createdAt)}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Chip
+                                                        label={q.status || 'Draft'}
+                                                        size="small"
+                                                        color={q.status === 'Accepted' ? 'success' : q.status === 'Draft' ? 'default' : 'warning'}
+                                                        sx={{ fontWeight: 800, fontSize: '0.65rem', height: 20 }}
+                                                    />
+                                                </Box>
+                                            ))}
+                                        </Stack>
+                                    ) : (
+                                        <Box sx={{ py: 3, textAlign: 'center', bgcolor: '#F8FAFC', borderRadius: 3 }}>
+                                            <Typography sx={{ color: '#94A3B8', fontSize: '0.85rem', fontWeight: 500 }}>Belum ada penawaran</Typography>
+                                        </Box>
+                                    )}
+                                </Box>
+
+                                {/* SECTION 2: INVOICES */}
+                                <Box>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                        <Typography sx={{ fontWeight: 700, color: '#1E293B', fontSize: '1rem' }}>
+                                            Invoice (Tagihan)
+                                        </Typography>
+                                        <Button
+                                            startIcon={<Icon icon="mdi:plus-circle" width={18} />}
+                                            onClick={() => navigate(`/invoices/create?customerId=${id}`)}
+                                            sx={{ color: '#2563EB', fontWeight: 700, textTransform: 'none', px: 1, minWidth: 0, fontSize: '0.85rem' }}
+                                        >
+                                            Buat Invoice
+                                        </Button>
+                                    </Box>
+                                    {invoices.length > 0 ? (
+                                        <Stack spacing={1.5}>
+                                            {invoices.map(inv => (
+                                                <Box
+                                                    key={inv.id}
+                                                    sx={{
+                                                        bgcolor: '#F8FAFC', p: 2.5, borderRadius: 3,
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                        border: '1px solid #F1F5F9'
+                                                    }}
+                                                >
+                                                    <Box>
+                                                        <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#1E293B' }}>
+                                                            {inv.invoiceNumber}
+                                                        </Typography>
+                                                        <Typography sx={{ fontSize: '0.75rem', color: '#64748B', mt: 0.5 }}>
+                                                            Total: {formatCurrency(inv.grandTotal)}
+                                                        </Typography>
+                                                        <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mt: 0.5 }}>
+                                                            Jatuh Tempo: {formatDate(inv.dueDate)}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Chip
+                                                        label={inv.status}
+                                                        size="small"
+                                                        color={inv.status === 'Paid' ? 'success' : inv.status === 'Unpaid' ? 'error' : 'warning'}
+                                                        sx={{ fontWeight: 800, fontSize: '0.65rem', height: 20 }}
+                                                    />
+                                                </Box>
+                                            ))}
+                                        </Stack>
+                                    ) : (
+                                        <Box sx={{ py: 3, textAlign: 'center', bgcolor: '#F8FAFC', borderRadius: 3 }}>
+                                            <Typography sx={{ color: '#94A3B8', fontSize: '0.85rem', fontWeight: 500 }}>Belum ada invoice</Typography>
+                                        </Box>
+                                    )}
+                                </Box>
+
+                                {/* SECTION 3: KWITANSI (RECEIPTS) */}
+                                <Box>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                        <Typography sx={{ fontWeight: 700, color: '#1E293B', fontSize: '1rem' }}>
+                                            Kwitansi (Kuitansi)
+                                        </Typography>
+                                        <Button
+                                            startIcon={<Icon icon="mdi:plus-circle" width={18} />}
+                                            onClick={() => navigate(`/kwitansi`)}
+                                            sx={{ color: '#2563EB', fontWeight: 700, textTransform: 'none', px: 1, minWidth: 0, fontSize: '0.85rem' }}
+                                        >
+                                            Buat Kwitansi
+                                        </Button>
+                                    </Box>
+                                    {kwitansis.length > 0 ? (
+                                        <Stack spacing={1.5}>
+                                            {kwitansis.map(kw => (
+                                                <Box
+                                                    key={kw.id}
+                                                    sx={{
+                                                        bgcolor: '#F8FAFC', p: 2.5, borderRadius: 3,
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                        border: '1px solid #F1F5F9'
+                                                    }}
+                                                >
+                                                    <Box>
+                                                        <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#1E293B' }}>
+                                                            {kw.kwitansiNumber || kw.id}
+                                                        </Typography>
+                                                        <Typography sx={{ fontSize: '0.75rem', color: '#64748B', mt: 0.5 }}>
+                                                            Nominal: {formatCurrency(kw.invoiceData?.grandTotal)}
+                                                        </Typography>
+                                                        <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mt: 0.5 }}>
+                                                            Dibuat: {formatDate(kw.createdAt)}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Chip
+                                                        label={`Print: ${kw.printCount || 1}x`}
+                                                        size="small"
+                                                        variant="outlined"
+                                                        sx={{ fontWeight: 800, fontSize: '0.65rem', height: 20 }}
+                                                    />
+                                                </Box>
+                                            ))}
+                                        </Stack>
+                                    ) : (
+                                        <Box sx={{ py: 3, textAlign: 'center', bgcolor: '#F8FAFC', borderRadius: 3 }}>
+                                            <Typography sx={{ color: '#94A3B8', fontSize: '0.85rem', fontWeight: 500 }}>Belum ada kwitansi</Typography>
+                                        </Box>
+                                    )}
+                                </Box>
+                            </Stack>
                         )}
                     </Box>
                 )}
