@@ -176,7 +176,7 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
                     {isTooEarly && (
                         <Alert severity="error" icon={<Icon icon="mdi:shield-alert" />} sx={{ borderRadius: 2 }}>
                             <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
-                                ⚠️ Perpanjangan Dinonaktifkan — Sisa {daysLeft} Hari Lagi (> 30 Hari)
+                                ⚠️ Perpanjangan Dinonaktifkan — Sisa {daysLeft} Hari Lagi (&gt; 30 Hari)
                             </Typography>
                             <Typography variant="caption">
                                 Pengajuan renewal diblokir karena polis masih memiliki masa aktif lebih dari 30 hari. Perpanjangan baru dapat dibuat ketika masa aktif kurang dari atau sama dengan 30 hari.
