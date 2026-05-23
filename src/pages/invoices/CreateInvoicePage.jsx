@@ -247,6 +247,20 @@ export default function CreateInvoicePage() {
         }
     }, [selectedItem, customers, invoiceType]); // eslint-disable-line
 
+    // Adjust quotation premium item price dynamically so Grand Total matches original quotation premium
+    useEffect(() => {
+        if (acceptedQuotation) {
+            const origPremium = Number(acceptedQuotation.totalPremium) || 0;
+            const adjPrice = origPremium - (Number(adminFee) || 0) - (Number(stampDuty) || 0) + (Number(discount) || 0);
+            setItems(prevItems => prevItems.map(item => {
+                if (item.fromQuotation) {
+                    return { ...item, price: adjPrice };
+                }
+                return item;
+            }));
+        }
+    }, [acceptedQuotation, discount, adminFee, stampDuty]);
+
     // When invoice type changes, reset selected item
     const handleTypeChange = (type) => {
         setInvoiceType(type);
