@@ -154,7 +154,7 @@ export default function CarDetailPage() {
             setLoadingRenewals(true);
             const res = await RenewalDAO.getRenewalsByCustomer(car.customerId);
             if (res.success) {
-                const carRenewals = (res.renewals || []).filter(r => r.policyId === id);
+                const carRenewals = (res.renewals || []).filter(r => r.carId === id);
                 setRenewals(carRenewals);
             }
         } catch { } 
@@ -164,7 +164,7 @@ export default function CarDetailPage() {
     const fetchQuotations = async () => {
         try {
             setLoadingQuotations(true);
-            const res = await QuotationDAO.getQuotationsByPolicy(id);
+            const res = await QuotationDAO.getQuotationsByCarId(id);
             if (res.success) {
                 setQuotations(res.quotations || []);
             }
@@ -454,7 +454,7 @@ export default function CarDetailPage() {
                             <Typography sx={{ fontWeight: 700, color: '#1E293B', fontSize: '0.95rem' }}>Daftar Penawaran</Typography>
                             <Button
                                 startIcon={<Icon icon="mdi:plus-circle" width={18}/>}
-                                onClick={() => navigate(`/quotations/create?policyId=${encodeURIComponent(id)}`)}
+                                onClick={() => navigate(`/quotations/create?carId=${encodeURIComponent(id)}`)}
                                 sx={{fontWeight: 700, textTransform: 'none', px: 1, color: '#2563EB', fontSize: '0.85rem'}}
                             >
                                 Buat Penawaran

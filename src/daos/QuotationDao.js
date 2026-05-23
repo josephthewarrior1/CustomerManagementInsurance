@@ -9,9 +9,9 @@ export default class QuotationDAO {
         );
     };
 
-    static getQuotationsByPolicy = async (policyId) => {
+    static getQuotationsByCarId = async (carId) => {
         return await ApiRequest.set(
-            `/api/quotations/policy/${policyId}`,
+            `/api/quotations/car/${carId}`,
             ApiRequest.HTTP_METHOD.GET
         );
     };

@@ -186,22 +186,26 @@ function generateQuotationPDF(q, car, company) {
 
     const tsiValue = Number(q.sumInsured || q.tsi) || 0;
     const calcBody = [];
+    let calculatedTotal = 0;
     Object.keys(coverages).forEach(k => {
         const c = coverages[k];
-        if (!c?.enabled || c.freeInclude) return;
+        if (!c?.enabled) return;
+        if (c.freeInclude) {
+            calcBody.push([coverageLabels[k] || k, '-', '-', 'FREE INCLUDE']);
+            return;
+        }
         if (c.isFixedAmount) {
             const amt = Number(c.percentage) || 0;
+            calculatedTotal += amt;
             calcBody.push([coverageLabels[k] || k, '-', '-', fmt(amt)]);
         } else {
             const pct = Number(c.percentage) || 0;
             const amount = roundIDR((tsiValue * pct) / 100);
+            calculatedTotal += amount;
             calcBody.push([coverageLabels[k] || k, `Rp ${fmtNum(tsiValue)}`, `${pct} %`, fmt(amount)]);
         }
     });
-    const adminFee = 50000, stampDuty = 10000;
-    calcBody.push(['Admin Fee', 'Rp 50.000', '', fmt(adminFee)]);
-    calcBody.push(['Stamp Duty', 'Rp 10.000', '', fmt(stampDuty)]);
-    const totalPremium = Number(q.totalPremium || q.premium) || 0;
+    const totalPremium = calculatedTotal || Number(q.totalPremium || q.premium) || 0;
     calcBody.push([{ content: 'Total Premi', styles: { fontStyle: 'bold' } }, { content: '', styles: { fontStyle: 'bold' } }, { content: '', styles: { fontStyle: 'bold' } }, { content: fmt(totalPremium), styles: { fontStyle: 'bold' } }]);
 
     autoTable(doc, {
@@ -424,7 +428,7 @@ export default function CustomerDetailPage() {
     };
 
     const handleViewQuotation = (q) => {
-        const car = cars.find(c => c.id === q.policyId);
+        const car = cars.find(c => c.id === q.carId);
         const doc = generateQuotationPDF(q, car, companyProfile);
         openDocPreview(doc.output('datauristring'), `Quotation – ${q.quotationNumber}`, `Quotation_${q.quotationNumber}.pdf`);
     };
@@ -437,6 +441,25 @@ export default function CustomerDetailPage() {
         const doc = generateKwitansiPDF(kw, companyProfile);
         const kwNum = (kw.kwitansiNumber || kw.id || 'KW').replace(/\//g, '_');
         openDocPreview(doc.output('datauristring'), `Kwitansi – ${kw.kwitansiNumber || kw.id}`, `Kwitansi_${kwNum}.pdf`);
+    };
+    
+    const handleCancelInvoice = async (e, invoiceId) => {
+        e.stopPropagation(); // prevent triggering PDF preview
+        if (!window.confirm('Yakin ingin membatalkan invoice ini?')) return;
+        try {
+            loadingProvider.start();
+            const res = await InvoiceDAO.updateInvoice(invoiceId, { status: 'Cancelled' });
+            if (res.success || res.id) {
+                message('Invoice berhasil dibatalkan', 'success');
+                fetchCustomer(); // Reload customer details to refresh doc list
+            } else {
+                message(res.error || 'Gagal membatalkan invoice', 'error');
+            }
+        } catch (err) {
+            message(err?.error || err?.message || 'Gagal membatalkan invoice', 'error');
+        } finally {
+            loadingProvider.stop();
+        }
     };
 
     useEffect(() => {
@@ -479,7 +502,7 @@ export default function CustomerDetailPage() {
             // Fetch Quotations by car policies
             const accumulatedQuotes = [];
             if (customerCars && customerCars.length > 0) {
-                const quotePromises = customerCars.map(car => QuotationDAO.getQuotationsByPolicy(car.id));
+                const quotePromises = customerCars.map(car => QuotationDAO.getQuotationsByCarId(car.id));
                 const quoteResponses = await Promise.all(quotePromises);
                 quoteResponses.forEach(res => {
                     const list = res?.quotations || res?.data || (Array.isArray(res) ? res : []);
@@ -854,15 +877,25 @@ export default function CustomerDetailPage() {
                                                             Jatuh Tempo: {formatDate(inv.dueDate)}
                                                         </Typography>
                                                     </Box>
-                                                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
-                                                        <Chip
-                                                            label={inv.status}
-                                                            size="small"
-                                                            color={inv.status === 'Paid' ? 'success' : inv.status === 'Unpaid' ? 'error' : 'warning'}
-                                                            sx={{ fontWeight: 800, fontSize: '0.65rem', height: 20 }}
-                                                        />
-                                                        <Icon icon="mdi:file-pdf-box" color="#DC2626" width={20} />
-                                                    </Box>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                         {inv.status === 'Unpaid' && (
+                                                             <Button 
+                                                                 size="small" 
+                                                                 color="error" 
+                                                                 variant="outlined"
+                                                                 onClick={(e) => handleCancelInvoice(e, inv.id)}
+                                                                 sx={{ textTransform: 'none', py: 0, px: 1, fontSize: '0.75rem', height: 20, fontWeight: 700, mr: 1 }}
+                                                             >
+                                                                 Batalkan
+                                                             </Button>
+                                                         )}
+                                                         <Chip
+                                                             label={inv.status}
+                                                             size="small"
+                                                             color={inv.status === 'Paid' ? 'success' : inv.status === 'Cancelled' ? 'default' : inv.status === 'Unpaid' ? 'error' : 'warning'}
+                                                             sx={{ fontWeight: 800, fontSize: '0.65rem', height: 20 }}
+                                                         />
+                                                     </Box>
                                                 </Box>
                                             ))}
                                         </Stack>

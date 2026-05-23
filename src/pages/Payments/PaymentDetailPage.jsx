@@ -81,7 +81,7 @@ export default function PaymentDetailPage() {
                 setPayment(p);
                 const [custRes, carRes] = await Promise.allSettled([
                     p.customerId ? CustomerDAO.getCustomerById(p.customerId) : Promise.resolve(null),
-                    p.policyId   ? CarDAO.getCarById(p.policyId)             : Promise.resolve(null),
+                    p.carId   ? CarDAO.getCarById(p.carId)             : Promise.resolve(null),
                 ]);
                 if (custRes.status === 'fulfilled' && custRes.value) {
                     const c = custRes.value.customer || custRes.value;

@@ -174,7 +174,7 @@ export default function CreateQuotationPage() {
   const location = useLocation();
 
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
-  const prefillPolicyId = searchParams.get('policyId') || '';
+  const prefillCarId = searchParams.get('carId') || searchParams.get('policyId') || '';
   const renewalId = (searchParams.get('renewalId') || '').trim();
 
   const [activeStep, setActiveStep] = useState(0);
@@ -219,7 +219,7 @@ export default function CreateQuotationPage() {
   }), []);
 
   const [calculations, setCalculations] = useState({
-    itemAmounts: {}, subtotal: 0, adminFee: 50000, stampDuty: 10000, totalPremium: 0,
+    itemAmounts: {}, subtotal: 0, totalPremium: 0,
   });
 
   useEffect(() => { fetchCompanyProfile(); fetchData(); generateQuotationNumber(); }, []); // eslint-disable-line
@@ -268,13 +268,13 @@ export default function CreateQuotationPage() {
     finally { loading.stop(); }
   };
 
-  // Auto-select car when policyId is passed (e.g. from Renewal flow)
+  // Auto-select car when carId is passed (e.g. from Renewal flow)
   useEffect(() => {
-    if (!prefillPolicyId || !cars?.length) return;
+    if (!prefillCarId || !cars?.length) return;
     if (quotationType !== 'car') setQuotationType('car');
-    const found = cars.find(c => c.id === prefillPolicyId);
+    const found = cars.find(c => c.id === prefillCarId);
     if (found) setSelectedItem(found);
-  }, [prefillPolicyId, cars, quotationType]);
+  }, [prefillCarId, cars, quotationType]);
 
   const handleTypeChange = (type) => {
     setQuotationType(type);
@@ -344,8 +344,7 @@ export default function CreateQuotationPage() {
       itemAmounts[k] = amt;
       subtotal += amt;
     });
-    const adminFee = 50000, stampDuty = 10000;
-    setCalculations(p => ({ ...p, itemAmounts, subtotal, totalPremium: subtotal + adminFee + stampDuty }));
+    setCalculations(p => ({ ...p, itemAmounts, subtotal, totalPremium: subtotal }));
   };
 
   const handleNext = () => {
@@ -385,8 +384,7 @@ export default function CreateQuotationPage() {
 
       const payload = {
         customerId: selectedItem?.customerId || selectedItem?.id,
-        policyType: quotationType,
-        policyId: selectedItem?.id,
+        carId: selectedItem?.id,
         renewalId: renewalId || undefined,
         quotationNumber,
         tsi: Number(tsi),
@@ -533,7 +531,15 @@ export default function CreateQuotationPage() {
     Object.keys(coverages).forEach((key) => {
       const c = coverages[key];
       if (!c.enabled) return;
-      if (c.freeInclude) return;
+      if (c.freeInclude) {
+        calcBody.push([
+          coverageLabels[key],
+          '-',
+          '-',
+          'FREE INCLUDE'
+        ]);
+        return;
+      }
 
       if (c.isFixedAmount) {
         const fixedVal = Number(c.percentage);
@@ -556,23 +562,6 @@ export default function CreateQuotationPage() {
         ]);
       }
     });
-
-    if ((calculations.adminFee ?? 0) > 0) {
-      calcBody.push([
-        'Admin Fee',
-        'Rp 50.000',
-        '',
-        fmt(calculations.adminFee)
-      ]);
-    }
-    if ((calculations.stampDuty ?? 0) > 0) {
-      calcBody.push([
-        'Stamp Duty',
-        'Rp 10.000',
-        '',
-        fmt(calculations.stampDuty)
-      ]);
-    }
 
     calcBody.push([
       { content: 'Total Premi', styles: { fontStyle: 'bold' } },
@@ -988,8 +977,6 @@ export default function CreateQuotationPage() {
                   <Divider sx={{ borderColor: '#E4E6EA', my: 1.5 }} />
                   <Stack spacing={0.75} mb={2}>
                     <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Subtotal</Typography><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>{fmt(calculations.subtotal)}</Typography></Box>
-                    <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Admin Fee</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(calculations.adminFee)}</Typography></Box>
-                    <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Stamp Duty</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(calculations.stampDuty)}</Typography></Box>
                   </Stack>
                   <Box sx={{ p: 2, borderRadius: '8px', bgcolor: '#EBF4FF', border: `1px solid ${alpha('#1971C2', 0.2)}` }}>
                     <Box display="flex" justifyContent="space-between" alignItems="baseline">
@@ -1075,14 +1062,14 @@ export default function CreateQuotationPage() {
                   </Stack>
                   <Divider sx={{ borderColor: '#E4E6EA', my: 2 }} />
                   <Stack spacing={0.75} mb={2}>
-                    {enabledKeys.filter(k => !coverages[k].freeInclude).map(key => (
+                    {enabledKeys.map(key => (
                       <Box key={key} display="flex" justifyContent="space-between">
                         <Typography fontSize={13} sx={{ color: '#606770' }}>{coverageLabels[key]}</Typography>
-                        <Typography fontSize={13} fontWeight={500} sx={{ color: '#1C1E21' }}>{fmt(calculations.itemAmounts?.[key] ?? 0)}</Typography>
+                        <Typography fontSize={13} fontWeight={500} sx={{ color: coverages[key].freeInclude ? '#1E8840' : '#1C1E21' }}>
+                          {coverages[key].freeInclude ? 'FREE INCLUDE' : fmt(calculations.itemAmounts?.[key] ?? 0)}
+                        </Typography>
                       </Box>
                     ))}
-                    <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Admin Fee</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(calculations.adminFee)}</Typography></Box>
-                    <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Stamp Duty</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(calculations.stampDuty)}</Typography></Box>
                   </Stack>
                   <Box sx={{ p: 2.5, borderRadius: '8px', bgcolor: '#EBF4FF', border: `1px solid ${alpha('#1971C2', 0.2)}`, mb: 2 }}>
                     <Box display="flex" justifyContent="space-between" alignItems="baseline">

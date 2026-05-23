@@ -180,7 +180,7 @@ export default function PaymentListPage() {
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <Icon icon="mdi:car" width={14} />
-                        {row.policySummary || row.policyId || 'Tidak tertaut polis'}
+                        {row.carSummary || row.carId || 'Tidak tertaut polis'}
                     </Typography>
                 </Box>
             )
@@ -286,7 +286,7 @@ export default function PaymentListPage() {
                                                 {p.customerName || p.id}
                                             </Typography>
                                             <Typography variant="caption" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5 }} noWrap>
-                                                <Icon icon="mdi:car" width={14} /> {p.policySummary || p.policyId || 'Tidak ada polis'}
+                                                <Icon icon="mdi:car" width={14} /> {p.carSummary || p.carId || 'Tidak ada polis'}
                                             </Typography>
                                         </Box>
                                         <StatusBadge status={(p.status === 'Pending' && p.dueDate && new Date(p.dueDate) < new Date(new Date().setHours(0,0,0,0))) ? 'Overdue' : p.status} />

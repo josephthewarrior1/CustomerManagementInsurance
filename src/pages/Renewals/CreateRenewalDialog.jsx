@@ -126,8 +126,7 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
         try {
             const payload = {
                 customerId: prefillCar?.customerId || customerId,
-                policyType: 'car',
-                policyId: selectedCar.id,
+                carId: selectedCar.id,
                 newStartDate,
                 newEndDate,
                 notes: notes || undefined,

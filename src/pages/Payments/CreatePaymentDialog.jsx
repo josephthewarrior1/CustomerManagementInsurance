@@ -25,11 +25,11 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
     const message = useAlert();
 
     const [customers, setCustomers] = useState([]);
-    const [cars, setCars] = useState([]); // cars for selected customer (optional policyId)
+    const [cars, setCars] = useState([]); // cars for selected customer (optional carId)
     const [customerPayments, setCustomerPayments] = useState([]);
 
     const [customerId, setCustomerId] = useState('');
-    const [policyId, setPolicyId] = useState('');
+    const [carId, setCarId] = useState('');
     const [invoiceNumber, setInvoiceNumber] = useState('');
     const [amount, setAmount] = useState('');
     const [dueDate, setDueDate] = useState('');
@@ -48,7 +48,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
         if (!open) return;
         setErrors({});
         setCustomerId(prefillCustomerId || '');
-        setPolicyId('');
+        setCarId('');
         setInvoiceNumber('');
         setAmount('');
         setNotes('');
@@ -89,7 +89,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
         const load = async () => {
             setLoadingCars(true);
             setLoadingPayments(true);
-            setPolicyId('');
+            setCarId('');
             try {
                 const [carsRes, paymentsRes] = await Promise.all([
                     CarDAO.getCarsByCustomer(customerId),
@@ -110,8 +110,8 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
         load();
     }, [customerId]);
 
-    const activePayment = customerPayments.find(p => p.policyId === policyId && !['Paid', 'Cancelled'].includes(p.status));
-    const selectedCarObj = cars.find(c => c.id === policyId);
+    const activePayment = customerPayments.find(p => p.carId === carId && !['Paid', 'Cancelled'].includes(p.status));
+    const selectedCarObj = cars.find(c => c.id === carId);
     const activeCarName = selectedCarObj ? `${selectedCarObj.carData?.carBrand || ''} ${selectedCarObj.carData?.carModel || ''}`.trim() : 'kendaraan';
     const activePaymentAmount = activePayment ? formatCurrency(activePayment.amount) : '';
 
@@ -119,8 +119,8 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
         const e = {};
         const rawAmount = amount ? amount.toString().replace(/\D/g, '') : '';
         if (!customerId) e.customerId = 'Customer wajib dipilih';
-        if (!policyId) e.policyId = 'Kendaraan/Polis wajib dipilih';
-        if (policyId && activePayment) e.policyId = `Kendaraan ${activeCarName} masih memiliki pembayaran aktif sebesar ${activePaymentAmount}`;
+        if (!carId) e.carId = 'Kendaraan wajib dipilih';
+        if (carId && activePayment) e.carId = `Kendaraan ${activeCarName} masih memiliki pembayaran aktif sebesar ${activePaymentAmount}`;
         if (!rawAmount || isNaN(Number(rawAmount))) e.amount = 'Nominal harus berupa angka yang valid';
         if (!dueDate) e.dueDate = 'Tanggal jatuh tempo wajib diisi';
         setErrors(e);
@@ -134,8 +134,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
             const rawAmount = amount ? amount.toString().replace(/\D/g, '') : '0';
             const payload = {
                 customerId,
-                policyType: policyId ? 'car' : '',
-                policyId: policyId || undefined,
+                carId: carId || undefined,
                 invoiceNumber: invoiceNumber || undefined,
                 amount: Number(rawAmount),
                 dueDate,
@@ -195,7 +194,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
  
             <DialogContent sx={{ pt: 2 }}>
                 <Stack spacing={2.5}>
-                    {policyId && activePayment && (
+                    {carId && activePayment && (
                         <Alert severity="error" sx={{ borderRadius: 2 }}>
                             Pembayaran gagal dibuat. Mobil/polis <b>{activeCarName}</b> sudah memiliki pembayaran aktif sebesar <b>{activePaymentAmount}</b> dengan status <b>{activePayment.status}</b>. Harap selesaikan atau batalkan pembayaran tersebut terlebih dahulu.
                         </Alert>
@@ -218,12 +217,12 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                     </FormControl>
  
                     {/* Policy / Kendaraan */}
-                    <FormControl fullWidth size="small" disabled={!customerId || loadingCars} error={!!errors.policyId}>
-                        <InputLabel>Hubungkan ke Kendaraan/Polis *</InputLabel>
+                    <FormControl fullWidth size="small" disabled={!customerId || loadingCars} error={!!errors.carId}>
+                        <InputLabel>Hubungkan ke Kendaraan *</InputLabel>
                         <Select
-                            value={policyId}
-                            label="Hubungkan ke Kendaraan/Polis *"
-                            onChange={e => setPolicyId(e.target.value)}
+                            value={carId}
+                            label="Hubungkan ke Kendaraan *"
+                            onChange={e => setCarId(e.target.value)}
                         >
                             {cars.map(c => (
                                 <MenuItem key={c.id} value={c.id}>
@@ -231,7 +230,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                                 </MenuItem>
                             ))}
                         </Select>
-                        {errors.policyId && <FormHelperText>{errors.policyId}</FormHelperText>}
+                        {errors.carId && <FormHelperText>{errors.carId}</FormHelperText>}
                     </FormControl>
  
                     <Divider textAlign="left">
@@ -338,7 +337,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                     sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#E2E8F0', color: '#475569' }}>
                     Batal
                 </Button>
-                <Button variant="contained" onClick={handleSubmit} disabled={submitting || (policyId && !!activePayment)}
+                <Button variant="contained" onClick={handleSubmit} disabled={submitting || (carId && !!activePayment)}
                     sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#1E40AF', '&:hover': { bgcolor: '#1E3A8A' }, px: 3 }}
                     startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:content-save" width={18} />}>
                     {submitting ? 'Menyimpan...' : 'Simpan Pembayaran'}

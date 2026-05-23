@@ -306,9 +306,9 @@ export default function CreateInvoicePage() {
     };
 
     // Fetch accepted quotation for a car/policy
-    const fetchAcceptedQuotation = async (policyId) => {
+    const fetchAcceptedQuotation = async (carId) => {
         try {
-            const res = await QuotationDAO.getQuotationsByPolicy(policyId);
+            const res = await QuotationDAO.getQuotationsByCarId(carId);
             if (res.success && res.quotations) {
                 const accepted = res.quotations.find(q => q.status === 'Accepted');
                 if (accepted) {

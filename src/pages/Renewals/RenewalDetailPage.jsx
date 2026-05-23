@@ -98,7 +98,7 @@ export default function RenewalDetailPage() {
                 // Fetch renewal-linked quotation (by policy, then filter by renewalId)
                 setLoadingQuotation(true);
                 try {
-                    const qr = await QuotationDAO.getQuotationsByPolicy(res.renewal.policyId);
+                    const qr = await QuotationDAO.getQuotationsByCarId(res.renewal.carId);
                     const list = qr?.quotations || qr?.data || (Array.isArray(qr) ? qr : []);
                     const linked = list.find(q => q.renewalId === res.renewal.id) || null;
                     setQuotation(linked);
@@ -269,7 +269,7 @@ export default function RenewalDetailPage() {
                                 {renewal.customerName || '-'}
                             </Typography>
                             <Typography variant="body2" sx={{ color: '#64748B', mb: 1 }}>
-                                {renewal.policySummary || '-'}
+                                {renewal.carSummary || renewal.policySummary || '-'}
                             </Typography>
                             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                                 <Chip label={renewal.status} size="small"
@@ -366,7 +366,7 @@ export default function RenewalDetailPage() {
                                     <Button
                                         variant="contained"
                                         size="small"
-                                        onClick={() => navigate(`/quotations/create?policyId=${encodeURIComponent(renewal.policyId)}&renewalId=${encodeURIComponent(renewal.id)}`)}
+                                        onClick={() => navigate(`/quotations/create?carId=${encodeURIComponent(renewal.carId)}&renewalId=${encodeURIComponent(renewal.id)}`)}
                                         sx={{ textTransform: 'none', fontWeight: 700, bgcolor: '#1E40AF', '&:hover': { bgcolor: '#1E3A8A' } }}
                                         startIcon={<Icon icon="mdi:file-document-plus-outline" width={16} />}
                                     >

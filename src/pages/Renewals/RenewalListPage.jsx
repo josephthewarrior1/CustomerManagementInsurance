@@ -101,7 +101,7 @@ export default function RenewalListPage() {
             const kw = keyword.toLowerCase();
             filtered = filtered.filter(r =>
                 (r.customerName || '').toLowerCase().includes(kw) ||
-                (r.policySummary || '').toLowerCase().includes(kw) ||
+                (r.carSummary || r.policySummary || '').toLowerCase().includes(kw) ||
                 (r.id || '').toLowerCase().includes(kw)
             );
         }
@@ -148,7 +148,7 @@ export default function RenewalListPage() {
             render: (_, row) => (
                 <Box>
                     <Typography variant="body2" fontWeight={600}>{row.customerName || '-'}</Typography>
-                    <Typography variant="caption" color="textSecondary">{row.policySummary || '-'}</Typography>
+                    <Typography variant="caption" color="textSecondary">{row.carSummary || row.policySummary || '-'}</Typography>
                 </Box>
             )
         },
@@ -192,7 +192,7 @@ export default function RenewalListPage() {
             const kw = mobileKeyword.toLowerCase();
             filtered = filtered.filter(r =>
                 (r.customerName || '').toLowerCase().includes(kw) ||
-                (r.policySummary || '').toLowerCase().includes(kw)
+                (r.carSummary || r.policySummary || '').toLowerCase().includes(kw)
             );
         }
         const paginated = filtered.slice(0, mobileVisibleCount);
@@ -260,7 +260,7 @@ export default function RenewalListPage() {
                                                     {r.customerName || '-'}
                                                 </Typography>
                                                 <Typography sx={{ fontSize: '0.71rem', color: '#94A3B8' }} noWrap>
-                                                    {r.policySummary || '-'}
+                                                    {r.carSummary || r.policySummary || '-'}
                                                 </Typography>
                                             </Box>
                                             <Box sx={{ bgcolor: cfg.bg, color: cfg.color, px: 0.8, py: 0.2, borderRadius: '6px', fontSize: '0.65rem', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
@@ -377,7 +377,7 @@ export default function RenewalListPage() {
                     <>
                         <Box sx={{ mb: 2, px: 1 }}>
                             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{drawerRenewal.customerName}</Typography>
-                            <Typography variant="body2" color="text.secondary">{drawerRenewal.policySummary}</Typography>
+                            <Typography variant="body2" color="text.secondary">{drawerRenewal.carSummary || drawerRenewal.policySummary}</Typography>
                         </Box>
                         <List sx={{ pb: 3 }}>
                             <ListItemButton onClick={() => { setActionDrawerOpen(false); navigate(`/renewals/${drawerRenewal.id}`); }} sx={{ borderRadius: '12px', mb: 1 }}>
