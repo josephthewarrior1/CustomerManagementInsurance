@@ -432,14 +432,7 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                             <Grid item xs={12}>
                                 <InfoCard title="Finansial & Asuransi">
                                     <Grid container spacing={2}>
-                                        <Grid item xs={12} sm={6}>
-                                            <InfoRow 
-                                                label="Harga Kendaraan" 
-                                                value={formatCurrency(customer.carData?.carPrice)} 
-                                                icon="mdi:cash"
-                                            />
-                                        </Grid>
-                                        <Grid item xs={12} sm={6}>
+                                        <Grid item xs={12}>
                                             <InfoRow 
                                                 label="Jatuh Tempo Asuransi" 
                                                 value={customer.carData?.dueDate || 'Belum diatur'} 

@@ -283,7 +283,7 @@ export default function CarEditPage() {
                 plateNumber: formData.plateNumber,
                 chassisNumber: formData.chassisNumber,
                 engineNumber: formData.engineNumber,
-                carPrice: formData.carPrice ? Number(formData.carPrice) : 0,
+                carPrice: 0,
                 startDate: formData.startDate || null,
                 dueDate: formData.dueDate || null,
                 notes: formData.notes,
@@ -543,14 +543,6 @@ export default function CarEditPage() {
                         {/* 2. Finansial & Status */}
                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, 1fr)' }, gap: 3, alignItems: 'stretch' }}>
                             <SectionCard icon="mdi:cash" title="Finansial & Polis" sx={{ height: '100%' }}>
-                                <FieldLabel label="Harga Pasar Kendaraan (IDR)" />
-                                <TextField
-                                    fullWidth size="small" name="carPrice" type="number"
-                                    value={formData.carPrice} onChange={handleChange}
-                                    placeholder="cth. 200000000"
-                                    InputProps={{ startAdornment: <InputAdornment position="start">Rp</InputAdornment> }}
-                                    sx={{ ...inputStyle, mb: 2.5 }}
-                                />
                                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2.5 }}>
                                     <Box>
                                         <FieldLabel label="Tanggal Mulai Asuransi" />

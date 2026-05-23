@@ -320,10 +320,10 @@ export default function CreateInvoicePage() {
 
     const generateInvoiceNumber = () => {
         const d = new Date();
-        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        const seq = Math.floor(Math.random() * 999 + 1).toString().padStart(3, '0');
         const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
         const romanMonth = romanMonths[d.getMonth()];
-        setInvoiceNumber(`${random}/MV/JAS/TAP/${romanMonth}/${d.getFullYear()}`);
+        setInvoiceNumber(`${seq}/INV/${romanMonth}/${d.getFullYear()}`);
     };
 
     const handleSaveCompanyProfile = async () => {
@@ -1018,7 +1018,6 @@ export default function CreateInvoicePage() {
                                             { label: 'No. Plat', value: selectedItem?.carData?.plateNumber },
                                             { label: 'No. Rangka', value: selectedItem?.carData?.chassisNumber },
                                             { label: 'No. Mesin', value: selectedItem?.carData?.engineNumber },
-                                            { label: 'Harga Mobil', value: selectedItem?.carData?.carPrice ? `Rp ${Number(selectedItem.carData.carPrice).toLocaleString('id-ID')}` : '-' },
                                         ] : [
                                             { label: 'Pemilik', value: selectedItem?.ownerName || selectedItem?.customerName },
                                             { label: 'Tipe Properti', value: selectedItem?.propertyData?.propertyType },

@@ -92,7 +92,6 @@ export default function RenewalDetailPage() {
     /* ── fetch ─────────────────────────────────────────────────────────── */
     const fetchRenewal = async () => {
         try {
-            loadingProvider.start();
             const res = await RenewalDAO.getRenewalById(id);
             if (res.success) {
                 setRenewal(res.renewal);
@@ -121,7 +120,6 @@ export default function RenewalDetailPage() {
             message('Gagal memuat detail renewal', 'error');
             navigate('/renewals');
         } finally {
-            loadingProvider.stop();
             setLoading(false);
         }
     };

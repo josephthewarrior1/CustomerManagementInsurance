@@ -15,6 +15,12 @@ const formatCurrency = (v) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
 };
 
+const formatThousand = (val) => {
+    if (!val) return '';
+    const clean = val.toString().replace(/\D/g, '');
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
 export default function CreatePaymentDialog({ open, onClose, onCreated, prefillCustomerId = null }) {
     const message = useAlert();
 
@@ -29,6 +35,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
     const [dueDate, setDueDate] = useState('');
     const [notes, setNotes] = useState('');
     const [status, setStatus] = useState('Pending');
+    const [proofFile, setProofFile] = useState(null);
 
     const [loadingCustomers, setLoadingCustomers] = useState(false);
     const [loadingCars, setLoadingCars] = useState(false);
@@ -47,6 +54,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
         setNotes('');
         setStatus('Pending');
         setCustomerPayments([]);
+        setProofFile(null);
         
         // default due date: today
         const today = new Date();
@@ -109,10 +117,11 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
 
     const validate = () => {
         const e = {};
+        const rawAmount = amount ? amount.toString().replace(/\D/g, '') : '';
         if (!customerId) e.customerId = 'Customer wajib dipilih';
         if (!policyId) e.policyId = 'Kendaraan/Polis wajib dipilih';
         if (policyId && activePayment) e.policyId = `Kendaraan ${activeCarName} masih memiliki pembayaran aktif sebesar ${activePaymentAmount}`;
-        if (!amount || isNaN(Number(amount))) e.amount = 'Nominal harus berupa angka yang valid';
+        if (!rawAmount || isNaN(Number(rawAmount))) e.amount = 'Nominal harus berupa angka yang valid';
         if (!dueDate) e.dueDate = 'Tanggal jatuh tempo wajib diisi';
         setErrors(e);
         return Object.keys(e).length === 0;
@@ -122,18 +131,32 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
         if (!validate()) return;
         setSubmitting(true);
         try {
+            const rawAmount = amount ? amount.toString().replace(/\D/g, '') : '0';
             const payload = {
                 customerId,
                 policyType: policyId ? 'car' : '',
                 policyId: policyId || undefined,
                 invoiceNumber: invoiceNumber || undefined,
-                amount: Number(amount),
+                amount: Number(rawAmount),
                 dueDate,
                 status,
                 notes: notes || undefined,
+                paidDate: status === 'Paid' ? new Date().toISOString() : undefined
             };
             const res = await PaymentDAO.createPayment(payload);
             if (res.success || res.id) {
+                const createdId = res.id || res.payment?.id;
+                
+                // Upload proof if selected
+                if (status === 'Paid' && proofFile && createdId) {
+                    const formData = new FormData();
+                    formData.append('proof', proofFile);
+                    const uploadRes = await PaymentDAO.uploadProof(createdId, formData);
+                    if (!uploadRes.success) {
+                        message('Payment berhasil dibuat, tetapi gagal mengunggah bukti bayar', 'warning');
+                    }
+                }
+
                 message('Payment Record berhasil dibuat', 'success');
                 onCreated?.(res.payment || res);
                 onClose();
@@ -152,8 +175,8 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
             <DialogTitle sx={{ pb: 0 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Box sx={{ bgcolor: '#FEF2F2', borderRadius: 2, p: 0.8, display: 'flex' }}>
-                            <Icon icon="mdi:receipt-text-plus" width={22} color="#DC2626" />
+                        <Box sx={{ bgcolor: '#EFF6FF', borderRadius: 2, p: 0.8, display: 'flex' }}>
+                            <Icon icon="mdi:receipt-text-plus" width={22} color="#1E40AF" />
                         </Box>
                         <Box>
                             <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B', lineHeight: 1 }}>
@@ -167,9 +190,9 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                     <IconButton onClick={onClose} size="small"><Icon icon="mdi:close" width={20} color="#64748B" /></IconButton>
                 </Stack>
             </DialogTitle>
-
+ 
             <Divider sx={{ mt: 2 }} />
-
+ 
             <DialogContent sx={{ pt: 2 }}>
                 <Stack spacing={2.5}>
                     {policyId && activePayment && (
@@ -177,7 +200,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                             Pembayaran gagal dibuat. Mobil/polis <b>{activeCarName}</b> sudah memiliki pembayaran aktif sebesar <b>{activePaymentAmount}</b> dengan status <b>{activePayment.status}</b>. Harap selesaikan atau batalkan pembayaran tersebut terlebih dahulu.
                         </Alert>
                     )}
-
+ 
                     {/* Customer */}
                     <FormControl fullWidth size="small" error={!!errors.customerId}>
                         <InputLabel>Customer *</InputLabel>
@@ -193,7 +216,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                         </Select>
                         {errors.customerId && <FormHelperText>{errors.customerId}</FormHelperText>}
                     </FormControl>
-
+ 
                     {/* Policy / Kendaraan */}
                     <FormControl fullWidth size="small" disabled={!customerId || loadingCars} error={!!errors.policyId}>
                         <InputLabel>Hubungkan ke Kendaraan/Polis *</InputLabel>
@@ -210,19 +233,19 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                         </Select>
                         {errors.policyId && <FormHelperText>{errors.policyId}</FormHelperText>}
                     </FormControl>
-
+ 
                     <Divider textAlign="left">
                         <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>Detail Tagihan</Typography>
                     </Divider>
-
+ 
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                         {/* Amount */}
                         <TextField
                             fullWidth size="small" label="Total Tagihan (Rp) *"
                             value={amount}
-                            onChange={e => setAmount(e.target.value)}
+                            onChange={e => setAmount(formatThousand(e.target.value))}
                             error={!!errors.amount}
-                            helperText={errors.amount || (amount ? `= ${formatCurrency(Number(amount))}` : '')}
+                            helperText={errors.amount || (amount ? `= ${formatCurrency(Number(amount.toString().replace(/\D/g, '')))}` : '')}
                             InputProps={{ startAdornment: <Typography variant="body2" sx={{ color: '#94A3B8', mr: 1 }}>Rp</Typography> }}
                         />
                         {/* Due Date */}
@@ -235,7 +258,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                             helperText={errors.dueDate}
                         />
                     </Stack>
-
+ 
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                         {/* Invoice Number */}
                         <TextField
@@ -254,7 +277,52 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                             </Select>
                         </FormControl>
                     </Stack>
-
+ 
+                    {status === 'Paid' && (
+                        <Box sx={{ 
+                            border: '1px dashed #1E40AF', 
+                            borderRadius: '12px', 
+                            p: 2.5, 
+                            bgcolor: '#EFF6FF', 
+                            textAlign: 'center',
+                            transition: 'all 0.2s',
+                            '&:hover': { bgcolor: '#DBEAFE' }
+                        }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#1E40AF', mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                                <Icon icon="mdi:cloud-upload-outline" width={18} />
+                                Bukti Pembayaran (opsional)
+                            </Typography>
+                            {proofFile ? (
+                                <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="center">
+                                    <Typography variant="caption" sx={{ fontWeight: 600, color: '#1E293B', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+                                        {proofFile.name}
+                                    </Typography>
+                                    <Button size="small" variant="text" color="error" onClick={() => setProofFile(null)} sx={{ textTransform: 'none', fontWeight: 700, p: 0, minWidth: 'auto' }}>
+                                        Hapus
+                                    </Button>
+                                </Stack>
+                            ) : (
+                                <>
+                                    <Typography variant="caption" sx={{ color: '#64748B', display: 'block', mb: 1.5 }}>
+                                        Format gambar (JPG, PNG). Maks. 5MB.
+                                    </Typography>
+                                    <Button variant="contained" component="label" size="small" startIcon={<Icon icon="mdi:upload" />} sx={{ textTransform: 'none', bgcolor: '#1E40AF', '&:hover': { bgcolor: '#1E3A8A' }, fontWeight: 600, borderRadius: 2, px: 2 }}>
+                                        Unggah Berkas
+                                        <input type="file" hidden accept="image/*" onChange={e => {
+                                            const file = e.target.files?.[0];
+                                            if (file) setProofFile(file);
+                                        }} />
+                                    </Button>
+                                </>
+                            )}
+                            {errors.proofFile && (
+                                <Typography variant="caption" color="error" display="block" sx={{ mt: 1.5, fontWeight: 600 }}>
+                                    {errors.proofFile}
+                                </Typography>
+                            )}
+                        </Box>
+                    )}
+ 
                     {/* Notes */}
                     <TextField
                         fullWidth size="small" label="Catatan Tambahan (opsional)" multiline rows={2}
@@ -263,7 +331,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                     />
                 </Stack>
             </DialogContent>
-
+ 
             <Divider />
             <Box sx={{ p: 2.5, display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
                 <Button variant="outlined" onClick={onClose} disabled={submitting}
@@ -271,7 +339,7 @@ export default function CreatePaymentDialog({ open, onClose, onCreated, prefillC
                     Batal
                 </Button>
                 <Button variant="contained" onClick={handleSubmit} disabled={submitting || (policyId && !!activePayment)}
-                    sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, px: 3 }}
+                    sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#1E40AF', '&:hover': { bgcolor: '#1E3A8A' }, px: 3 }}
                     startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:content-save" width={18} />}>
                     {submitting ? 'Menyimpan...' : 'Simpan Pembayaran'}
                 </Button>

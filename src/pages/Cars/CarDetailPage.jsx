@@ -133,7 +133,6 @@ export default function CarDetailPage() {
 
     const fetchCar = async () => {
         try {
-            loadingProvider.start();
             const response = await CarDAO.getCarById(id);
             if (response.success || response.car) {
                 setCar(response.car || response);
@@ -146,7 +145,6 @@ export default function CarDetailPage() {
             message('Gagal memuat data kendaraan', 'error');
             navigate('/cars');
         } finally {
-            loadingProvider.stop();
             setLoading(false);
         }
     };
@@ -373,10 +371,6 @@ export default function CarDetailPage() {
                         <Box sx={{ bgcolor: '#F8FAFC', p: 2.5, borderRadius: 3 }}>
                             <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#94A3B8', mb: 0.5, letterSpacing: 0.5 }}>PEMILIK</Typography>
                             <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#334155' }}>{car.carData?.ownerName || '-'}</Typography>
-                        </Box>
-                        <Box sx={{ bgcolor: '#F8FAFC', p: 2.5, borderRadius: 3 }}>
-                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#94A3B8', mb: 0.5, letterSpacing: 0.5 }}>HARGA / PERTANGGUNGAN</Typography>
-                            <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#334155' }}>{formatCurrency(car.carData?.carPrice)}</Typography>
                         </Box>
                         <Box sx={{ bgcolor: '#F8FAFC', p: 2.5, borderRadius: 3 }}>
                             <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#94A3B8', mb: 0.5, letterSpacing: 0.5 }}>ASURANSI / PERLUASAN</Typography>

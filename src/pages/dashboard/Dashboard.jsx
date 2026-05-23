@@ -928,14 +928,14 @@ function VehicleTab({ cars }) {
           <table>
             <thead>
               <tr>
-                {["Nasabah", "Kendaraan", "No. Plat", "Harga Mobil", "Jatuh Tempo", "Status"].map(h => (
+                {["Nasabah", "Kendaraan", "No. Plat", "Jatuh Tempo", "Status"].map(h => (
                   <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: "center", padding: 32, color: "#94a3b8" }}>Tidak ada hasil untuk "{search}"</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: "center", padding: 32, color: "#94a3b8" }}>Tidak ada hasil untuk "{search}"</td></tr>
               ) : filtered.map((c, i) => {
                 const status = getCarStatus(c);
                 const due = c.carData?.dueDate
@@ -956,7 +956,6 @@ function VehicleTab({ cars }) {
                     </td>
                     <td style={{ fontWeight: 500 }}>{c.carData?.carBrand} {c.carData?.carModel}</td>
                     <td><span className="plate">{c.carData?.plateNumber || "—"}</span></td>
-                    <td style={{ fontWeight: 600 }}>{formatRupiah(c.carData?.carPrice)}</td>
                     <td style={{ color: "#475569" }}>{due}</td>
                     <td><StatusBadge status={status} /></td>
                   </tr>
@@ -1272,7 +1271,7 @@ export default function DashboardPage() {
 
       if (activeTab === "vehicle") {
         filename = `kendaraan-${new Date().toISOString().slice(0, 10)}.csv`;
-        const headers = ["Nama Pemilik", "Merek Kendaraan", "Model", "No. Plat", "Harga Mobil", "Jatuh Tempo", "Status"];
+        const headers = ["Nama Pemilik", "Merek Kendaraan", "Model", "No. Plat", "Jatuh Tempo", "Status"];
         rows = [
           headers,
           ...cars.map(c => {
@@ -1280,15 +1279,11 @@ export default function DashboardPage() {
             const due = c.carData?.dueDate
               ? new Date(c.carData.dueDate).toLocaleDateString("id-ID")
               : "-";
-            const price = c.carData?.carPrice
-              ? Number(c.carData.carPrice).toLocaleString("id-ID")
-              : "-";
             return [
               c.carData?.ownerName || "-",
               c.carData?.carBrand || "-",
               c.carData?.carModel || "-",
               c.carData?.plateNumber || "-",
-              price,
               due,
               status,
             ];

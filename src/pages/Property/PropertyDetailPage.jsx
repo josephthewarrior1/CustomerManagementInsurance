@@ -104,7 +104,6 @@ export default function PropertyDetailPage() {
     useEffect(() => {
         const fetchProperty = async () => {
             try {
-                loadingProvider.start();
                 const response = await PropertyDAO.getPropertyById(id);
                 const data = response.property || response.data || response;
                 if (response.success || data?.id) {
@@ -118,7 +117,6 @@ export default function PropertyDetailPage() {
                 message('Gagal memuat detail properti', 'error');
                 navigate('/properties');
             } finally {
-                loadingProvider.stop();
                 setLoading(false);
             }
         };

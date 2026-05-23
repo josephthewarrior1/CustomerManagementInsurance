@@ -21,6 +21,12 @@ const formatCurrency = (v) => {
     if (!v && v !== 0) return '-';
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
 };
+
+const formatThousand = (val) => {
+    if (!val) return '';
+    const clean = val.toString().replace(/\D/g, '');
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
 const toInputDate = (d) => {
     if (!d) return '';
     const dt = new Date(d);
@@ -69,7 +75,6 @@ export default function PaymentDetailPage() {
 
     const fetchPayment = async () => {
         try {
-            loadingProvider.start();
             const res = await PaymentDAO.getPaymentById(id);
             if (res.success || res.payment) {
                 const p = res.payment || res;
@@ -95,7 +100,6 @@ export default function PaymentDetailPage() {
             message('Gagal memuat detail payment', 'error');
             navigate('/payments');
         } finally {
-            loadingProvider.stop();
             setLoading(false);
         }
     };
@@ -105,7 +109,7 @@ export default function PaymentDetailPage() {
     const startEdit = () => {
         setEditData({
             invoiceNumber: payment.invoiceNumber || '',
-            amount: payment.amount || '',
+            amount: formatThousand(payment.amount) || '',
             dueDate: toInputDate(payment.dueDate),
             paidDate: toInputDate(payment.paidDate),
             paymentMethod: payment.paymentMethod || '',
@@ -120,7 +124,8 @@ export default function PaymentDetailPage() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const payload = { ...editData, amount: editData.amount ? Number(editData.amount) : 0 };
+            const rawAmount = editData.amount ? editData.amount.toString().replace(/\D/g, '') : '0';
+            const payload = { ...editData, amount: Number(rawAmount) };
             const res = await PaymentDAO.updatePayment(id, payload);
             if (res.success || res.id) {
                 message('Payment berhasil diperbarui', 'success');
@@ -142,7 +147,7 @@ export default function PaymentDetailPage() {
         setIsUploading(true);
         try {
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('proof', file);
             const res = await PaymentDAO.uploadProof(id, formData);
             if (res.success) {
                 message('Bukti bayar berhasil diunggah', 'success');
@@ -194,6 +199,29 @@ export default function PaymentDetailPage() {
         }
     };
 
+    const handleDownloadProof = async () => {
+        if (!payment.proofUrl) return;
+        try {
+            message('Mengunduh bukti pembayaran...', 'info');
+            const res = await fetch(payment.proofUrl);
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const ext = payment.proofUrl.split('.').pop().split('?')[0] || 'png';
+            a.download = `bukti-pembayaran-${id}.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            message('Bukti pembayaran berhasil diunduh', 'success');
+        } catch (err) {
+            console.error(err);
+            window.open(payment.proofUrl, '_blank');
+            message('Gagal mengunduh langsung, bukti pembayaran dibuka di tab baru', 'warning');
+        }
+    };
+
     if (loading) return (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#fff' }}>
             <CircularProgress />
@@ -238,6 +266,12 @@ export default function PaymentDetailPage() {
                     <Icon icon="mdi:pencil" width={20} style={{ marginRight: 8, color: '#64748B' }} />
                     Edit Payment
                 </MenuItem>
+                {payment.proofUrl && (
+                    <MenuItem onClick={() => { setAnchorEl(null); handleDownloadProof(); }} sx={{ fontSize: '0.9rem', color: '#1E293B' }}>
+                        <Icon icon="mdi:download" width={20} style={{ marginRight: 8, color: '#64748B' }} />
+                        Unduh Bukti Bayar
+                    </MenuItem>
+                )}
                 {!isTerminal && (
                     <MenuItem onClick={() => { setAnchorEl(null); setCompleteDialog(true); }} sx={{ fontSize: '0.9rem', color: '#059669' }}>
                         <Icon icon="mdi:check-circle" width={20} style={{ marginRight: 8 }} />
@@ -335,8 +369,8 @@ export default function PaymentDetailPage() {
                                     onChange={e => setEditData(p => ({ ...p, invoiceNumber: e.target.value }))}
                                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
                                 <TextField size="small" label="Total Tagihan (Rp)" value={editData.amount || ''}
-                                    onChange={e => setEditData(p => ({ ...p, amount: e.target.value }))}
-                                    helperText={editData.amount ? formatCurrency(Number(editData.amount)) : ''}
+                                    onChange={e => setEditData(p => ({ ...p, amount: formatThousand(e.target.value) }))}
+                                    helperText={editData.amount ? formatCurrency(Number(editData.amount.toString().replace(/\D/g, ''))) : ''}
                                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
                                 <TextField size="small" type="date" label="Jatuh Tempo" InputLabelProps={{ shrink: true }}
                                     value={editData.dueDate || ''} onChange={e => setEditData(p => ({ ...p, dueDate: e.target.value }))}
@@ -416,14 +450,21 @@ export default function PaymentDetailPage() {
                                 <Typography sx={{ color: '#94A3B8', fontSize: '0.8rem', mt: 1.5, textAlign: 'center' }}>
                                     Klik gambar untuk memperbesar
                                 </Typography>
-                                {!isPaid && (
-                                    <Button variant="outlined" component="label" fullWidth disabled={isUploading}
-                                        startIcon={isUploading ? <CircularProgress size={14} /> : <Icon icon="mdi:upload" />}
-                                        sx={{ mt: 2, textTransform: 'none', fontWeight: 700, borderRadius: 3, borderColor: '#E2E8F0', color: '#475569', py: 1.5 }}>
-                                        Unggah Ulang
-                                        <input type="file" hidden accept="image/*" onChange={handleUploadProof} ref={fileInputRef} />
+                                <Stack direction="row" spacing={1.5} sx={{ mt: 2 }}>
+                                    <Button variant="contained" onClick={handleDownloadProof} fullWidth
+                                        startIcon={<Icon icon="mdi:download" />}
+                                        sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 3, bgcolor: '#1E40AF', '&:hover': { bgcolor: '#1E3A8A' }, py: 1.5, boxShadow: 'none' }}>
+                                        Unduh Bukti
                                     </Button>
-                                )}
+                                    {!isPaid && (
+                                        <Button variant="outlined" component="label" fullWidth disabled={isUploading}
+                                            startIcon={isUploading ? <CircularProgress size={14} /> : <Icon icon="mdi:upload" />}
+                                            sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 3, borderColor: '#E2E8F0', color: '#475569', py: 1.5 }}>
+                                            Unggah Ulang
+                                            <input type="file" hidden accept="image/*" onChange={handleUploadProof} ref={fileInputRef} />
+                                        </Button>
+                                    )}
+                                </Stack>
                             </Box>
                         ) : (
                             <Box sx={{ textAlign: 'center', py: 6, border: '2px dashed #E2E8F0', borderRadius: 3, bgcolor: '#F8FAFC' }}>

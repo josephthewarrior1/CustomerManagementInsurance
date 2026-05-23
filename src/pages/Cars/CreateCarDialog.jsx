@@ -384,7 +384,7 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
                 engineNumber: formData.engineNumber,
                 startDate: formData.startDate || null,
                 dueDate: formData.dueDate || null,
-                carPrice: formData.carPrice ? Number(formData.carPrice) : 0,
+                carPrice: 0,
                 year: formData.year,
                 color: formData.color,
                 status: formData.status || 'Active',
@@ -663,11 +663,6 @@ export default function CreateCarDialog({ open, onClose, customerId, onCarCreate
                         <Box>
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
                                 <Section title="Data Finansial & Asuransi">
-                                    <Field label="Harga Pasar Kendaraan (IDR)">
-                                        <TextField fullWidth size="small" name="carPrice" type="number" value={formData.carPrice} onChange={handleChange} placeholder="cth. 200000000" sx={inputStyle}
-                                            InputProps={{ startAdornment: <InputAdornment position="start">Rp</InputAdornment> }}
-                                        />
-                                    </Field>
                                     <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>
                                         <Field label="Tanggal Mulai Asuransi">
                                             <TextField fullWidth size="small" name="startDate" type="date" value={formData.startDate} onChange={handleChange} sx={inputStyle} />

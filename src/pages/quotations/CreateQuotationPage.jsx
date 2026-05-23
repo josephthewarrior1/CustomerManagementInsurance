@@ -283,8 +283,10 @@ export default function CreateQuotationPage() {
 
   const generateQuotationNumber = () => {
     const d = new Date();
-    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    setQuotationNumber(`QUO-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}-${random}`);
+    const seq = Math.floor(Math.random() * 999 + 1).toString().padStart(3, '0');
+    const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+    const roman = romanMonths[d.getMonth()];
+    setQuotationNumber(`${seq}/QUO/${roman}/${d.getFullYear()}`);
   };
 
   const handleSaveCompanyProfile = async () => {

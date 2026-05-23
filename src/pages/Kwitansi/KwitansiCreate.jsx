@@ -188,12 +188,13 @@ export default function KwitansiCreate() {
   const generateReceiptNumber = () => {
     const date = new Date();
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+    const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+    const roman = romanMonths[date.getMonth()];
+    const seq = Math.floor(Math.random() * 999 + 1).toString().padStart(3, '0');
     setFormData((prev) => ({
       ...prev,
-      nomor: `KW/${year}/${month}/${random} (DRAFT)`,
-      tanggal: `${companyCity || "Jakarta"}, ${formatDate(date)}`,
+      nomor: `${seq}/KW/${roman}/${year}`,
+      tanggal: `${companyCity || 'Jakarta'}, ${formatDate(date)}`,
     }));
   };
 

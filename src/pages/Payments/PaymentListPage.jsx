@@ -59,6 +59,55 @@ export default function PaymentListPage() {
     const [mobileVisibleCount, setMobileVisibleCount] = useState(10);
     const [mobileLoadingMore, setMobileLoadingMore] = useState(false);
 
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [paymentToDelete, setPaymentToDelete] = useState(null);
+
+    const openDelete = (payment) => {
+        setPaymentToDelete(payment);
+        setDeleteOpen(true);
+    };
+
+    const closeDelete = () => {
+        setPaymentToDelete(null);
+        setDeleteOpen(false);
+    };
+
+    const handleDeletePayment = async () => {
+        if (!paymentToDelete) return;
+        try {
+            loading.start();
+            const res = await PaymentDAO.deletePayment(paymentToDelete.id);
+            if (res.success) {
+                message('Payment berhasil dihapus', 'success');
+                fetchPayments();
+            } else {
+                message(res.error || 'Gagal menghapus payment', 'error');
+            }
+        } catch (err) {
+            message(err?.error || 'Gagal menghapus payment', 'error');
+        } finally {
+            loading.stop();
+            closeDelete();
+        }
+    };
+
+    const handleDirectMarkAsPaid = async (paymentId) => {
+        try {
+            loading.start();
+            const res = await PaymentDAO.updatePayment(paymentId, { status: 'Paid', paidDate: new Date().toISOString() });
+            if (res.success || res.id) {
+                message('Payment berhasil ditandai sebagai Lunas', 'success');
+                fetchPayments();
+            } else {
+                message(res.error || 'Gagal melunasi pembayaran', 'error');
+            }
+        } catch (err) {
+            message(err?.error || 'Gagal melunasi pembayaran', 'error');
+        } finally {
+            loading.stop();
+        }
+    };
+
     const sentinelRef = useCallback((node) => {
         if (!node) return;
         const timer = setTimeout(() => {
@@ -160,11 +209,24 @@ export default function PaymentListPage() {
         },
         {
             title: 'Aksi', dataIndex: 'actions', key: 'actions', sortable: false,
-            render: (_, row) => (
-                <IconButton size="small" onClick={() => navigate(`/payments/${row.id}`)} sx={{ borderRadius: 0.8, color: '#475569' }}>
-                    <Icon icon="mdi:eye-outline" />
-                </IconButton>
-            )
+            render: (_, row) => {
+                const isTerminal = row.status === 'Paid' || row.status === 'Cancelled';
+                return (
+                    <Stack direction="row" spacing={1}>
+                        <IconButton size="small" onClick={() => navigate(`/payments/${row.id}`)} sx={{ borderRadius: 0.8, color: '#1E40AF' }} title="Lihat Detail">
+                            <Icon icon="mdi:eye-outline" />
+                        </IconButton>
+                        {!isTerminal && (
+                            <IconButton size="small" onClick={() => handleDirectMarkAsPaid(row.id)} sx={{ borderRadius: 0.8, color: '#059669' }} title="Tandai Lunas">
+                                <Icon icon="mdi:check-circle-outline" />
+                            </IconButton>
+                        )}
+                        <IconButton size="small" onClick={() => openDelete(row)} sx={{ borderRadius: 0.8, color: '#DC2626' }} title="Hapus Pembayaran">
+                            <Icon icon="mdi:trash-can-outline" />
+                        </IconButton>
+                    </Stack>
+                );
+            }
         },
     ];
 
@@ -192,7 +254,7 @@ export default function PaymentListPage() {
                         }}
                     />
                     <IconButton onClick={() => setIsCreateOpen(true)}
-                        sx={{ bgcolor: '#DC2626', color: '#fff', borderRadius: '12px', width: 48, height: 48, flexShrink: 0, '&:hover': { bgcolor: '#B91C1C' }, boxShadow: '0 4px 12px rgba(220,38,38,0.3)' }}>
+                        sx={{ bgcolor: '#1E40AF', color: '#fff', borderRadius: '12px', width: 48, height: 48, flexShrink: 0, '&:hover': { bgcolor: '#1E3A8A' }, boxShadow: '0 4px 12px rgba(30,58,138,0.3)' }}>
                         <Icon icon="mdi:plus" width={24} />
                     </IconButton>
                 </Stack>
@@ -200,7 +262,7 @@ export default function PaymentListPage() {
                 <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 2, mb: 1 }}>
                     {summaries.map(s => (
                         <Chip key={s.status} label={`${s.status} (${s.total})`} onClick={() => setSelectedStatus(s.status)}
-                            sx={{ border: '1px solid', borderColor: selectedStatus === s.status ? '#DC2626' : '#E2E8F0', bgcolor: selectedStatus === s.status ? '#DC2626' : '#fff', color: selectedStatus === s.status ? '#fff' : '#64748B', fontWeight: 600, height: 38, borderRadius: '20px', flexShrink: 0 }} />
+                            sx={{ border: '1px solid', borderColor: selectedStatus === s.status ? '#1E40AF' : '#E2E8F0', bgcolor: selectedStatus === s.status ? '#1E40AF' : '#fff', color: selectedStatus === s.status ? '#fff' : '#64748B', fontWeight: 600, height: 38, borderRadius: '20px', flexShrink: 0 }} />
                     ))}
                 </Box>
 
@@ -216,7 +278,7 @@ export default function PaymentListPage() {
                                 sx={{ borderRadius: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9', cursor: 'pointer' }}>
                                 <CardContent sx={{ p: '16px !important' }}>
                                     <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
-                                        <Avatar sx={{ width: 44, height: 44, bgcolor: '#FEF2F2', color: '#DC2626' }}>
+                                        <Avatar sx={{ width: 44, height: 44, bgcolor: '#EFF6FF', color: '#1E40AF' }}>
                                             <Icon icon="mdi:receipt-text-outline" width={22} />
                                         </Avatar>
                                         <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -248,7 +310,7 @@ export default function PaymentListPage() {
                         ))}
                     </Stack>
                 )}
-                {mobileLoadingMore && <Box sx={{ py: 3, display: 'flex', justifyContent: 'center' }}><CircularProgress size={24} sx={{ color: '#DC2626' }} /></Box>}
+                {mobileLoadingMore && <Box sx={{ py: 3, display: 'flex', justifyContent: 'center' }}><CircularProgress size={24} sx={{ color: '#1E40AF' }} /></Box>}
                 {hasMore && !mobileLoadingMore && <Box ref={sentinelRef} sx={{ height: 1, width: '100%' }} />}
             </Box>
         );
@@ -264,7 +326,7 @@ export default function PaymentListPage() {
                 />
                 <CustomRow className="justify-center gap-x-4">
                     <CustomButton startIcon={<CustomIcon icon="heroicons:plus" />} onClick={() => setIsCreateOpen(true)}
-                        style={{ backgroundColor: '#DC2626' }}>
+                        style={{ backgroundColor: '#1E40AF' }}>
                         Buat Payment
                     </CustomButton>
                 </CustomRow>
@@ -274,7 +336,7 @@ export default function PaymentListPage() {
                 {summaries.map(s => (
                     <div key={s.status}
                         onClick={() => setSelectedStatus(s.status)}
-                        className={`cursor-pointer rounded-lg transition-all duration-200 ${selectedStatus === s.status ? 'border-2 border-red-500' : 'border border-transparent'}`}
+                        className={`cursor-pointer rounded-lg transition-all duration-200 ${selectedStatus === s.status ? 'border-2 border-blue-600' : 'border border-transparent'}`}
                         style={{ minWidth: 120, flex: 1 }}>
                         <CustomDashboardStatsCard value={s.total} label={s.status} className="w-full h-full" />
                     </div>
@@ -318,14 +380,39 @@ export default function PaymentListPage() {
                             <Typography variant="body2" color="text.secondary">{formatCurrency(drawerPayment.amount)}</Typography>
                         </Box>
                         <List sx={{ pb: 3 }}>
-                            <ListItemButton onClick={() => { setActionDrawerOpen(false); navigate(`/payments/${drawerPayment.id}`); }} sx={{ borderRadius: '12px' }}>
+                            <ListItemButton onClick={() => { setActionDrawerOpen(false); navigate(`/payments/${drawerPayment.id}`); }} sx={{ borderRadius: '12px', mb: 1 }}>
                                 <ListItemIcon><Icon icon="mdi:eye-outline" width={22} color="#1E40AF" /></ListItemIcon>
                                 <ListItemText primary="Lihat Detail" primaryTypographyProps={{ fontWeight: 600, color: '#1E40AF' }} />
+                            </ListItemButton>
+                            {drawerPayment.status !== 'Paid' && drawerPayment.status !== 'Cancelled' && (
+                                <ListItemButton onClick={() => { setActionDrawerOpen(false); handleDirectMarkAsPaid(drawerPayment.id); }} sx={{ borderRadius: '12px', mb: 1 }}>
+                                    <ListItemIcon><Icon icon="mdi:check-circle-outline" width={22} color="#059669" /></ListItemIcon>
+                                    <ListItemText primary="Tandai Lunas" primaryTypographyProps={{ fontWeight: 600, color: '#059669' }} />
+                                </ListItemButton>
+                            )}
+                            <ListItemButton onClick={() => { setActionDrawerOpen(false); openDelete(drawerPayment); }} sx={{ borderRadius: '12px' }}>
+                                <ListItemIcon><Icon icon="mdi:trash-can-outline" width={22} color="#DC2626" /></ListItemIcon>
+                                <ListItemText primary="Hapus Pembayaran" primaryTypographyProps={{ fontWeight: 600, color: '#DC2626' }} />
                             </ListItemButton>
                         </List>
                     </>
                 )}
             </Drawer>
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteOpen} onClose={closeDelete} maxWidth="xs" fullWidth PaperProps={{ style: { borderRadius: '16px' } }}>
+                <Box sx={{ p: 3 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Hapus Pembayaran?</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontWeight: 500 }}>
+                        Yakin ingin menghapus data pembayaran ini? Tindakan ini tidak dapat dibatalkan.
+                    </Typography>
+                    <Stack direction="row" spacing={2} justifyContent="flex-end">
+                        <Button onClick={closeDelete} sx={{ textTransform: 'none', fontWeight: 700, color: '#475569' }}>Batal</Button>
+                        <Button variant="contained" onClick={handleDeletePayment} sx={{ textTransform: 'none', fontWeight: 700, bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, borderRadius: 2, boxShadow: 'none' }}>
+                            Hapus
+                        </Button>
+                    </Stack>
+                </Box>
+            </Dialog>
         </>
     );
 }
