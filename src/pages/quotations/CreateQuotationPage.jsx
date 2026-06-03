@@ -236,12 +236,12 @@ export default function CreateQuotationPage() {
   const fmtNum = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(Number(v) || 0);
   const fmtShort = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(v) || 0);
   const formatTsiInput = (v) => {
-    const digits = String(v || '').replace(/\D/g, '');
+    const digits = String(v || '').replace(/\D/g, '').slice(0, 12);
     return digits ? fmtShort(digits) : '';
   };
 
   const handleTsiChange = (e) => {
-    setTsi(e.target.value.replace(/\D/g, ''));
+    setTsi(e.target.value.replace(/\D/g, '').slice(0, 12));
   };
 
   const fetchCompanyProfile = async () => {
@@ -314,7 +314,8 @@ export default function CreateQuotationPage() {
       if (val === '' || val === null || val === undefined) {
         n = '';
       } else {
-        const num = Number(val);
+        const cleaned = String(val).replace(/\D/g, '').slice(0, 12);
+        const num = Number(cleaned);
         n = isNaN(num) ? '' : num;
       }
     } else {
@@ -417,18 +418,18 @@ export default function CreateQuotationPage() {
 
     let currentY = 20;
 
-    doc.setFont('times', 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(22);
     doc.setTextColor(30, 30, 30);
     doc.text((companyName || '').toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
     currentY += 6;
 
-    doc.setFont('times', 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.text((companySubtitle || '').toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
     currentY += 10;
 
-    doc.setFont('times', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.text('Quotation', pageWidth / 2, currentY, { align: 'center' });
     currentY += 15;
@@ -1016,29 +1017,54 @@ export default function CreateQuotationPage() {
                 </Section>
               </Paper>
 
-              {/* Customer */}
+              {/* Customer - Beautiful Bill To Card */}
               <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
-                <Section title={quotationType === 'car' ? "Kendaraan Detail" : "Properti Detail"}>
-                  <Grid container spacing={2}>
+                <Section title="Bill To">
+                  {/* Owner header */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
+                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#EBF4FF', color: '#1971C2', fontSize: 16, fontWeight: 700 }}>
+                      {((quotationType === 'car' ? selectedItem?.carData?.ownerName : (selectedItem?.ownerName || selectedItem?.customerName)) || '?').charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography fontSize={15} fontWeight={700} sx={{ color: '#1C1E21', lineHeight: 1.3 }}>
+                        {quotationType === 'car' ? (selectedItem?.carData?.ownerName || '-') : (selectedItem?.ownerName || selectedItem?.customerName || '-')}
+                      </Typography>
+                      <Typography fontSize={12} sx={{ color: '#606770', mt: 0.25, lineHeight: 1.3, overflowWrap: 'anywhere' }}>
+                        {quotationType === 'car' 
+                          ? (selectedItem?.customerData?.address || selectedItem?.carData?.address || '-') 
+                          : (selectedItem?.propertyData?.address || selectedItem?.customerData?.address || '-')}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Detail rows list strip */}
+                  <Box sx={{ borderRadius: '10px', border: '1px solid #E4E6EA', overflow: 'hidden' }}>
                     {(quotationType === 'car' ? [
-                      { label: 'Pemilik', value: selectedItem?.carData?.ownerName },
-                      { label: 'No. Rangka', value: selectedItem?.carData?.chassisNumber },
-                      { label: 'Plate', value: selectedItem?.carData?.plateNumber },
-                      { label: 'Kendaraan', value: `${selectedItem?.carData?.carBrand || ''} ${selectedItem?.carData?.carModel || ''}`.trim() },
-                      { label: 'TSI', value: fmt(Number(tsi)) },
+                      { icon: 'mdi:car', label: 'Kendaraan', value: `${selectedItem?.carData?.carBrand || ''} ${selectedItem?.carData?.carModel || ''}`.trim() },
+                      { icon: 'mdi:card-text', label: 'No. Plat', value: selectedItem?.carData?.plateNumber },
+                      { icon: 'mdi:barcode', label: 'No. Rangka', value: selectedItem?.carData?.chassisNumber },
+                      { icon: 'mdi:engine', label: 'No. Mesin', value: selectedItem?.carData?.engineNumber || '-' },
+                      { icon: 'mdi:cash', label: 'Harga TSI', value: fmt(Number(tsi)) },
                     ] : [
-                      { label: 'Pemilik', value: selectedItem?.ownerName || selectedItem?.customerName },
-                      { label: 'Tipe Properti', value: selectedItem?.propertyData?.propertyType },
-                      { label: 'Kota', value: selectedItem?.propertyData?.city },
-                      { label: 'Alamat', value: selectedItem?.propertyData?.address },
-                      { label: 'TSI', value: fmt(Number(tsi)) },
-                    ]).map(({ label, value }) => (
-                      <Grid item xs={6} key={label}>
-                        <Typography fontSize={11} sx={{ color: '#9EA8B3', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.3 }}>{label}</Typography>
-                        <Typography fontSize={13.5} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || '-'}</Typography>
-                      </Grid>
+                      { icon: 'mdi:home', label: 'Tipe Properti', value: selectedItem?.propertyData?.propertyType },
+                      { icon: 'mdi:city', label: 'Kota', value: selectedItem?.propertyData?.city },
+                      { icon: 'mdi:map-marker', label: 'Alamat', value: selectedItem?.propertyData?.address },
+                      { icon: 'mdi:cash', label: 'Harga TSI', value: fmt(Number(tsi)) },
+                    ]).map(({ icon, label, value }, idx, arr) => (
+                      <Box key={label} sx={{
+                        display: 'flex', alignItems: 'center', gap: 1.5,
+                        px: 2, py: 1.5,
+                        bgcolor: idx % 2 === 0 ? '#FAFBFC' : '#FFFFFF',
+                        borderBottom: idx < arr.length - 1 ? '1px solid #E4E6EA' : 'none',
+                      }}>
+                        <Icon icon={icon} width={16} color="#9EA8B3" style={{ flexShrink: 0 }} />
+                        <Typography fontSize={12.5} sx={{ color: '#606770', minWidth: 90, flexShrink: 0 }}>{label}</Typography>
+                        <Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21', flex: 1, overflowWrap: 'anywhere', textAlign: 'right' }}>
+                          {value || '-'}
+                        </Typography>
+                      </Box>
                     ))}
-                  </Grid>
+                  </Box>
                 </Section>
               </Paper>
 

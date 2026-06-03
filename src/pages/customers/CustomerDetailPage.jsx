@@ -141,11 +141,11 @@ function generateQuotationPDF(q, car, company) {
     const cSub  = company?.companySubtitle || 'INSURANCE AGENCY';
     const cCity = company?.companyCity || 'Jakarta';
 
-    doc.setFont('times', 'bold'); doc.setFontSize(22); doc.setTextColor(30, 30, 30);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(30, 30, 30);
     doc.text(cName.toUpperCase(), pageWidth / 2, y, { align: 'center' }); y += 6;
-    doc.setFont('times', 'normal'); doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
     doc.text(cSub.toUpperCase(), pageWidth / 2, y, { align: 'center' }); y += 10;
-    doc.setFont('times', 'normal'); doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
     doc.text('Quotation', pageWidth / 2, y, { align: 'center' }); y += 15;
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
@@ -229,11 +229,11 @@ function generateInvoicePDF(inv, car, company) {
     const cSub  = company?.companySubtitle || 'INSURANCE AGENCY';
     const cCity = company?.companyCity || 'Jakarta';
 
-    doc.setFont('times', 'bold'); doc.setFontSize(22); doc.setTextColor(30, 30, 30);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(30, 30, 30);
     doc.text(cName.toUpperCase(), pageWidth / 2, y, { align: 'center' }); y += 6;
-    doc.setFont('times', 'normal'); doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
     doc.text(cSub.toUpperCase(), pageWidth / 2, y, { align: 'center' }); y += 10;
-    doc.setFont('times', 'normal'); doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
     doc.text('Invoice', pageWidth / 2, y, { align: 'center' }); y += 15;
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);

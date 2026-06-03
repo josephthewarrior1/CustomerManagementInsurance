@@ -187,7 +187,7 @@ export default function CreateInvoicePage() {
     const [invoicePreviewUrl, setInvoicePreviewUrl] = useState('');
 
     const parseNumber = (val) => {
-        const numStr = String(val).replace(/\D/g, '');
+        const numStr = String(val).replace(/\D/g, '').slice(0, 12);
         return numStr === '' ? '' : numStr;
     };
     const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
@@ -463,18 +463,18 @@ export default function CreateInvoicePage() {
         let currentY = 20;
 
         // Header
-        doc.setFont('times', 'bold');
+        doc.setFont('helvetica', 'bold');
         doc.setFontSize(22);
         doc.setTextColor(30, 30, 30);
         doc.text(companyName.toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
 
         currentY += 6;
-        doc.setFont('times', 'normal');
+        doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
         doc.text(companySubtitle.toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
 
         currentY += 10;
-        doc.setFont('times', 'normal');
+        doc.setFont('helvetica', 'bold');
         doc.setFontSize(16);
         doc.text('Invoice', pageWidth / 2, currentY, { align: 'center' });
 
@@ -804,19 +804,14 @@ export default function CreateInvoicePage() {
                                             <Divider sx={{ my: 2 }} />
                                             <Typography fontSize={13} fontWeight={700} mb={1.5} color={C.text}>Jangka Waktu Asuransi</Typography>
                                             <Grid container spacing={2}>
-                                                <Grid item xs={12} sm={4}>
+                                                <Grid item xs={12} sm={6}>
                                                     <Field label="Mulai" required={true}>
                                                         <TextField fullWidth size="small" type="date" value={invoiceStartDate} onChange={(e) => setInvoiceStartDate(e.target.value)} sx={inputStyle} />
                                                     </Field>
                                                 </Grid>
-                                                <Grid item xs={12} sm={4}>
+                                                <Grid item xs={12} sm={6}>
                                                     <Field label="Selesai" required={true}>
                                                         <TextField fullWidth size="small" type="date" value={invoiceEndDate} onChange={(e) => setInvoiceEndDate(e.target.value)} sx={inputStyle} />
-                                                    </Field>
-                                                </Grid>
-                                                <Grid item xs={12} sm={4}>
-                                                    <Field label="Jatuh Tempo Pembayaran" required={true}>
-                                                        <TextField fullWidth size="small" type="date" value={invoiceDueDate} onChange={(e) => setInvoiceDueDate(e.target.value)} sx={inputStyle} />
                                                     </Field>
                                                 </Grid>
                                             </Grid>
@@ -1025,29 +1020,50 @@ export default function CreateInvoicePage() {
                             {/* Bill To */}
                             <Paper elevation={0} sx={{ borderRadius: '12px', border: `1px solid ${C.border}`, bgcolor: C.white, p: 3, mb: 2 }}>
                                 <Section title="Bill To">
-                                    <Grid container spacing={1.5}>
+                                    {/* Owner header */}
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
+                                        <Avatar sx={{ width: 40, height: 40, bgcolor: accentLight, color: accentColor, fontSize: 16, fontWeight: 700 }}>
+                                            {(getOwnerName() || '?').charAt(0).toUpperCase()}
+                                        </Avatar>
+                                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                                            <Typography fontSize={15} fontWeight={700} sx={{ color: C.text, lineHeight: 1.3 }}>
+                                                {getOwnerName() || '-'}
+                                            </Typography>
+                                            {ownerAddress && (
+                                                <Typography fontSize={12} sx={{ color: C.textSub, mt: 0.25, lineHeight: 1.3, overflowWrap: 'anywhere' }}>
+                                                    {ownerAddress}
+                                                </Typography>
+                                            )}
+                                        </Box>
+                                    </Box>
+
+                                    {/* Detail rows */}
+                                    <Box sx={{ borderRadius: '10px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
                                         {(invoiceType === 'car' ? [
-                                            { label: 'Pemilik', value: selectedItem?.carData?.ownerName },
-                                            { label: 'Kendaraan', value: `${selectedItem?.carData?.carBrand || ''} ${selectedItem?.carData?.carModel || ''}`.trim() },
-                                            { label: 'No. Plat', value: selectedItem?.carData?.plateNumber },
-                                            { label: 'No. Rangka', value: selectedItem?.carData?.chassisNumber },
-                                            { label: 'No. Mesin', value: selectedItem?.carData?.engineNumber },
+                                            { icon: 'mdi:car', label: 'Kendaraan', value: `${selectedItem?.carData?.carBrand || ''} ${selectedItem?.carData?.carModel || ''}`.trim() },
+                                            { icon: 'mdi:card-text', label: 'No. Plat', value: selectedItem?.carData?.plateNumber },
+                                            { icon: 'mdi:barcode', label: 'No. Rangka', value: selectedItem?.carData?.chassisNumber },
+                                            { icon: 'mdi:engine', label: 'No. Mesin', value: selectedItem?.carData?.engineNumber },
                                         ] : [
-                                            { label: 'Pemilik', value: selectedItem?.ownerName || selectedItem?.customerName },
-                                            { label: 'Tipe Properti', value: selectedItem?.propertyData?.propertyType },
-                                            { label: 'Kota', value: selectedItem?.propertyData?.city },
-                                            { label: 'Alamat', value: selectedItem?.propertyData?.address },
-                                            { label: 'Nilai Properti', value: selectedItem?.propertyData?.propertyValue ? `Rp ${Number(selectedItem.propertyData.propertyValue).toLocaleString('id-ID')}` : '-' },
-                                            { label: 'Jatuh Tempo', value: selectedItem?.insuranceData?.endDate ? new Date(selectedItem.insuranceData.endDate).toLocaleDateString('id-ID') : '-' },
-                                        ]).map(({ label, value }) => (
-                                            <Grid item xs={12} sm={6} key={label}>
-                                                <Box sx={{ p: 1.5, borderRadius: '8px', bgcolor: '#F8F9FA', border: `1px solid ${C.border}`, minHeight: 68 }}>
-                                                    <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.6 }}>{label}</Typography>
-                                                    <Typography fontSize={13.5} fontWeight={600} sx={{ color: C.text, lineHeight: 1.35, overflowWrap: 'anywhere' }}>{value || '-'}</Typography>
-                                                </Box>
-                                            </Grid>
+                                            { icon: 'mdi:home', label: 'Tipe Properti', value: selectedItem?.propertyData?.propertyType },
+                                            { icon: 'mdi:city', label: 'Kota', value: selectedItem?.propertyData?.city },
+                                            { icon: 'mdi:map-marker', label: 'Alamat', value: selectedItem?.propertyData?.address },
+                                            { icon: 'mdi:cash', label: 'Nilai Properti', value: selectedItem?.propertyData?.propertyValue ? `Rp ${Number(selectedItem.propertyData.propertyValue).toLocaleString('id-ID')}` : '-' },
+                                        ]).map(({ icon, label, value }, idx, arr) => (
+                                            <Box key={label} sx={{
+                                                display: 'flex', alignItems: 'center', gap: 1.5,
+                                                px: 2, py: 1.5,
+                                                bgcolor: idx % 2 === 0 ? '#FAFBFC' : C.white,
+                                                borderBottom: idx < arr.length - 1 ? `1px solid ${C.border}` : 'none',
+                                            }}>
+                                                <Icon icon={icon} width={16} color={C.textMuted} style={{ flexShrink: 0 }} />
+                                                <Typography fontSize={12.5} sx={{ color: C.textSub, minWidth: 90, flexShrink: 0 }}>{label}</Typography>
+                                                <Typography fontSize={13} fontWeight={600} sx={{ color: C.text, flex: 1, overflowWrap: 'anywhere', textAlign: 'right' }}>
+                                                    {value || '-'}
+                                                </Typography>
+                                            </Box>
                                         ))}
-                                    </Grid>
+                                    </Box>
                                 </Section>
                             </Paper>
 

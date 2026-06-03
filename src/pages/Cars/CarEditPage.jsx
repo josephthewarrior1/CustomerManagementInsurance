@@ -554,20 +554,6 @@ export default function CarEditPage() {
                                     </Box>
                                 </Box>
 
-                                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2.5 }}>
-                                    <Box>
-                                        <FieldLabel label="Provider Asuransi" />
-                                        <TextField fullWidth size="small" name="insuranceProvider" value={formData.insuranceProvider} onChange={handleChange} placeholder="cth. Garda Oto" sx={inputStyle} />
-                                    </Box>
-                                    <Box>
-                                        <FieldLabel label="Jenis Asuransi" />
-                                        <TextField fullWidth size="small" name="insuranceType" value={formData.insuranceType} onChange={handleChange} placeholder="cth. All Risk / TLO" sx={inputStyle} />
-                                    </Box>
-                                </Box>
-
-                                <FieldLabel label="Perluasan (Coverages)" />
-                                <TextField fullWidth size="small" name="coverageExtensions" value={formData.coverageExtensions} onChange={handleChange} placeholder="cth. Banjir, Gempa Bumi (pisahkan dengan koma)" sx={{ ...inputStyle, mb: 2.5 }} />
-
                                 <FieldLabel label="Catatan Tambahan" />
                                 <TextField
                                     fullWidth size="small" name="notes"

@@ -246,17 +246,6 @@ export default function RenewalDetailPage() {
                                         Edit
                                     </Button>
                                 )}
-                                <Tooltip title={completeBlockReason || ''} arrow disableHoverListener={canComplete}>
-                                    <span>
-                                        <Button variant="contained" size="small"
-                                            startIcon={<Icon icon="mdi:flag-checkered" width={16} />}
-                                            onClick={() => setCompleteDialog(true)}
-                                            disabled={!canComplete}
-                                            sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#059669', '&:hover': { bgcolor: '#047857' }, '&.Mui-disabled': { bgcolor: '#E2E8F0', color: '#94A3B8' } }}>
-                                            Selesaikan Renewal
-                                        </Button>
-                                    </span>
-                                </Tooltip>
                             </Stack>
                         </Box>
                     )}
@@ -478,36 +467,6 @@ export default function RenewalDetailPage() {
                     </Paper>
                 )}
             </Container>
-
-            {/* Complete confirmation dialog */}
-            <Dialog open={completeDialog} onClose={() => setCompleteDialog(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-                <Box sx={{ p: 3 }}>
-                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
-                        <Box sx={{ bgcolor: '#D1FAE5', borderRadius: 2, p: 1, display: 'flex' }}>
-                            <Icon icon="mdi:flag-checkered" width={24} color="#059669" />
-                        </Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>Selesaikan Renewal</Typography>
-                    </Stack>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Konfirmasi untuk menyelesaikan renewal ini:
-                    </Typography>
-                    <Box sx={{ bgcolor: '#F8FAFC', borderRadius: 2, p: 2, mb: 3, border: '1px solid #E2E8F0' }}>
-                        <Typography variant="body2" sx={{ color: '#64748B', mb: 0.5 }}>Periode polis akan diperbarui menjadi:</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#059669' }}>
-                            {formatDate(renewal.newStartDate)} → {formatDate(renewal.newEndDate)}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#94A3B8' }}>Status polis akan kembali ke Active</Typography>
-                    </Box>
-                    <Stack direction="row" spacing={2} justifyContent="flex-end">
-                        <Button variant="outlined" onClick={() => setCompleteDialog(false)} disabled={completing}
-                            sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#E2E8F0', color: '#475569' }}>Batal</Button>
-                        <Button variant="contained" onClick={handleComplete} disabled={completing}
-                            sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}>
-                            {completing ? <CircularProgress size={20} color="inherit" /> : 'Ya, Selesaikan'}
-                        </Button>
-                    </Stack>
-                </Box>
-            </Dialog>
         </Box>
     );
 }
