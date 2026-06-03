@@ -30,6 +30,7 @@ import CustomerDAO from "../../daos/CustomerDao";
 import CompanyDAO from "../../daos/CompanyDao";
 import PaymentDAO from "../../daos/PaymentDao";
 import KwitansiDAO from "../../daos/KwitansiDao";
+import CarDAO from "../../daos/CarDao";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -154,6 +155,7 @@ export default function KwitansiCreate() {
   // Payments
   const [payments, setPayments] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [cars, setCars] = useState([]);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
   const [paymentSearch, setPaymentSearch] = useState("");
@@ -199,11 +201,11 @@ export default function KwitansiCreate() {
   };
 
   const generatePaymentDescription = () => {
-    const cd = selectedPayment?.customerData?.carData;
+    const cd = selectedPayment?.carData?.carData || selectedPayment?.customerData?.carData;
     let desc = "";
     
     if (cd && cd.plateNumber) {
-      desc = `PREMI ASURANSI MOBIL\n${(cd.carBrand || "") + " " + (cd.carModel || "").trim()}\nNO POLISI : ${cd.plateNumber || "TBA"}`;
+      desc = `PREMI ASURANSI MOBIL\n${((cd.carBrand || "") + " " + (cd.carModel || "")).trim()}\nNO POLISI : ${cd.plateNumber || "TBA"}`;
     } else {
       desc = `PEMBAYARAN INVOICE ${selectedPayment?.invoiceNumber || ""}`;
       if (selectedPayment?.notes) desc += `\n${selectedPayment.notes}`;
@@ -245,19 +247,23 @@ export default function KwitansiCreate() {
   const fetchPaymentsAndCustomers = async () => {
     try {
       loading.start();
-      const [payRes, custRes] = await Promise.allSettled([
+      const [payRes, custRes, carRes] = await Promise.allSettled([
         PaymentDAO.getAllPayments(),
-        CustomerDAO.getAllCustomers()
+        CustomerDAO.getAllCustomers(),
+        CarDAO.getAllCars()
       ]);
       const pays = (payRes.status === 'fulfilled' && (payRes.value?.payments || payRes.value?.data || payRes.value)) || [];
       const custs = (custRes.status === 'fulfilled' && custRes.value?.customers) || [];
+      const carList = (carRes.status === 'fulfilled' && carRes.value?.cars) || [];
       setCustomers(custs);
+      setCars(carList);
 
       const paysArr = Array.isArray(pays) ? pays : [];
       const paidPays = paysArr.filter(p => p.status === 'Paid');
       const enriched = paidPays.map(p => {
          const c = custs.find(cu => cu.id === p.customerId);
-         return { ...p, customerData: c || {} };
+         const carObj = carList.find(ca => ca.id === p.carId);
+         return { ...p, customerData: c || {}, carData: carObj || {} };
       });
       setPayments(enriched);
     } catch (e) { console.error(e); message("Failed to load data", "error"); }
@@ -724,38 +730,95 @@ export default function KwitansiCreate() {
               {/* Payment Details Review */}
               <Paper elevation={0} sx={{ borderRadius: "12px", border: `1px solid ${C.border}`, bgcolor: C.white, p: 3, mb: 2 }}>
                 <Section title="Payment Detail">
-                  <Grid container spacing={2}>
+                  {/* Owner header */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
+                    <Avatar sx={{ width: 40, height: 40, bgcolor: C.primaryLight, color: C.primary, fontSize: 16, fontWeight: 700 }}>
+                      {(selectedPayment?.customerData?.name || '?').charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography fontSize={14.5} fontWeight={700} sx={{ color: C.text, lineHeight: 1.3 }}>
+                        {selectedPayment?.customerData?.name || '—'}
+                      </Typography>
+                      <Typography fontSize={12} sx={{ color: C.textSub, mt: 0.25, lineHeight: 1.3 }}>
+                        Customer
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Detail rows */}
+                  <Box sx={{ borderRadius: '10px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
                     {[
-                      { label: "Name", value: selectedPayment?.customerData?.name },
-                      { label: "Phone", value: selectedPayment?.customerData?.phone },
-                      { label: "Address", value: selectedPayment?.customerData?.address },
-                      { label: "Invoice", value: selectedPayment?.invoiceNumber },
-                      { label: "Plate", value: selectedPayment?.customerData?.carData?.plateNumber },
-                    ].map(({ label, value }) => (
-                      <Grid item xs={6} key={label}>
-                        <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.4, mb: 0.3 }}>{label}</Typography>
-                        <Typography fontSize={13.5} fontWeight={500} sx={{ color: C.text }}>{value || "—"}</Typography>
-                      </Grid>
+                      { icon: 'mdi:phone', label: 'Phone', value: selectedPayment?.customerData?.phone },
+                      { icon: 'mdi:map-marker', label: 'Address', value: selectedPayment?.customerData?.address },
+                      { icon: 'mdi:receipt-text', label: 'Invoice No.', value: selectedPayment?.invoiceNumber },
+                      { icon: 'mdi:card-text', label: 'Plate Number', value: selectedPayment?.carData?.carData?.plateNumber || selectedPayment?.customerData?.carData?.plateNumber },
+                    ].map(({ icon, label, value }, idx, arr) => (
+                      <Box key={label} sx={{
+                        display: 'flex', alignItems: 'center', gap: 1.5,
+                        px: 2, py: 1.25,
+                        bgcolor: idx % 2 === 0 ? '#FAFBFC' : C.white,
+                        borderBottom: idx < arr.length - 1 ? `1px solid ${C.border}` : 'none',
+                      }}>
+                        <Icon icon={icon} width={16} color={C.textMuted} style={{ flexShrink: 0 }} />
+                        <Typography fontSize={12.5} sx={{ color: C.textSub, minWidth: 90, flexShrink: 0 }}>{label}</Typography>
+                        <Typography fontSize={13} fontWeight={600} sx={{ color: C.text, flex: 1, overflowWrap: 'anywhere', textAlign: 'right' }}>
+                          {value || '—'}
+                        </Typography>
+                      </Box>
                     ))}
-                  </Grid>
+                  </Box>
                 </Section>
               </Paper>
 
               {/* Receipt Summary */}
               <Paper elevation={0} sx={{ borderRadius: "12px", border: `1px solid ${C.border}`, bgcolor: C.white, p: 3, mb: 2 }}>
                 <Section title="Receipt Summary">
-                  <Stack spacing={1} mb={2}>
+                  {/* Detail rows */}
+                  <Box sx={{ borderRadius: '10px', border: `1px solid ${C.border}`, overflow: 'hidden', mb: 2 }}>
                     {[
-                      { label: "Receipt No.", value: formData.nomor },
-                      { label: "Date", value: formData.tanggal },
-                      { label: "Payment for", value: formData.pembayaran },
-                    ].map(({ label, value }) => (
-                      <Box key={label} display="flex" justifyContent="space-between" alignItems="flex-start" gap={2}>
-                        <Typography fontSize={13} sx={{ color: C.textSub, flexShrink: 0 }}>{label}</Typography>
-                        <Typography fontSize={13} fontWeight={500} sx={{ color: C.text, textAlign: "right" }}>{value || "—"}</Typography>
+                      { icon: 'mdi:receipt', label: 'Receipt No.', value: formData.nomor },
+                      { icon: 'mdi:calendar', label: 'Date', value: formData.tanggal },
+                    ].map(({ icon, label, value }, idx, arr) => (
+                      <Box key={label} sx={{
+                        display: 'flex', alignItems: 'center', gap: 1.5,
+                        px: 2, py: 1.25,
+                        bgcolor: idx % 2 === 0 ? '#FAFBFC' : C.white,
+                        borderBottom: idx < arr.length - 1 ? `1px solid ${C.border}` : 'none',
+                      }}>
+                        <Icon icon={icon} width={16} color={C.textMuted} style={{ flexShrink: 0 }} />
+                        <Typography fontSize={12.5} sx={{ color: C.textSub, minWidth: 90, flexShrink: 0 }}>{label}</Typography>
+                        <Typography fontSize={13} fontWeight={600} sx={{ color: C.text, flex: 1, overflowWrap: 'anywhere', textAlign: 'right' }}>
+                          {value || '—'}
+                        </Typography>
                       </Box>
                     ))}
-                  </Stack>
+
+                    {/* Payment for (Multi-line layout) */}
+                    <Box sx={{
+                      p: 2,
+                      bgcolor: '#FAFBFC',
+                      borderTop: `1px solid ${C.border}`,
+                    }}>
+                      <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+                        <Icon icon="mdi:text" width={16} color={C.textMuted} style={{ flexShrink: 0 }} />
+                        <Typography fontSize={12.5} sx={{ color: C.textSub, fontWeight: 500 }}>Payment Description</Typography>
+                      </Box>
+                      <Box sx={{
+                        p: 1.5,
+                        borderRadius: '6px',
+                        bgcolor: C.white,
+                        border: `1px solid ${C.border}`,
+                        fontFamily: 'monospace',
+                        fontSize: '12.5px',
+                        lineHeight: 1.5,
+                        color: C.text,
+                        whiteSpace: 'pre-wrap',
+                        textTransform: 'uppercase'
+                      }}>
+                        {formData.pembayaran || '—'}
+                      </Box>
+                    </Box>
+                  </Box>
 
                   <Box sx={{ p: 2.5, borderRadius: "8px", bgcolor: C.primaryLight, border: `1px solid rgba(25,113,194,0.2)`, mb: 2 }}>
                     <Box display="flex" justifyContent="space-between" alignItems="baseline">

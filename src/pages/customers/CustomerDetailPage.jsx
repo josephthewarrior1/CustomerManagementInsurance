@@ -130,7 +130,7 @@ const coverageLabels = {
     authorizedWorkshop: 'Authorized Workshop',
 };
 
-function generateQuotationPDF(q, car, company) {
+function generateQuotationPDF(q, car, company, customer) {
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
     const marginX = 18;
@@ -149,7 +149,7 @@ function generateQuotationPDF(q, car, company) {
     doc.text('Quotation', pageWidth / 2, y, { align: 'center' }); y += 15;
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
-    const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    const dateStr = new Date(q.createdAt || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     doc.text(`No. ${q.quotationNumber || '-'}`, marginX, y);
     doc.text(`${cCity}, ${dateStr}`, rightX, y, { align: 'right' }); y += 13;
 
@@ -159,7 +159,8 @@ function generateQuotationPDF(q, car, company) {
         doc.setFont('helvetica', 'normal'); doc.text(':', cX, ly); doc.text(String(value ?? '-'), vX, ly);
     };
 
-    row(y, 'Nama', car?.carData?.ownerName || '-'); y += 7;
+    row(y, 'Nama', car?.carData?.ownerName || customer?.name || '-'); y += 7;
+    row(y, 'Alamat', customer?.address || car?.customerAddress || '-'); y += 7;
     row(y, 'Perhitungan Premi', `${car?.carData?.carBrand || ''} ${car?.carData?.carModel || ''}`.trim() || '-'); y += 7;
     row(y, 'No Polisi', car?.carData?.plateNumber || '-'); y += 7;
     row(y, 'Harga TSI', `${fmtNum(Number(q.sumInsured || q.tsi))} (IDR)`); y += 12;
@@ -179,6 +180,17 @@ function generateQuotationPDF(q, car, company) {
             styles: { fontSize: 9.5, cellPadding: { top: 1.6, right: 2, bottom: 1.6, left: 2 }, overflow: 'linebreak' },
             headStyles: { fontStyle: 'bold', textColor: [0, 0, 0] },
             columnStyles: { 0: { cellWidth: 120, halign: 'left' }, 1: { cellWidth: 35, halign: 'right' } },
+            didParseCell: function (data) {
+                if (data.section === 'head') {
+                    if (data.column.index === 0) {
+                        data.cell.styles.halign = 'left';
+                    }
+                    if (data.column.index === 1) {
+                        data.cell.styles.halign = 'right';
+                        data.cell.styles.cellPadding = { top: 1.6, right: 5, bottom: 1.6, left: 2 };
+                    }
+                }
+            },
             margin: { left: marginX, right: marginX }
         });
         y = (doc.lastAutoTable?.finalY ?? y) + 10;
@@ -186,7 +198,6 @@ function generateQuotationPDF(q, car, company) {
 
     const tsiValue = Number(q.sumInsured || q.tsi) || 0;
     const calcBody = [];
-    let calculatedTotal = 0;
     Object.keys(coverages).forEach(k => {
         const c = coverages[k];
         if (!c?.enabled) return;
@@ -196,16 +207,14 @@ function generateQuotationPDF(q, car, company) {
         }
         if (c.isFixedAmount) {
             const amt = Number(c.percentage) || 0;
-            calculatedTotal += amt;
             calcBody.push([coverageLabels[k] || k, '-', '-', fmt(amt)]);
         } else {
             const pct = Number(c.percentage) || 0;
             const amount = roundIDR((tsiValue * pct) / 100);
-            calculatedTotal += amount;
             calcBody.push([coverageLabels[k] || k, `Rp ${fmtNum(tsiValue)}`, `${pct} %`, fmt(amount)]);
         }
     });
-    const totalPremium = calculatedTotal || Number(q.totalPremium || q.premium) || 0;
+    const totalPremium = Number(q.totalPremium || q.premium) || 0;
     calcBody.push([{ content: 'Total Premi', styles: { fontStyle: 'bold' } }, { content: '', styles: { fontStyle: 'bold' } }, { content: '', styles: { fontStyle: 'bold' } }, { content: fmt(totalPremium), styles: { fontStyle: 'bold' } }]);
 
     autoTable(doc, {
@@ -213,6 +222,43 @@ function generateQuotationPDF(q, car, company) {
         styles: { fontSize: 9, cellPadding: 2.6, overflow: 'linebreak' },
         headStyles: { fillColor: [235, 235, 235], textColor: [0, 0, 0], fontStyle: 'bold' },
         columnStyles: { 0: { cellWidth: 60, halign: 'left' }, 1: { cellWidth: 45, halign: 'right' }, 2: { cellWidth: 25, halign: 'right' }, 3: { cellWidth: 'auto', halign: 'right' } },
+        didParseCell: function (data) {
+            if (data.section === 'head') {
+                if (data.column.index === 0) {
+                    data.cell.styles.halign = 'left';
+                }
+                if (data.column.index === 1) {
+                    data.cell.styles.halign = 'right';
+                    data.cell.styles.cellPadding = { top: 2.6, right: 20, bottom: 2.6, left: 2 };
+                }
+                if (data.column.index === 2) {
+                    data.cell.styles.halign = 'right';
+                    data.cell.styles.cellPadding = { top: 2.6, right: 10, bottom: 2.6, left: 2 };
+                }
+                if (data.column.index === 3) {
+                    data.cell.styles.halign = 'right';
+                    data.cell.styles.cellPadding = { top: 2.6, right: 5, bottom: 2.6, left: 2 };
+                }
+            }
+
+            if (data.section === 'body') {
+                if (data.column.index === 0) {
+                    data.cell.styles.halign = 'left';
+                }
+                if (data.column.index === 1) {
+                    data.cell.styles.halign = 'right';
+                    data.cell.styles.cellPadding = { top: 2.6, right: 12, bottom: 2.6, left: 2 };
+                }
+                if (data.column.index === 2) {
+                    data.cell.styles.halign = 'right';
+                    data.cell.styles.cellPadding = { top: 2.6, right: 5, bottom: 2.6, left: 2 };
+                }
+                if (data.column.index === 3) {
+                    data.cell.styles.halign = 'right';
+                    data.cell.styles.cellPadding = { top: 2.6, right: 3, bottom: 2.6, left: 2 };
+                }
+            }
+        },
         margin: { left: marginX, right: marginX }
     });
 
@@ -429,7 +475,7 @@ export default function CustomerDetailPage() {
 
     const handleViewQuotation = (q) => {
         const car = cars.find(c => c.id === q.carId);
-        const doc = generateQuotationPDF(q, car, companyProfile);
+        const doc = generateQuotationPDF(q, car, companyProfile, customer);
         openDocPreview(doc.output('datauristring'), `Quotation – ${q.quotationNumber}`, `Quotation_${q.quotationNumber}.pdf`);
     };
     const handleViewInvoice = (inv) => {

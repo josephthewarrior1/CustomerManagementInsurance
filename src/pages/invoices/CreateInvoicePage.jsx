@@ -185,6 +185,33 @@ export default function CreateInvoicePage() {
     const [adminFee, setAdminFee] = useState('');
     const [stampDuty, setStampDuty] = useState('');
     const [invoicePreviewUrl, setInvoicePreviewUrl] = useState('');
+    const [stampFile, setStampFile] = useState(null);
+    const [stampPreview, setStampPreview] = useState(null);
+    const [stampDimensions, setStampDimensions] = useState(null);
+
+    const handleStampChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { message('Please select an image file', 'error'); return; }
+        if (file.size > 2 * 1024 * 1024) { message('Image size must be less than 2MB', 'error'); return; }
+        setStampFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const dataUrl = reader.result;
+            setStampPreview(dataUrl);
+            // Capture natural dimensions to preserve aspect ratio in PDF
+            const img = new Image();
+            img.onload = () => setStampDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+            img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemoveStamp = () => {
+        setStampFile(null);
+        setStampPreview(null);
+        setStampDimensions(null);
+    };
 
     const parseNumber = (val) => {
         const numStr = String(val).replace(/\D/g, '').slice(0, 12);
@@ -612,9 +639,40 @@ export default function CreateInvoicePage() {
         doc.text(': IDR', rightColStart + 28, tableContentEndY + 6);
         doc.text(new Intl.NumberFormat('id-ID').format(calculateTotal()), pageWidth - marginX - 3, tableContentEndY + 6, { align: 'right' });
 
-        // Signature
-        let signY = jumlahBottomY + 24;
-        doc.text('(Finance Department)', rightColStart + 30, signY, { align: 'center' });
+        // Signature — preserve aspect ratio of uploaded image
+        let signY = jumlahBottomY + 10;
+        const sigCenterX = rightColStart + 30;
+
+        if (stampPreview) {
+            try {
+                // Max bounding box for stamp in PDF (mm)
+                const maxW = 55;
+                const maxH = 28;
+                let imgW = maxW;
+                let imgH = maxH;
+                if (stampDimensions && stampDimensions.width > 0 && stampDimensions.height > 0) {
+                    const ratio = Math.min(maxW / stampDimensions.width, maxH / stampDimensions.height);
+                    imgW = stampDimensions.width * ratio;
+                    imgH = stampDimensions.height * ratio;
+                }
+                doc.addImage(
+                    stampPreview,
+                    'PNG',
+                    sigCenterX - imgW / 2,
+                    signY,
+                    imgW,
+                    imgH,
+                    undefined,
+                    'FAST'
+                );
+                signY += imgH + 4;
+            } catch (_) {
+                signY += 24;
+            }
+        } else {
+            signY += 24;
+        }
+        doc.text('(Finance Department)', sigCenterX, signY, { align: 'center' });
 
         if (save) {
             doc.save(`Invoice_${invoiceNumber}.pdf`);
@@ -817,6 +875,50 @@ export default function CreateInvoicePage() {
                                             </Grid>
                                         </Box>
                                     )}
+                                </Section>
+                            </Paper>
+
+                            {/* Tanda Tangan */}
+                            <Paper elevation={0} sx={{ borderRadius: '12px', border: `1px solid ${C.border}`, bgcolor: C.white, p: 3, mb: 2 }}>
+                                <Section title="Tanda Tangan / Stempel">
+                                    <Box display="flex" gap={2} alignItems="flex-start">
+                                        <Box
+                                            onClick={() => document.getElementById('invoice-stamp-upload')?.click()}
+                                            sx={{
+                                                width: 110, height: 80, flexShrink: 0,
+                                                border: `1.5px dashed ${C.border}`, borderRadius: '8px',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                cursor: 'pointer', bgcolor: '#F8F9FA', overflow: 'hidden',
+                                                transition: 'all 0.15s',
+                                                '&:hover': { borderColor: accentColor, bgcolor: accentLight },
+                                            }}
+                                        >
+                                            {stampPreview
+                                                ? <img src={stampPreview} alt="TTD" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }} />
+                                                : <Box textAlign="center"><Icon icon="mdi:draw-pen" width={28} color={C.textMuted} /></Box>
+                                            }
+                                        </Box>
+                                        <Box>
+                                            <Box display="flex" gap={1} mb={0.75}>
+                                                <Button size="small" variant="outlined"
+                                                    onClick={() => document.getElementById('invoice-stamp-upload')?.click()}
+                                                    startIcon={<Icon icon="mdi:upload" width={14} />}
+                                                    sx={{ textTransform: 'none', fontSize: 12, fontWeight: 600, borderColor: C.border, color: C.textSub, borderRadius: '6px' }}>
+                                                    {stampPreview ? 'Ganti' : 'Upload'}
+                                                </Button>
+                                                {stampPreview && (
+                                                    <Button size="small" variant="text" color="error" onClick={handleRemoveStamp}
+                                                        startIcon={<Icon icon="mdi:delete" width={14} />}
+                                                        sx={{ textTransform: 'none', fontSize: 12, fontWeight: 600 }}>
+                                                        Hapus
+                                                    </Button>
+                                                )}
+                                            </Box>
+                                            <Typography fontSize={11} sx={{ color: C.textMuted }}>Maks 2MB · PNG transparan direkomendasikan</Typography>
+                                            <Typography fontSize={11} sx={{ color: C.textMuted, mt: 0.5 }}>Gambar TTD / stempel akan muncul di PDF invoice</Typography>
+                                        </Box>
+                                        <input id="invoice-stamp-upload" type="file" accept="image/*" onChange={handleStampChange} style={{ display: 'none' }} />
+                                    </Box>
                                 </Section>
                             </Paper>
 
@@ -1106,6 +1208,16 @@ export default function CreateInvoicePage() {
                                         <Typography fontSize={11} sx={{ color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 }}>Invoice No.</Typography>
                                         <Typography fontSize={13} fontWeight={600} sx={{ color: C.text, fontFamily: 'monospace', mt: 0.25 }}>{invoiceNumber}</Typography>
                                     </Box>
+
+                                    {stampPreview && (
+                                        <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1.5, p: 1.75, borderRadius: '8px', bgcolor: '#F8F9FA', border: `1px solid ${C.border}` }}>
+                                            <img src={stampPreview} alt="TTD" style={{ height: 44, width: 'auto', maxWidth: 80, objectFit: 'contain', opacity: 0.8 }} />
+                                            <Box>
+                                                <Typography fontSize={12} fontWeight={600} sx={{ color: C.text }}>Tanda Tangan / Stempel</Typography>
+                                                <Typography fontSize={11} sx={{ color: C.textSub }}>Akan tercetak di PDF invoice</Typography>
+                                            </Box>
+                                        </Box>
+                                    )}
                                 </Section>
                             </Paper>
 

@@ -78,7 +78,10 @@ export default function AppRoutes() {
 
                 {/* Other Routes */}
 
-                <Route path="kwitansi" element={<Kwitansi />} />
+                <Route path="kwitansi">
+                    <Route index element={<Kwitansi />} />
+                    <Route path="create" element={<Kwitansi />} />
+                </Route>
 
             </Route>
 
