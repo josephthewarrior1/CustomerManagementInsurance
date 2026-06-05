@@ -147,161 +147,316 @@ export default function CreateRenewalDialog({ open, onClose, onCreated, prefillC
     };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-            <DialogTitle sx={{ pb: 0 }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Box sx={{ bgcolor: '#EFF6FF', borderRadius: 2, p: 0.8, display: 'flex' }}>
-                            <Icon icon="mdi:arrow-u-right-top" width={22} color="#1E40AF" />
+        <Dialog 
+            open={open} 
+            onClose={onClose} 
+            maxWidth="sm" 
+            fullWidth 
+            PaperProps={{ 
+                sx: { 
+                    borderRadius: '24px',
+                    boxShadow: '0 24px 48px rgba(0,0,0,0.1), 0 12px 24px rgba(0,0,0,0.06)',
+                    overflow: 'hidden',
+                    background: '#ffffff'
+                } 
+            }}
+            BackdropProps={{
+                sx: {
+                    backdropFilter: 'blur(6px)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.4)'
+                }
+            }}
+        >
+            <style>{`
+                @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes pulseSoft { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+                .fade-in-stagger > * { animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+                .fade-in-stagger > *:nth-of-type(1) { animation-delay: 0.05s; }
+                .fade-in-stagger > *:nth-of-type(2) { animation-delay: 0.1s; }
+                .fade-in-stagger > *:nth-of-type(3) { animation-delay: 0.15s; }
+                .fade-in-stagger > *:nth-of-type(4) { animation-delay: 0.2s; }
+                .fade-in-stagger > *:nth-of-type(5) { animation-delay: 0.25s; }
+                
+                .modern-input .MuiOutlinedInput-root {
+                    border-radius: 12px;
+                    background-color: #f8fafc;
+                    transition: all 0.2s ease;
+                }
+                .modern-input .MuiOutlinedInput-root:hover {
+                    background-color: #f1f5f9;
+                }
+                .modern-input .MuiOutlinedInput-root.Mui-focused {
+                    background-color: #ffffff;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+                }
+            `}</style>
+
+            {/* HEADER */}
+            <Box sx={{ 
+                position: 'relative', 
+                p: 3, 
+                pb: 2, 
+                background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)',
+                borderBottom: '1px solid #f1f5f9'
+            }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                    <Stack direction="row" spacing={2} alignItems="center">
+                        <Box sx={{ 
+                            width: 48, 
+                            height: 48, 
+                            borderRadius: '16px', 
+                            background: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)',
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            boxShadow: '0 8px 16px rgba(59, 130, 246, 0.25)',
+                            color: '#ffffff'
+                        }}>
+                            <Icon icon="mdi:autorenew" width={24} />
                         </Box>
                         <Box>
-                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E293B', lineHeight: 1 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', mb: 0.5 }}>
                                 Buat Renewal Polis
                             </Typography>
-                            <Typography variant="caption" sx={{ color: '#64748B' }}>
-                                Perpanjang periode polis kendaraan
+                            <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 500 }}>
+                                Perpanjang masa aktif asuransi kendaraan
                             </Typography>
                         </Box>
                     </Stack>
-                    <IconButton onClick={onClose} size="small"><Icon icon="mdi:close" width={20} color="#64748B" /></IconButton>
+                    <IconButton 
+                        onClick={onClose} 
+                        sx={{ 
+                            bgcolor: '#f1f5f9', 
+                            color: '#64748b', 
+                            '&:hover': { bgcolor: '#e2e8f0', color: '#0f172a', transform: 'rotate(90deg)' },
+                            transition: 'all 0.3s ease'
+                        }}
+                    >
+                        <Icon icon="mdi:close" width={20} />
+                    </IconButton>
                 </Stack>
-            </DialogTitle>
+            </Box>
 
-            <Divider sx={{ mt: 2 }} />
-
-            <DialogContent sx={{ pt: 2 }}>
-                <Stack spacing={2.5}>
-                    {/* Active Policy Warning (Error for Too Early Renewal) */}
+            <DialogContent sx={{ p: 3, pt: 2, '&::-webkit-scrollbar': { width: '6px' }, '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e1', borderRadius: '10px' } }}>
+                <Stack spacing={3} className="fade-in-stagger">
+                    
+                    {/* ALERTS */}
                     {isTooEarly && (
-                        <Alert severity="error" icon={<Icon icon="mdi:shield-alert" />} sx={{ borderRadius: 2 }}>
-                            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
-                                ⚠️ Perpanjangan Dinonaktifkan — Sisa {daysLeft} Hari Lagi (&gt; 30 Hari)
-                            </Typography>
-                            <Typography variant="caption">
-                                Pengajuan renewal diblokir karena polis masih memiliki masa aktif lebih dari 30 hari. Perpanjangan baru dapat dibuat ketika masa aktif kurang dari atau sama dengan 30 hari.
-                            </Typography>
-                        </Alert>
+                        <Box sx={{ 
+                            background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+                            border: '1px solid #fca5a5',
+                            borderRadius: '16px',
+                            p: 2,
+                            position: 'relative',
+                            overflow: 'hidden'
+                        }}>
+                            <Box sx={{ position: 'absolute', top: -20, right: -20, opacity: 0.1, color: '#ef4444' }}>
+                                <Icon icon="mdi:shield-alert" width={100} />
+                            </Box>
+                            <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                                <Box sx={{ mt: 0.3, color: '#ef4444', animation: 'pulseSoft 2s infinite', borderRadius: '50%' }}>
+                                    <Icon icon="mdi:alert-circle" width={22} />
+                                </Box>
+                                <Box sx={{ position: 'relative', zIndex: 1 }}>
+                                    <Typography sx={{ fontWeight: 800, color: '#991b1b', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
+                                        Perpanjangan Dinonaktifkan (Sisa {daysLeft} Hari)
+                                    </Typography>
+                                    <Typography sx={{ fontSize: '13px', color: '#b91c1c', lineHeight: 1.5, fontWeight: 500 }}>
+                                        Polis masih aktif lebih dari 30 hari. Perpanjangan baru dapat dibuat ketika masa aktif kurang dari atau sama dengan 30 hari.
+                                    </Typography>
+                                </Box>
+                            </Stack>
+                        </Box>
                     )}
 
-                    <Alert severity="info" icon={<Icon icon="mdi:lightning-bolt" />} sx={{ borderRadius: 2 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 600 }}>Setelah Renewal dibuat:</Typography>
-                        <Typography variant="caption" sx={{ display: 'block' }}>
-                            • Buat Quotation (Penawaran) untuk renewal ini<br />
-                            • Setujui Quotation → sistem buat Invoice + Payment otomatis<br />
-                            • Tandai Lunas di Payment → polis otomatis aktif & dueDate diperbarui ✅
-                        </Typography>
-                    </Alert>
-
-                    {/* Customer */}
-                    {isCarPrefilled ? (
-                        <Box sx={{ bgcolor: '#F8FAFC', borderRadius: 2, p: 2, border: '1px solid #E2E8F0' }}>
-                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>Customer</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#1E293B', mt: 0.3 }}>
-                                {prefillCar?.carData?.ownerName || prefillCar?.customerName || '-'}
-                            </Typography>
-                        </Box>
-                    ) : (
-                        <FormControl fullWidth size="small" error={!!errors.customerId}>
-                            <InputLabel>Customer *</InputLabel>
-                            <Select
-                                value={customerId}
-                                label="Customer *"
-                                onChange={e => { setCustomerId(e.target.value); setSelectedCar(null); }}
-                                disabled={loadingCustomers}
-                            >
-                                {customers.map(c => (
-                                    <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
-                                ))}
-                            </Select>
-                            {errors.customerId && <FormHelperText>{errors.customerId}</FormHelperText>}
-                        </FormControl>
-                    )}
-
-                    {/* Kendaraan */}
-                    {isCarPrefilled ? (
-                        <Box sx={{ bgcolor: '#F8FAFC', borderRadius: 2, p: 2, border: '1px solid #E2E8F0' }}>
-                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>Kendaraan</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#1E293B', mt: 0.3 }}>
-                                {prefillCar?.carData?.carBrand} {prefillCar?.carData?.carModel} · {prefillCar?.carData?.plateNumber || '-'}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: '#64748B' }}>
-                                Periode lama: {formatDate(prefillCar?.carData?.startDate)} → {formatDate(prefillCar?.carData?.dueDate)}
-                            </Typography>
-                        </Box>
-                    ) : (
-                        <FormControl fullWidth size="small" error={!!errors.carId} disabled={!customerId || loadingCars}>
-                            <InputLabel>Kendaraan *</InputLabel>
-                            <Select
-                                value={selectedCar?.id || ''}
-                                label="Kendaraan *"
-                                onChange={e => {
-                                    const car = cars.find(c => c.id === e.target.value);
-                                    setSelectedCar(car || null);
-                                    if (car?.carData?.dueDate) {
-                                        const base = new Date(car.carData.dueDate);
-                                        const end = new Date(base);
-                                        end.setFullYear(end.getFullYear() + 1);
-                                        setNewStartDate(base.toISOString().slice(0, 10));
-                                        setNewEndDate(end.toISOString().slice(0, 10));
-                                    }
-                                }}
-                            >
-                                {cars.map(c => (
-                                    <MenuItem key={c.id} value={c.id}>
-                                        {c.carData?.carBrand} {c.carData?.carModel} · {c.carData?.plateNumber || '-'}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                            {errors.carId && <FormHelperText>{errors.carId}</FormHelperText>}
-                            {selectedCar && (
-                                <Typography variant="caption" sx={{ color: '#64748B', mt: 0.5, ml: 0.5 }}>
-                                    Periode lama: {formatDate(selectedCar.carData?.startDate)} → {formatDate(selectedCar.carData?.dueDate)}
+                    <Box sx={{ 
+                        bgcolor: '#f0f9ff',
+                        borderLeft: '4px solid #0ea5e9',
+                        borderRadius: '0 12px 12px 0',
+                        p: 2,
+                        pr: 3
+                    }}>
+                        <Stack direction="row" spacing={1.5}>
+                            <Icon icon="mdi:information" width={22} color="#0ea5e9" style={{ marginTop: 2 }} />
+                            <Box>
+                                <Typography sx={{ fontWeight: 700, color: '#0369a1', fontSize: '13px', mb: 0.5 }}>
+                                    Alur Renewal:
                                 </Typography>
-                            )}
-                        </FormControl>
+                                <Typography sx={{ fontSize: '12.5px', color: '#075985', lineHeight: 1.6 }}>
+                                    <b>1.</b> Buat Renewal → <b>2.</b> Buat & Setujui Quotation → <b>3.</b> Invoice & Tagihan otomatis terbentuk → <b>4.</b> Lunas = Polis Aktif.
+                                </Typography>
+                            </Box>
+                        </Stack>
+                    </Box>
+
+                    {/* CUSTOMER & VEHICLE CARDS */}
+                    {isCarPrefilled ? (
+                        <Box sx={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '1fr 1fr', 
+                            gap: 2,
+                            p: 2,
+                            bgcolor: '#f8fafc',
+                            borderRadius: '16px',
+                            border: '1px solid #e2e8f0'
+                        }}>
+                            <Box>
+                                <Typography sx={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
+                                    Customer
+                                </Typography>
+                                <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>
+                                    {prefillCar?.carData?.ownerName || prefillCar?.customerName || '-'}
+                                </Typography>
+                            </Box>
+                            <Box>
+                                <Typography sx={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
+                                    Kendaraan
+                                </Typography>
+                                <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>
+                                    {prefillCar?.carData?.carBrand} {prefillCar?.carData?.carModel}
+                                </Typography>
+                                <Typography sx={{ fontSize: '12px', color: '#64748b', mt: 0.2 }}>
+                                    {prefillCar?.carData?.plateNumber || '-'}
+                                </Typography>
+                            </Box>
+                            <Box sx={{ gridColumn: '1 / -1', pt: 1.5, mt: 0.5, borderTop: '1px dashed #cbd5e1' }}>
+                                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                                    <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>Periode Lama</Typography>
+                                    <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>
+                                        {formatDate(prefillCar?.carData?.startDate)} <span style={{color:'#94a3b8', margin:'0 4px'}}>→</span> {formatDate(prefillCar?.carData?.dueDate)}
+                                    </Typography>
+                                </Stack>
+                            </Box>
+                        </Box>
+                    ) : (
+                        <Stack spacing={2.5}>
+                            <FormControl fullWidth className="modern-input" error={!!errors.customerId}>
+                                <InputLabel>Customer *</InputLabel>
+                                <Select
+                                    value={customerId}
+                                    label="Customer *"
+                                    onChange={e => { setCustomerId(e.target.value); setSelectedCar(null); }}
+                                    disabled={loadingCustomers}
+                                >
+                                    {customers.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                                </Select>
+                                {errors.customerId && <FormHelperText>{errors.customerId}</FormHelperText>}
+                            </FormControl>
+
+                            <FormControl fullWidth className="modern-input" error={!!errors.carId} disabled={!customerId || loadingCars}>
+                                <InputLabel>Kendaraan *</InputLabel>
+                                <Select
+                                    value={selectedCar?.id || ''}
+                                    label="Kendaraan *"
+                                    onChange={e => {
+                                        const car = cars.find(c => c.id === e.target.value);
+                                        setSelectedCar(car || null);
+                                        if (car?.carData?.dueDate) {
+                                            const base = new Date(car.carData.dueDate);
+                                            const end = new Date(base);
+                                            end.setFullYear(end.getFullYear() + 1);
+                                            setNewStartDate(base.toISOString().slice(0, 10));
+                                            setNewEndDate(end.toISOString().slice(0, 10));
+                                        }
+                                    }}
+                                >
+                                    {cars.map(c => (
+                                        <MenuItem key={c.id} value={c.id}>
+                                            {c.carData?.carBrand} {c.carData?.carModel} • {c.carData?.plateNumber || '-'}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                                {errors.carId && <FormHelperText>{errors.carId}</FormHelperText>}
+                                {selectedCar && (
+                                    <Box sx={{ mt: 1.5, p: 1.5, bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Periode Lama</Typography>
+                                        <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
+                                            {formatDate(selectedCar.carData?.startDate)} <span style={{color:'#94a3b8', margin:'0 4px'}}>→</span> {formatDate(selectedCar.carData?.dueDate)}
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </FormControl>
+                        </Stack>
                     )}
 
-                    <Divider textAlign="left">
-                        <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>Periode Baru</Typography>
-                    </Divider>
-
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                        <TextField
-                            fullWidth size="small" type="date" label="Tanggal Mulai Baru *"
-                            InputLabelProps={{ shrink: true }}
-                            value={newStartDate}
-                            onChange={e => setNewStartDate(e.target.value)}
-                            error={!!errors.newStartDate}
-                            helperText={errors.newStartDate}
-                        />
-                        <TextField
-                            fullWidth size="small" type="date" label="Tanggal Berakhir Baru *"
-                            InputLabelProps={{ shrink: true }}
-                            value={newEndDate}
-                            onChange={e => setNewEndDate(e.target.value)}
-                            error={!!errors.newEndDate}
-                            helperText={errors.newEndDate}
-                        />
-                    </Stack>
+                    {/* NEW PERIOD */}
+                    <Box>
+                        <Typography sx={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Icon icon="mdi:calendar-clock" width={14} /> Periode Pembaruan
+                        </Typography>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                            <TextField
+                                className="modern-input"
+                                fullWidth type="date" label="Tanggal Mulai Baru *"
+                                InputLabelProps={{ shrink: true }}
+                                value={newStartDate}
+                                onChange={e => setNewStartDate(e.target.value)}
+                                error={!!errors.newStartDate}
+                                helperText={errors.newStartDate}
+                            />
+                            <TextField
+                                className="modern-input"
+                                fullWidth type="date" label="Tanggal Berakhir Baru *"
+                                InputLabelProps={{ shrink: true }}
+                                value={newEndDate}
+                                onChange={e => setNewEndDate(e.target.value)}
+                                error={!!errors.newEndDate}
+                                helperText={errors.newEndDate}
+                            />
+                        </Stack>
+                    </Box>
 
                     <TextField
-                        fullWidth size="small" label="Catatan" multiline rows={2}
+                        className="modern-input"
+                        fullWidth label="Catatan Tambahan" multiline rows={2}
                         value={notes} onChange={e => setNotes(e.target.value)}
-                        placeholder="Catatan tambahan untuk renewal ini (opsional)"
+                        placeholder="Misal: Perlu tambahan asuransi gempa bumi..."
                     />
                 </Stack>
             </DialogContent>
 
-            <Divider />
-            <Box sx={{ p: 2.5, display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
-                <Button variant="outlined" onClick={onClose} disabled={submitting}
-                    sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#E2E8F0', color: '#475569' }}>
+            <Box sx={{ p: 3, pt: 2, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
+                <Button 
+                    onClick={onClose} 
+                    disabled={submitting}
+                    sx={{ 
+                        textTransform: 'none', 
+                        fontWeight: 700, 
+                        color: '#64748b', 
+                        px: 3, 
+                        py: 1,
+                        borderRadius: '10px',
+                        '&:hover': { bgcolor: '#e2e8f0', color: '#0f172a' }
+                    }}
+                >
                     Batal
                 </Button>
-                <Button variant="contained" onClick={handleSubmit} disabled={submitting || isTooEarly}
-                    sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#1E40AF', '&:hover': { bgcolor: '#1E3A8A' }, px: 3 }}
-                    startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:arrow-u-right-top" width={18} />}>
-                    {submitting ? 'Menyimpan...' : 'Buat Renewal'}
+                <Button 
+                    variant="contained" 
+                    onClick={handleSubmit} 
+                    disabled={submitting || isTooEarly}
+                    sx={{ 
+                        textTransform: 'none', 
+                        fontWeight: 700, 
+                        background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
+                        px: 3, 
+                        py: 1,
+                        borderRadius: '10px',
+                        transition: 'all 0.2s ease',
+                        '&:hover:not(:disabled)': { 
+                            background: 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)',
+                            boxShadow: '0 6px 16px rgba(37, 99, 235, 0.4)',
+                            transform: 'translateY(-1px)'
+                        },
+                        '&:disabled': {
+                            background: '#e2e8f0',
+                            color: '#94a3b8'
+                        }
+                    }}
+                    startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:arrow-right-circle" width={18} />}
+                >
+                    {submitting ? 'Memproses...' : 'Buat Renewal'}
                 </Button>
             </Box>
         </Dialog>

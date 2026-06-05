@@ -109,8 +109,16 @@ export default function RenewalDetailPage() {
                 if (res.renewal.paymentId) {
                     try {
                         const pr = await PaymentDAO.getPaymentById(res.renewal.paymentId);
-                        if (pr.success) setPayment(pr.payment);
-                    } catch { /* optional */ }
+                        if (pr.success && pr.payment) {
+                            setPayment(pr.payment);
+                        } else {
+                            // Payment was deleted — mark as deleted sentinel
+                            setPayment({ _deleted: true, id: res.renewal.paymentId });
+                        }
+                    } catch {
+                        // Payment not found (404) — treat as deleted
+                        setPayment({ _deleted: true, id: res.renewal.paymentId });
+                    }
                 }
             } else {
                 message(res.error || 'Renewal tidak ditemukan', 'error');
@@ -208,20 +216,23 @@ export default function RenewalDetailPage() {
     const isTerminal = isCompleted || isCancelled;
 
     // Can complete?
-    const paymentBlocking = renewal.paymentId && payment && payment.status !== 'Paid';
+    const paymentDeleted = payment && payment._deleted;
+    const paymentBlocking = renewal.paymentId && payment && !payment._deleted && payment.status !== 'Paid';
     const noPaymentDataYet = !renewal.paymentId || (renewal.paymentId && !payment);
-    const canComplete = !isTerminal && !paymentBlocking && !noPaymentDataYet;
+    const canComplete = !isTerminal && !paymentBlocking && !noPaymentDataYet && !paymentDeleted;
     const completeBlockReason = isCompleted
         ? 'Renewal sudah selesai'
         : isCancelled
             ? 'Renewal sudah dibatalkan'
-            : !renewal.paymentId
-                ? 'Buat & setujui Quotation dulu agar Invoice + Payment terbentuk.'
-                : paymentBlocking
-                    ? `Payment terkait masih berstatus "${payment?.status}". Harus Paid dulu.`
-                    : noPaymentDataYet
-                        ? 'Memverifikasi status payment...'
-                        : null;
+            : paymentDeleted
+                ? 'Payment terkait telah dihapus. Buat Quotation baru untuk melanjutkan.'
+                : !renewal.paymentId
+                    ? 'Buat & setujui Quotation dulu agar Invoice + Payment terbentuk.'
+                    : paymentBlocking
+                        ? `Payment terkait masih berstatus "${payment?.status}". Harus Paid dulu.`
+                        : noPaymentDataYet
+                            ? 'Memverifikasi status payment...'
+                            : null;
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#F8FAFC', pb: 8 }}>
@@ -330,7 +341,7 @@ export default function RenewalDetailPage() {
                             <Icon icon="mdi:receipt-text" width={20} color="#1E40AF" /> Payment Record
                         </Typography>
                         {renewal.paymentId ? (
-                            payment ? (
+                            payment && !payment._deleted ? (
                                 <Box>
                                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                                         <Chip label={payment.status} size="small"
@@ -341,6 +352,11 @@ export default function RenewalDetailPage() {
                                     <InfoRow label="Metode" value={payment.paymentMethod || '-'} icon="mdi:credit-card-outline" />
                                     <InfoRow label="Tanggal Bayar" value={formatDate(payment.paidDate)} icon="mdi:calendar-check" />
                                 </Box>
+                            ) : payment && payment._deleted ? (
+                                <Alert severity="warning" sx={{ borderRadius: 2 }} icon={<Icon icon="mdi:delete-alert" />}>
+                                    <strong>Payment telah dihapus.</strong> Data payment <code>{renewal.paymentId}</code> tidak ditemukan.
+                                    Buat Quotation baru untuk menghasilkan Payment baru.
+                                </Alert>
                             ) : (
                                 <Typography variant="body2" sx={{ color: '#94A3B8' }}>Memuat data payment...</Typography>
                             )

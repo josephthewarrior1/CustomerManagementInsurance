@@ -715,7 +715,7 @@ const SearchBar = ({ value, onChange, placeholder }) => (
 );
 
 // ─── VEHICLE TAB ──────────────────────────────────────────────────────────────
-function VehicleTab({ cars }) {
+function VehicleTab({ cars, customers }) {
   const [search, setSearch] = useState("");
   const { isMobile } = useBreakpoint();
 
@@ -723,16 +723,21 @@ function VehicleTab({ cars }) {
   const getCarStatus = (car) => getStatus(car.carData?.dueDate, car.status);
 
   const stats = useMemo(() => {
-    if (!cars.length) return null;
-    const total = cars.length;
+    if (!cars.length && !customers?.length) return null;
+    const totalCars = cars.length;
+    const totalCustomers = customers?.length || 0;
     const aktif = cars.filter(c => { const s = getCarStatus(c); return s === "Aktif" || s === "Segera Jatuh Tempo"; }).length;
     const segera = cars.filter(c => getCarStatus(c) === "Segera Jatuh Tempo").length;
     const expired = cars.filter(c => getCarStatus(c) === "Expired").length;
     const cancelled = cars.filter(c => getCarStatus(c) === "Cancelled").length;
-    const activePercent = total > 0 ? Math.round((aktif / total) * 100) : 0;
+    const activePercent = totalCars > 0 ? Math.round((aktif / totalCars) * 100) : 0;
 
     const monthlyMap = Array(12).fill(0);
-    cars.forEach(c => { monthlyMap[new Date(c.createdAt).getMonth()]++; });
+    if (customers) {
+      customers.forEach(c => { 
+        if (c.createdAt) monthlyMap[new Date(c.createdAt).getMonth()]++; 
+      });
+    }
     const monthlyData = MONTH_NAMES.map((month, i) => ({ month, nasabah: monthlyMap[i] }));
 
     const statusData = [
@@ -756,27 +761,29 @@ function VehicleTab({ cars }) {
       .sort((a, b) => new Date(a.carData.dueDate) - new Date(b.carData.dueDate))
       .slice(0, 6);
 
-    return { total, aktif, segera, expired, cancelled, activePercent, monthlyData, statusData, brandData, soonExpiring };
-  }, [cars]);
+    return { totalCars, totalCustomers, aktif, segera, expired, cancelled, activePercent, monthlyData, statusData, brandData, soonExpiring };
+  }, [cars, customers]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return cars
-      .filter(c =>
-        !q ||
-        c.carData?.ownerName?.toLowerCase().includes(q) ||
-        c.carData?.carBrand?.toLowerCase().includes(q) ||
-        c.carData?.plateNumber?.toLowerCase().includes(q)
-      )
+      .filter(c => {
+        const cust = customers?.find(x => x.id === c.customerId);
+        return !q ||
+          cust?.name?.toLowerCase().includes(q) ||
+          c.carData?.ownerName?.toLowerCase().includes(q) ||
+          c.carData?.carBrand?.toLowerCase().includes(q) ||
+          c.carData?.plateNumber?.toLowerCase().includes(q)
+      })
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, 10);
-  }, [cars, search]);
+  }, [cars, customers, search]);
 
   if (!stats) return (
     <div className="empty-state">
       <div className="empty-icon"><Car size={28} color="#94a3b8" /></div>
-      <p style={{ fontWeight: 600, marginBottom: 4 }}>Belum ada data kendaraan</p>
-      <p style={{ fontSize: 12 }}>Mulai tambahkan nasabah kendaraan</p>
+      <p style={{ fontWeight: 600, marginBottom: 4 }}>Belum ada data</p>
+      <p style={{ fontSize: 12 }}>Mulai tambahkan nasabah dan kendaraan</p>
     </div>
   );
 
@@ -784,10 +791,10 @@ function VehicleTab({ cars }) {
     <>
       {/* Stat Grid */}
       <div className="stat-grid">
-        <StatCard icon={Users} iconColor="#2563eb" iconBg="#dbeafe" label="Total Nasabah" value={stats.total} sub="Nasabah terdaftar" trend={100} delay={0.05} />
-        <StatCard icon={ShieldCheck} iconColor="#10b981" iconBg="#d1fae5" label="Polis Aktif" value={stats.aktif} sub={`${stats.activePercent}% dari total`} subColor="#10b981" trendUp trend={stats.activePercent} delay={0.1} />
-        <StatCard icon={Clock} iconColor="#d97706" iconBg="#fef3c7" label="Segera Jatuh Tempo" value={stats.segera} sub="Dalam 30 hari" subColor="#d97706" trendUp={false} delay={0.15} />
-        <StatCard icon={ShieldOff} iconColor="#ef4444" iconBg="#fee2e2" label="Expired / Cancelled" value={stats.expired + stats.cancelled} sub={`${stats.expired} expired · ${stats.cancelled} cancelled`} subColor="#ef4444" delay={0.2} />
+        <StatCard icon={Users} iconColor="#2563eb" iconBg="#dbeafe" label="Total Nasabah" value={stats.totalCustomers} sub="Nasabah terdaftar" trend={100} delay={0.05} />
+        <StatCard icon={Car} iconColor="#8b5cf6" iconBg="#ede9fe" label="Total Kendaraan" value={stats.totalCars} sub="Unit kendaraan" trend={100} delay={0.1} />
+        <StatCard icon={ShieldCheck} iconColor="#10b981" iconBg="#d1fae5" label="Polis Aktif" value={stats.aktif} sub={`${stats.activePercent}% dari total`} subColor="#10b981" trendUp trend={stats.activePercent} delay={0.15} />
+        <StatCard icon={ShieldOff} iconColor="#ef4444" iconBg="#fee2e2" label="Segera / Expired" value={stats.segera + stats.expired + stats.cancelled} sub={`${stats.segera} segera · ${stats.expired} expired`} subColor="#ef4444" delay={0.2} />
       </div>
 
       {/* Charts row 1: bar + donut */}
@@ -861,7 +868,7 @@ function VehicleTab({ cars }) {
           <GaugeChart percent={stats.activePercent} color="#3b82f6" />
           <div style={{ display: "flex", justifyContent: "space-around", width: "100%", borderTop: "1px solid #f1f5f9", paddingTop: 14, marginTop: 8 }}>
             {[
-              { label: "Total", val: stats.total, color: "#0f172a" },
+              { label: "Total", val: stats.totalCars, color: "#0f172a" },
               { label: "Aktif", val: stats.aktif, color: "#10b981" },
               { label: "Expired", val: stats.expired, color: "#ef4444" },
             ].map(({ label, val, color }) => (
@@ -889,16 +896,18 @@ function VehicleTab({ cars }) {
             due.setHours(0, 0, 0, 0);
             const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
             const urgent = diffDays <= 7;
+            const cust = customers?.find(x => x.id === c.customerId);
+            const displayName = cust?.name || c.carData?.ownerName || "—";
             return (
               <div key={c.id} className="alert-row" style={{
                 backgroundColor: urgent ? "#fff7ed" : "#fffbeb",
                 border: `1px solid ${urgent ? "#fed7aa" : "#fde68a"}`,
               }}>
                 <div className="avatar" style={{ background: urgent ? "#ea580c" : "#f59e0b", color: "#fff" }}>
-                  {c.carData?.ownerName?.[0]?.toUpperCase() || "?"}
+                  {displayName[0]?.toUpperCase() || "?"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontWeight: 700, fontSize: 12.5, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.carData?.ownerName || "—"}</p>
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: 12.5, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</p>
                   <p style={{ margin: 0, fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.carData?.plateNumber}</p>
                 </div>
                 <div style={{ backgroundColor: urgent ? "#ea580c" : "#f59e0b", color: "#fff", borderRadius: 20, padding: "3px 9px", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
@@ -941,12 +950,14 @@ function VehicleTab({ cars }) {
                 const due = c.carData?.dueDate
                   ? new Date(c.carData.dueDate).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
                   : "—";
+                const cust = customers?.find(x => x.id === c.customerId);
+                const displayName = cust?.name || c.carData?.ownerName || "—";
                 return (
                   <tr key={c.id}>
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div className="avatar" style={{ background: "#dbeafe", color: "#1d4ed8" }}>
-                          {c.carData?.ownerName?.[0]?.toUpperCase() || "?"}
+                          {displayName[0]?.toUpperCase() || "?"}
                         </div>
                         <div>
                           <p style={{ margin: 0, fontWeight: 700, fontSize: 13 }}>{c.carData?.ownerName || "—"}</p>
@@ -1535,7 +1546,7 @@ export default function DashboardPage() {
           ? <VehicleTab cars={cars} />
           : <PropertyTab properties={properties} />
         } */}
-        <VehicleTab cars={cars} />
+        <VehicleTab cars={cars} customers={customers} />
       </div>
 
     </>

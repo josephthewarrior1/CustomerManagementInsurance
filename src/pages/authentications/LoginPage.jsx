@@ -7,9 +7,9 @@ import { useLoading } from '../../hooks/LoadingProvider';
 import { useUser } from '../../hooks/UserProvider';
 import { useEffect, useState } from 'react';
 import UserDAO from '../../daos/UserDAO';
-import { signOut } from 'firebase/auth';
+import { signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../../config/firebaseConfig';
-import { InputAdornment, IconButton } from '@mui/material';
+import { InputAdornment, IconButton, Dialog, DialogTitle, DialogContent, Stack, Box, Typography, TextField, Button, CircularProgress } from '@mui/material';
 import { Icon } from '@iconify/react';
 
 const styles = `
@@ -298,6 +298,9 @@ export default function LoginPage() {
     const message = useAlert();
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
+    const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+    const [forgotEmail, setForgotEmail] = useState('');
+    const [forgotLoading, setForgotLoading] = useState(false);
 
     useEffect(() => {
         if (user && !isLoading) {
@@ -346,6 +349,37 @@ export default function LoginPage() {
             message(errMsg, 'error');
         } finally {
             loading.stop();
+        }
+    };
+
+    const handleForgotPassword = async () => {
+        if (!forgotEmail) {
+            message('Email tidak boleh kosong', 'error');
+            return;
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(forgotEmail)) {
+            message('Format email tidak valid', 'error');
+            return;
+        }
+
+        setForgotLoading(true);
+        try {
+            await sendPasswordResetEmail(auth, forgotEmail.trim());
+            message('Jika email terdaftar, instruksi reset telah dikirimkan ke email Anda.', 'success');
+            setForgotPasswordOpen(false);
+            setForgotEmail('');
+        } catch (error) {
+            console.error('Forgot password error:', error);
+            if (error.code === 'auth/user-not-found') {
+                message('Email tidak terdaftar di sistem kami.', 'error');
+            } else if (error.code === 'auth/invalid-email') {
+                message('Format email tidak valid.', 'error');
+            } else {
+                message('Terjadi kesalahan. Silakan coba lagi.', 'error');
+            }
+        } finally {
+            setForgotLoading(false);
         }
     };
 
@@ -449,7 +483,7 @@ export default function LoginPage() {
                         </div>
 
                         <div className="login-trouble">
-                            <button type="button" onClick={() => message('Fitur akan segera hadir!', 'info')}>
+                            <button type="button" onClick={() => setForgotPasswordOpen(true)}>
                                 Kesulitan masuk?
                             </button>
                         </div>
@@ -482,6 +516,82 @@ export default function LoginPage() {
                 </div>
 
             </div>
+
+            {/* Forgot Password Dialog */}
+            <Dialog 
+                open={forgotPasswordOpen} 
+                onClose={() => !forgotLoading && setForgotPasswordOpen(false)}
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        borderRadius: '24px',
+                        boxShadow: '0 24px 48px rgba(0,0,0,0.1), 0 12px 24px rgba(0,0,0,0.06)',
+                        overflow: 'hidden',
+                        background: '#ffffff',
+                        p: 1
+                    }
+                }}
+                BackdropProps={{
+                    sx: { backdropFilter: 'blur(6px)', backgroundColor: 'rgba(15, 23, 42, 0.4)' }
+                }}
+            >
+                <DialogTitle sx={{ pb: 1, pt: 3, textAlign: 'center' }}>
+                    <Box sx={{ 
+                        width: 56, height: 56, borderRadius: '50%', 
+                        background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        margin: '0 auto 16px', color: '#1d4ed8'
+                    }}>
+                        <Icon icon="mdi:lock-reset" width={28} />
+                    </Box>
+                    <Typography sx={{ fontWeight: 800, fontSize: 20, color: '#0f172a', letterSpacing: '-0.02em', mb: 1 }}>
+                        Lupa Password?
+                    </Typography>
+                    <Typography sx={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, px: 2 }}>
+                        Masukkan email yang terdaftar pada akun Anda. Kami akan mengirimkan tautan untuk mengatur ulang password.
+                    </Typography>
+                </DialogTitle>
+                <DialogContent sx={{ px: 3, pb: 4, pt: 1 }}>
+                    <TextField
+                        fullWidth
+                        placeholder="Misal: agen@kudajaya.com"
+                        value={forgotEmail}
+                        onChange={e => setForgotEmail(e.target.value)}
+                        disabled={forgotLoading}
+                        autoFocus
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Icon icon="mdi:email-outline" width={20} color="#94a3b8" />
+                                </InputAdornment>
+                            ),
+                            sx: { borderRadius: '12px', bgcolor: '#f8fafc' }
+                        }}
+                        sx={{ mt: 1, mb: 3 }}
+                    />
+                    <Stack direction="row" spacing={1.5}>
+                        <Button 
+                            fullWidth
+                            variant="outlined"
+                            disabled={forgotLoading}
+                            onClick={() => setForgotPasswordOpen(false)}
+                            sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 600, color: '#64748b', borderColor: '#e2e8f0', '&:hover': { bgcolor: '#f1f5f9' } }}
+                        >
+                            Batal
+                        </Button>
+                        <Button 
+                            fullWidth
+                            variant="contained"
+                            disabled={forgotLoading}
+                            onClick={handleForgotPassword}
+                            sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 600, background: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }}
+                        >
+                            {forgotLoading ? <CircularProgress size={20} color="inherit" /> : 'Kirim Link'}
+                        </Button>
+                    </Stack>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
