@@ -1,9 +1,20 @@
 import ApiConfig from './ApiConfig';
+import { auth } from '../config/firebaseConfig';
 
 export default class ApiRequest {
     // Regular API call untuk JSON
     static set = async (endpoint, method, body, apiUrl = null) => {
-        const token = localStorage.getItem('authToken');
+        // Prefer the backend-issued token stored at login/signup.
+        // A stale Firebase client session can belong to a previous user and must not override it.
+        let token = localStorage.getItem('authToken');
+        if (!token && auth.currentUser) {
+            try {
+                token = await auth.currentUser.getIdToken();
+                localStorage.setItem('authToken', token);
+            } catch (e) {
+                token = null;
+            }
+        }
         
         // Prepare headers
         const headers = {
@@ -39,6 +50,7 @@ export default class ApiRequest {
         const error = await response.json();
 
         if (
+            response.status === 401 ||
             error.code === 'NO_TOKEN_PROVIDED' ||
             error.code === 'INVALID_TOKEN' ||
             error.code === 'BAD_TOKEN_FORMAT' ||
@@ -46,8 +58,15 @@ export default class ApiRequest {
             error.code === 'JWT_EXPIRED' ||
             error.code === 'JWT_MALFORMED' ||
             error.code === 'SUBSCRIPTION_EXPIRED' ||
-            error.code === 'INVALID_SIGNATURE'
+            error.code === 'INVALID_SIGNATURE' ||
+            error.code === 'auth/id-token-expired'
         ) {
+            if (auth) {
+                auth.signOut().catch(console.error);
+            }
+            localStorage.removeItem('user');
+            localStorage.removeItem('authToken');
+            window.location.href = '/login';
             throw { message: 'TOKEN_EXPIRED' };
         }
 
@@ -56,7 +75,16 @@ export default class ApiRequest {
 
     // ⭐ DEDICATED method untuk multipart/form-data (file upload)
     static setMultipart = async (endpoint, method, formData, apiUrl = null) => {
-        const token = localStorage.getItem('authToken');
+        // Prefer the backend-issued token stored at login/signup.
+        let token = localStorage.getItem('authToken');
+        if (!token && auth.currentUser) {
+            try {
+                token = await auth.currentUser.getIdToken();
+                localStorage.setItem('authToken', token);
+            } catch (e) {
+                token = null;
+            }
+        }
         
         // Untuk multipart, HANYA set Authorization
         // JANGAN set Content-Type, biar browser auto-set dengan boundary
@@ -96,6 +124,7 @@ export default class ApiRequest {
 
         // Handle auth errors
         if (
+            response.status === 401 ||
             error.code === 'NO_TOKEN_PROVIDED' ||
             error.code === 'INVALID_TOKEN' ||
             error.code === 'BAD_TOKEN_FORMAT' ||
@@ -103,8 +132,15 @@ export default class ApiRequest {
             error.code === 'JWT_EXPIRED' ||
             error.code === 'JWT_MALFORMED' ||
             error.code === 'SUBSCRIPTION_EXPIRED' ||
-            error.code === 'INVALID_SIGNATURE'
+            error.code === 'INVALID_SIGNATURE' ||
+            error.code === 'auth/id-token-expired'
         ) {
+            if (auth) {
+                auth.signOut().catch(console.error);
+            }
+            localStorage.removeItem('user');
+            localStorage.removeItem('authToken');
+            window.location.href = '/login';
             throw { message: 'TOKEN_EXPIRED' };
         }
 
@@ -118,3 +154,4 @@ export default class ApiRequest {
         DELETE: 'DELETE',
     };
 }
+

@@ -27,12 +27,14 @@ import {
   Collapse,
   Fade,
 } from '@mui/material';
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
-import CustomerDAO from '../../daos/CustomerDao';
 import CompanyDAO from '../../daos/CompanyDao';
+import CarDAO from '../../daos/CarDao';
+import QuotationDAO from '../../daos/QuotationDao';
+import { useLocation } from 'react-router';
+// import PropertyDAO from '../../daos/propertyDao';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -50,6 +52,10 @@ const C = {
   success: '#1E8840',
   successLight: '#EBF8EF',
   stepIdle: '#C8CDD4',
+  car: '#1971C2',
+  carLight: '#EBF4FF',
+  property: '#0369A1',
+  propertyLight: '#E0F2FE',
 };
 
 const inputStyle = {
@@ -64,9 +70,9 @@ const inputStyle = {
 };
 
 const STEPS = [
-  { label: 'Details',  icon: '1' },
+  { label: 'Details', icon: '1' },
   { label: 'Coverage', icon: '2' },
-  { label: 'Review',   icon: '3' },
+  { label: 'Review', icon: '3' },
 ];
 
 function WizardStepper({ active }) {
@@ -133,59 +139,110 @@ function Field({ label, required, hint, children }) {
   );
 }
 
+function QuotationTypeTab({ value, onChange }) {
+  return (
+    <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+      {[
+        { key: 'car', label: 'Kendaraan', icon: 'mdi:car', color: C.car, light: C.carLight },
+        // { key: 'property', label: 'Properti', icon: 'mdi:home', color: C.property, light: C.propertyLight },
+      ].map(opt => (
+        <Box key={opt.key} flex={1}
+          onClick={() => onChange(opt.key)}
+          sx={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
+            p: 1.75, borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s',
+            border: `2px solid ${value === opt.key ? opt.color : '#E4E6EA'}`,
+            bgcolor: value === opt.key ? opt.light : '#fff',
+            '&:hover': { borderColor: opt.color, bgcolor: opt.light },
+          }}>
+          <Icon icon={opt.icon} width={20} color={value === opt.key ? opt.color : C.textMuted} />
+          <Typography fontSize={14} fontWeight={700}
+            sx={{ color: value === opt.key ? opt.color : C.textSub }}>
+            {opt.label}
+          </Typography>
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
 export default function CreateQuotationPage() {
-  const navigate = useNavigate();
   const loading = useLoading();
   const message = useAlert();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const location = useLocation();
+
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const prefillCarId = searchParams.get('carId') || searchParams.get('policyId') || '';
+  const renewalId = (searchParams.get('renewalId') || '').trim();
 
   const [activeStep, setActiveStep] = useState(0);
+  const [quotationType, setQuotationType] = useState('car');
   const [companyProfile, setCompanyProfile] = useState(null);
   const [companyName, setCompanyName] = useState('PT. JAYAINDO ARTHA SUKSES');
   const [companySubtitle, setCompanySubtitle] = useState('INSURANCE AGENCY');
   const [companyCity, setCompanyCity] = useState('Jakarta');
-  const [customers, setCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [openCustomerDialog, setOpenCustomerDialog] = useState(false);
-  const [customerSearch, setCustomerSearch] = useState('');
+  const [cars, setCars] = useState([]);
+  const [properties, setProperties] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [openSelectDialog, setOpenSelectDialog] = useState(false);
+  const [selectSearch, setSelectSearch] = useState('');
   const [quotationNumber, setQuotationNumber] = useState('');
   const [tsi, setTsi] = useState('');
+  const [insuranceProvider, setInsuranceProvider] = useState('');
+  const [insuranceType, setInsuranceType] = useState('All Risk');
   const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
+  const [quotationPreviewUrl, setQuotationPreviewUrl] = useState('');
+  const pageTopRef = useRef(null);
 
   const [coverages, setCoverages] = useState({
-    comprehensive:       { enabled: true,  percentage: 1.32, freeInclude: false },
-    flood:               { enabled: false, percentage: 0.1,  freeInclude: false },
-    earthquake:          { enabled: false, percentage: 0.12, freeInclude: false },
-    typhoonAndStorm:     { enabled: false, percentage: 0.05, freeInclude: false },
-    landslide:           { enabled: false, percentage: 0.05, freeInclude: false },
-    waterHammer:         { enabled: false, percentage: 0.05, freeInclude: true  },
-    thirdPartyLiability: { enabled: false, percentage: 0.5,  freeInclude: false },
-    authorizedWorkshop:  { enabled: false, percentage: 0.05, freeInclude: true  },
+    comprehensive: { enabled: true, percentage: 1.32, freeInclude: false },
+    flood: { enabled: false, percentage: 0.1, freeInclude: false },
+    earthquake: { enabled: false, percentage: 0.12, freeInclude: false },
+    typhoonAndStorm: { enabled: false, percentage: 0.05, freeInclude: false },
+    landslide: { enabled: false, percentage: 0.05, freeInclude: false },
+    waterHammer: { enabled: false, percentage: 0.05, freeInclude: true },
+    thirdPartyLiability: { enabled: false, percentage: '', isFixedAmount: true, freeInclude: false },
+    authorizedWorkshop: { enabled: false, percentage: 0.05, freeInclude: true },
   });
 
   const coverageLabels = useMemo(() => ({
-    comprehensive:       'Comprehensive',
-    flood:               'Banjir',
-    earthquake:          'Gempa Bumi',
-    typhoonAndStorm:     'Angin Topan, Badai, Taifun, Hujan Es, Tornado',
-    landslide:           'Tanah Longsor',
-    waterHammer:         'Water Hammer',
+    comprehensive: 'Comprehensive',
+    flood: 'Banjir',
+    earthquake: 'Gempa Bumi',
+    typhoonAndStorm: 'Angin Topan, Badai, Taifun, Hujan Es, Tornado',
+    landslide: 'Tanah Longsor',
+    waterHammer: 'Water Hammer',
     thirdPartyLiability: 'Tanggung Jawab Hukum Pihak III',
-    authorizedWorkshop:  'Authorized Workshop',
+    authorizedWorkshop: 'Authorized Workshop',
   }), []);
 
   const [calculations, setCalculations] = useState({
-    itemAmounts: {}, subtotal: 0, adminFee: 50000, stampDuty: 10000, totalPremium: 0,
+    itemAmounts: {}, subtotal: 0, totalPremium: 0,
   });
 
-  useEffect(() => { fetchCompanyProfile(); fetchCustomers(); generateQuotationNumber(); }, []); // eslint-disable-line
+  useEffect(() => { fetchCompanyProfile(); fetchData(); generateQuotationNumber(); }, []); // eslint-disable-line
   useEffect(() => { calculateTotals(); }, [tsi, coverages]); // eslint-disable-line
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      pageTopRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    });
+  }, [activeStep]);
 
   const roundIDR = (n) => Math.round(Number(n) || 0);
   const fmt = (v) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(v) || 0);
   const fmtNum = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(Number(v) || 0);
   const fmtShort = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(v) || 0);
+  const formatTsiInput = (v) => {
+    const digits = String(v || '').replace(/\D/g, '').slice(0, 12);
+    return digits ? fmtShort(digits) : '';
+  };
+
+  const handleTsiChange = (e) => {
+    setTsi(e.target.value.replace(/\D/g, '').slice(0, 12));
+  };
 
   const fetchCompanyProfile = async () => {
     try {
@@ -199,20 +256,37 @@ export default function CreateQuotationPage() {
     } catch (e) { console.error(e); }
   };
 
-  const fetchCustomers = async () => {
+  const fetchData = async () => {
     try {
       loading.start();
-      const r = await CustomerDAO.getAllCustomers();
-      if (r.success) setCustomers(r.customers || []);
-      else message('Failed to load customers', 'error');
-    } catch (e) { console.error(e); message('Failed to load customers', 'error'); }
+      const [carRes, propRes] = await Promise.allSettled([
+        CarDAO.getAllCars(),
+        Promise.resolve({ properties: [] }),
+      ]);
+      if (carRes.status === 'fulfilled' && carRes.value?.cars) setCars(carRes.value.cars);
+    } catch (e) { console.error(e); message('Failed to load data', 'error'); }
     finally { loading.stop(); }
+  };
+
+  // Auto-select car when carId is passed (e.g. from Renewal flow)
+  useEffect(() => {
+    if (!prefillCarId || !cars?.length) return;
+    if (quotationType !== 'car') setQuotationType('car');
+    const found = cars.find(c => c.id === prefillCarId);
+    if (found) setSelectedItem(found);
+  }, [prefillCarId, cars, quotationType]);
+
+  const handleTypeChange = (type) => {
+    setQuotationType(type);
+    setSelectedItem(null);
   };
 
   const generateQuotationNumber = () => {
     const d = new Date();
-    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    setQuotationNumber(`QUO-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}-${random}`);
+    const seq = Math.floor(Math.random() * 999 + 1).toString().padStart(3, '0');
+    const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+    const roman = romanMonths[d.getMonth()];
+    setQuotationNumber(`${seq}/QUO/${roman}/${d.getFullYear()}`);
   };
 
   const handleSaveCompanyProfile = async () => {
@@ -230,9 +304,27 @@ export default function CreateQuotationPage() {
 
   const toggleCoverage = (key) => setCoverages(p => ({ ...p, [key]: { ...p[key], enabled: !p[key].enabled } }));
   const toggleFree = (key) => setCoverages(p => ({ ...p, [key]: { ...p[key], freeInclude: !p[key].freeInclude } }));
+
   const setPct = (key, val) => {
-    const n = parseFloat(val);
-    setCoverages(p => ({ ...p, [key]: { ...p[key], percentage: Number.isFinite(n) ? n : 0 } }));
+    const c = coverages[key];
+    let n = val;
+
+    if (c.isFixedAmount) {
+      // Untuk fixed amount (seperti thirdPartyLiability), biarkan string kosong atau konversi ke number
+      if (val === '' || val === null || val === undefined) {
+        n = '';
+      } else {
+        const cleaned = String(val).replace(/\D/g, '').slice(0, 12);
+        const num = Number(cleaned);
+        n = isNaN(num) ? '' : num;
+      }
+    } else {
+      // Untuk percentage
+      const num = parseFloat(val);
+      n = isNaN(num) ? 0 : num;
+    }
+
+    setCoverages(p => ({ ...p, [key]: { ...p[key], percentage: n } }));
   };
 
   const calculateTotals = () => {
@@ -242,17 +334,23 @@ export default function CreateQuotationPage() {
     Object.keys(coverages).forEach((k) => {
       const c = coverages[k];
       if (!c.enabled || c.freeInclude) { itemAmounts[k] = 0; return; }
-      const amt = roundIDR((tv * (Number(c.percentage) || 0)) / 100);
+
+      let amt = 0;
+      if (c.isFixedAmount) {
+        const fixedVal = Number(c.percentage);
+        amt = isNaN(fixedVal) ? 0 : fixedVal;
+      } else {
+        amt = roundIDR((tv * (Number(c.percentage) || 0)) / 100);
+      }
       itemAmounts[k] = amt;
       subtotal += amt;
     });
-    const adminFee = 50000, stampDuty = 10000;
-    setCalculations(p => ({ ...p, itemAmounts, subtotal, totalPremium: subtotal + adminFee + stampDuty }));
+    setCalculations(p => ({ ...p, itemAmounts, subtotal, totalPremium: subtotal }));
   };
 
   const handleNext = () => {
     if (activeStep === 0) {
-      if (!selectedCustomer) { message('Please select a customer', 'error'); return; }
+      if (!selectedItem) { message(`Please select a ${quotationType === 'car' ? 'car' : 'property'}`, 'error'); return; }
       if (!tsi || Number(tsi) <= 0) { message('Please enter a valid TSI amount', 'error'); return; }
     }
     setActiveStep(s => s + 1);
@@ -260,57 +358,85 @@ export default function CreateQuotationPage() {
   const handleBack = () => setActiveStep(s => s - 1);
 
   const handleReset = () => {
-    setSelectedCustomer(null); setTsi(''); setActiveStep(0);
+    setSelectedItem(null); setTsi(''); setActiveStep(0);
+    setInsuranceProvider(''); setInsuranceType('All Risk');
     setCoverages({
-      comprehensive:       { enabled: true,  percentage: 1.32, freeInclude: false },
-      flood:               { enabled: false, percentage: 0.1,  freeInclude: false },
-      earthquake:          { enabled: false, percentage: 0.12, freeInclude: false },
-      typhoonAndStorm:     { enabled: false, percentage: 0.05, freeInclude: false },
-      landslide:           { enabled: false, percentage: 0.05, freeInclude: false },
-      waterHammer:         { enabled: false, percentage: 0.05, freeInclude: true  },
-      thirdPartyLiability: { enabled: false, percentage: 0.5,  freeInclude: false },
-      authorizedWorkshop:  { enabled: false, percentage: 0.05, freeInclude: true  },
+      comprehensive: { enabled: true, percentage: 1.32, freeInclude: false },
+      flood: { enabled: false, percentage: 0.1, freeInclude: false },
+      earthquake: { enabled: false, percentage: 0.12, freeInclude: false },
+      typhoonAndStorm: { enabled: false, percentage: 0.05, freeInclude: false },
+      landslide: { enabled: false, percentage: 0.05, freeInclude: false },
+      waterHammer: { enabled: false, percentage: 0.05, freeInclude: true },
+      thirdPartyLiability: { enabled: false, percentage: '', isFixedAmount: true, freeInclude: false },
+      authorizedWorkshop: { enabled: false, percentage: 0.05, freeInclude: true },
     });
     generateQuotationNumber();
   };
 
   const handleDownload = () => {
-    if (!selectedCustomer || !tsi || Number(tsi) <= 0) { message('Please complete the form first', 'error'); return; }
+    if (!selectedItem || !tsi || Number(tsi) <= 0) { message('Please complete the form first', 'error'); return; }
+    if (quotationType === 'car' && !insuranceProvider.trim()) { message('Provider Asuransi wajib diisi', 'error'); return; }
     setOpenPreviewDialog(true);
   };
 
-  const handleConfirmDownload = () => {
-    try { loading.start(); generatePDF(); message('PDF generated!', 'success'); setOpenPreviewDialog(false); }
-    catch (e) { console.error(e); message('Failed to generate PDF', 'error'); }
+  const handleConfirmDownload = async () => {
+    try {
+      loading.start();
+
+      const payload = {
+        customerId: selectedItem?.customerId || selectedItem?.id,
+        carId: selectedItem?.id,
+        renewalId: renewalId || undefined,
+        quotationNumber,
+        tsi: Number(tsi),
+        insuranceProvider: quotationType === 'car' ? insuranceProvider.trim() : undefined,
+        insuranceType: quotationType === 'car' ? insuranceType : undefined,
+        coverages,
+        totalPremium: calculations.totalPremium
+      };
+
+      const res = await QuotationDAO.createQuotation(payload);
+      if (!res.success) {
+        message(res.error || 'Failed to save quotation to database', 'error');
+        return;
+      }
+
+      generatePDF();
+      message('Quotation saved successfully & PDF generated!', 'success');
+      setOpenPreviewDialog(false);
+    }
+    catch (e) { console.error(e); message('Failed to process Quotation', 'error'); }
     finally { loading.stop(); }
   };
 
-  const generatePDF = () => {
+  const generatePDF = ({ save = true } = {}) => {
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
 
     const marginX = 18;
     const rightX = pageWidth - marginX;
 
-    let currentY = 18;
+    let currentY = 20;
 
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(30, 30, 30);
     doc.text((companyName || '').toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
     currentY += 6;
 
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.text((companySubtitle || '').toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
     currentY += 10;
 
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(14);
-    doc.text('QUOTATION', pageWidth / 2, currentY, { align: 'center' });
-    currentY += 11;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text('Quotation', pageWidth / 2, currentY, { align: 'center' });
+    currentY += 15;
 
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
 
     doc.text(`No. ${quotationNumber}`, marginX, currentY);
 
@@ -327,20 +453,20 @@ export default function CreateQuotationPage() {
     const valueX = marginX + 46;
 
     const row = (y, label, value) => {
-      doc.setFont(undefined, 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text(label, labelX, y);
-      doc.setFont(undefined, 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.text(':', colonX, y);
       doc.text(String(value ?? ''), valueX, y);
     };
 
-    row(currentY, 'Nama', selectedCustomer?.name || 'TBA');
+    row(currentY, 'Nama', quotationType === 'car' ? (selectedItem?.carData?.ownerName || 'TBA') : (selectedItem?.ownerName || selectedItem?.customerName || 'TBA'));
     currentY += 7;
-    row(currentY, 'Alamat', selectedCustomer?.address || 'TBA');
+    row(currentY, 'Alamat', quotationType === 'car' ? (selectedItem?.customerData?.address || selectedItem?.carData?.address || '-') : (selectedItem?.propertyData?.address || selectedItem?.customerData?.address || '-'));
     currentY += 7;
-    row(currentY, 'Perhitungan Premi', `${selectedCustomer.carData?.carBrand || ''} ${selectedCustomer.carData?.carModel || ''}`.trim());
+    row(currentY, 'Perhitungan Premi', quotationType === 'car' ? `${selectedItem?.carData?.carBrand || ''} ${selectedItem?.carData?.carModel || ''}`.trim() : `${selectedItem?.propertyData?.propertyType || ''}`.trim());
     currentY += 7;
-    row(currentY, 'No Polisi', selectedCustomer.carData?.plateNumber || 'TBA');
+    row(currentY, quotationType === 'car' ? 'No Polisi' : 'Kota', quotationType === 'car' ? (selectedItem?.carData?.plateNumber || 'TBA') : (selectedItem?.propertyData?.city || 'TBA'));
     currentY += 7;
     row(currentY, 'Harga TSI', `${fmtNum(Number(tsi) || 0)} (IDR)`);
     currentY += 12;
@@ -349,7 +475,15 @@ export default function CreateQuotationPage() {
       .filter((key) => coverages[key].enabled)
       .map((key) => {
         const c = coverages[key];
-        const rateText = c.freeInclude ? 'FREE INCLUDE' : `${c.percentage} %`;
+        let rateText = '';
+        if (c.freeInclude) {
+          rateText = 'FREE INCLUDE';
+        } else if (c.isFixedAmount) {
+          const fixedVal = Number(c.percentage);
+          rateText = isNaN(fixedVal) ? 'Rp 0' : fmt(fixedVal);
+        } else {
+          rateText = `${c.percentage} %`;
+        }
         return [coverageLabels[key], rateText];
       });
 
@@ -398,37 +532,37 @@ export default function CreateQuotationPage() {
     Object.keys(coverages).forEach((key) => {
       const c = coverages[key];
       if (!c.enabled) return;
-      if (c.freeInclude) return;
+      if (c.freeInclude) {
+        calcBody.push([
+          coverageLabels[key],
+          '-',
+          '-',
+          'FREE INCLUDE'
+        ]);
+        return;
+      }
 
-      const pct = Number(c.percentage) || 0;
-      const amount = roundIDR((tsiValue * pct) / 100);
-
-      const formattedBase = `Rp ${fmtShort(tsiValue)}`;
-
-      calcBody.push([
-        coverageLabels[key],
-        formattedBase,
-        `x ${pct} %`,
-        fmt(amount)
-      ]);
+      if (c.isFixedAmount) {
+        const fixedVal = Number(c.percentage);
+        const amt = isNaN(fixedVal) ? 0 : fixedVal;
+        calcBody.push([
+          coverageLabels[key],
+          '-',
+          '-',
+          fmt(amt)
+        ]);
+      } else {
+        const pct = Number(c.percentage) || 0;
+        const amount = roundIDR((tsiValue * pct) / 100);
+        const formattedBase = `Rp ${fmtShort(tsiValue)}`;
+        calcBody.push([
+          coverageLabels[key],
+          formattedBase,
+          `${pct} %`,
+          fmt(amount)
+        ]);
+      }
     });
-
-    if ((calculations.adminFee ?? 0) > 0) {
-      calcBody.push([
-        'Admin Fee',
-        'Rp 50.000',
-        '',
-        fmt(calculations.adminFee)
-      ]);
-    }
-    if ((calculations.stampDuty ?? 0) > 0) {
-      calcBody.push([
-        'Stamp Duty',
-        'Rp 10.000',
-        '',
-        fmt(calculations.stampDuty)
-      ]);
-    }
 
     calcBody.push([
       { content: 'Total Premi', styles: { fontStyle: 'bold' } },
@@ -528,45 +662,108 @@ export default function CreateQuotationPage() {
       margin: { left: marginX, right: marginX }
     });
 
-    doc.save(`Quotation_${quotationNumber}.pdf`);
+    if (save) {
+      doc.save(`Quotation_${quotationNumber}.pdf`);
+    }
+
+    return doc;
   };
 
-  const filteredCustomers = useMemo(() => {
-    const s = customerSearch.toLowerCase();
-    return customers.filter(c =>
-      c.name?.toLowerCase().includes(s) ||
-      c.phone?.toLowerCase().includes(s) ||
-      c.carData?.carBrand?.toLowerCase().includes(s) ||
-      c.carData?.plateNumber?.toLowerCase().includes(s)
-    );
-  }, [customers, customerSearch]);
+  useEffect(() => {
+    if (!openPreviewDialog) {
+      setQuotationPreviewUrl('');
+      return undefined;
+    }
+
+    const doc = generatePDF({ save: false });
+    setQuotationPreviewUrl(doc.output('datauristring'));
+
+    return undefined;
+  }, [openPreviewDialog]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const filteredList = useMemo(() => {
+    const s = selectSearch.toLowerCase();
+    if (quotationType === 'car') {
+      return cars.filter(c =>
+        !s ||
+        c.carData?.ownerName?.toLowerCase().includes(s) ||
+        c.carData?.carBrand?.toLowerCase().includes(s) ||
+        c.carData?.carModel?.toLowerCase().includes(s) ||
+        c.carData?.plateNumber?.toLowerCase().includes(s)
+      );
+    } else {
+      return properties.filter(p =>
+        !s ||
+        (p.ownerName || p.customerName || '').toLowerCase().includes(s) ||
+        p.propertyData?.propertyType?.toLowerCase().includes(s) ||
+        p.propertyData?.city?.toLowerCase().includes(s)
+      );
+    }
+  }, [quotationType, cars, properties, selectSearch]);
 
   const enabledKeys = Object.keys(coverages).filter(k => coverages[k].enabled);
+  const accentColor = quotationType === 'car' ? C.car : C.property;
+  const accentLight = quotationType === 'car' ? C.carLight : C.propertyLight;
+
+  const getSelectedLabel = () => {
+    if (!selectedItem) return '';
+    if (quotationType === 'car') {
+      return `${selectedItem.carData?.carBrand || ''} ${selectedItem.carData?.carModel || ''} - ${selectedItem.carData?.plateNumber || 'No Plate'}`;
+    }
+    return `${selectedItem.propertyData?.propertyType || 'Property'} - ${selectedItem.propertyData?.city || ''}`;
+  };
+
+  const getOwnerName = () => {
+    if (!selectedItem) return '';
+    if (quotationType === 'car') return selectedItem.carData?.ownerName || '';
+    return selectedItem.ownerName || selectedItem.customerName || '';
+  };
+
+  const QuotationPreviewContent = () => {
+    if (quotationPreviewUrl) {
+      return (
+        <Box
+          component="iframe"
+          title="Quotation PDF Preview"
+          src={quotationPreviewUrl}
+          sx={{ width: '100%', height: isMobile ? 'calc(100vh - 160px)' : '70vh', border: 0, display: 'block', bgcolor: '#fff' }}
+        />
+      );
+    }
+
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: isMobile ? 'calc(100vh - 160px)' : '70vh', bgcolor: '#E5E7EB' }}>
+        <Typography sx={{ p: 3, color: C.textSub }}>Menyiapkan preview...</Typography>
+      </Box>
+    );
+  };
 
   return (
-    <Box sx={{ bgcolor: '#F4F5F7', minHeight: '100vh', py: 4 }}>
+    <Box ref={pageTopRef} sx={{ bgcolor: '#F4F5F7', minHeight: '100vh', py: 4 }}>
       <Container maxWidth="sm">
 
         {/* Title */}
         <Box mb={3}>
-          <Button
-            startIcon={<Icon icon="mdi:arrow-left" width={16} />}
-            onClick={() => navigate(-1)}
-            sx={{ textTransform: 'none', fontSize: 13, fontWeight: 500, color: '#606770', mb: 1.5, pl: 0, '&:hover': { bgcolor: 'transparent', color: '#1C1E21' } }}
-          >
-            Back
-          </Button>
           <Typography variant="h5" fontWeight={700} align="center" sx={{ color: '#1C1E21' }}>
             New Quotation
           </Typography>
           <Typography fontSize={13} align="center" sx={{ color: '#606770', mt: 0.5 }}>
             Generate an insurance quotation PDF for your customer
           </Typography>
+          {renewalId && (
+            <Box sx={{ mt: 1.5, textAlign: 'center' }}>
+              <Chip
+                icon={<Icon icon="mdi:arrow-u-right-top" width={16} />}
+                label={`Quotation untuk Renewal: ${renewalId}`}
+                sx={{ bgcolor: '#EBF4FF', color: '#1971C2', fontWeight: 700 }}
+              />
+            </Box>
+          )}
         </Box>
 
         <WizardStepper active={activeStep} />
 
-        {/* ── STEP 1 ── */}
+        {/* STEP 1 */}
         {activeStep === 0 && (
           <Fade in key="s1">
             <Box>
@@ -596,48 +793,38 @@ export default function CreateQuotationPage() {
               </Paper>
 
               <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
-                <Section title="Customer">
-                  <Field label="Select Customer" required>
+                <Section title="Pilih Kendaraan">
+                  <Field label="Kendaraan" required>
                     <Box
-                      onClick={() => setOpenCustomerDialog(true)}
+                      onClick={() => setOpenSelectDialog(true)}
                       sx={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         px: 1.5, py: '9px',
-                        border: `1px solid ${selectedCustomer ? '#1971C2' : '#E4E6EA'}`,
+                        border: `1px solid ${selectedItem ? accentColor : '#E4E6EA'}`,
                         borderRadius: '8px',
-                        bgcolor: selectedCustomer ? '#EBF4FF' : '#FFFFFF',
+                        bgcolor: selectedItem ? accentLight : '#FFFFFF',
                         cursor: 'pointer', transition: 'all 0.15s',
-                        '&:hover': { borderColor: selectedCustomer ? '#1971C2' : '#B0B5BC' },
+                        '&:hover': { borderColor: selectedItem ? accentColor : '#B0B5BC' },
                       }}
                     >
                       <Box display="flex" alignItems="center" gap={1.25}>
-                        <Icon icon="mdi:account-search" width={18} color={selectedCustomer ? '#1971C2' : '#9EA8B3'} />
-                        <Typography fontSize={14} sx={{ color: selectedCustomer ? '#1C1E21' : '#9EA8B3' }}>
-                          {selectedCustomer ? `${selectedCustomer.name} — ${selectedCustomer.carData?.plateNumber || 'No Plate'}` : 'Search and select customer...'}
+                        <Icon icon="mdi:car-search" width={18} color={selectedItem ? accentColor : '#9EA8B3'} />
+                        <Typography fontSize={14} sx={{ color: selectedItem ? '#1C1E21' : '#9EA8B3' }}>
+                          {selectedItem ? getSelectedLabel() : 'Cari dan pilih kendaraan...'}
                         </Typography>
                       </Box>
-                      {selectedCustomer
-                        ? <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSelectedCustomer(null); }} sx={{ p: 0.25 }}><Icon icon="mdi:close" width={15} color="#606770" /></IconButton>
+                      {selectedItem
+                        ? <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSelectedItem(null); }} sx={{ p: 0.25 }}><Icon icon="mdi:close" width={15} color="#606770" /></IconButton>
                         : <Icon icon="mdi:chevron-down" width={18} color="#9EA8B3" />
                       }
                     </Box>
                   </Field>
 
-                  {selectedCustomer && (
-                    <Box sx={{ mt: -1.5, mb: 0.5, p: 2, borderRadius: '8px', bgcolor: '#F8F9FA', border: '1px solid #E4E6EA' }}>
-                      <Grid container spacing={1.5}>
-                        {[
-                          { label: 'Phone', value: selectedCustomer.phone },
-                          { label: 'Vehicle', value: `${selectedCustomer.carData?.carBrand || ''} ${selectedCustomer.carData?.carModel || ''}`.trim() },
-                          { label: 'Plate', value: selectedCustomer.carData?.plateNumber },
-                          { label: 'Address', value: selectedCustomer.address },
-                        ].map(({ label, value }) => (
-                          <Grid item xs={6} key={label}>
-                            <Typography fontSize={11} sx={{ color: '#9EA8B3', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
-                            <Typography fontSize={13} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || '—'}</Typography>
-                          </Grid>
-                        ))}
-                      </Grid>
+                  {selectedItem && (
+                    <Box sx={{ mt: -1.5, mb: 0.5, px: 2, py: 1.5, borderRadius: '8px', bgcolor: '#F8F9FA', border: '1px solid #E4E6EA', display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Icon icon="mdi:account" width={15} color="#9EA8B3" />
+                      <Typography fontSize={13} sx={{ color: '#606770' }}>Pemilik:</Typography>
+                      <Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>{selectedItem.carData?.ownerName || '-'}</Typography>
                     </Box>
                   )}
                 </Section>
@@ -646,20 +833,15 @@ export default function CreateQuotationPage() {
 
                 <Section title="Total Sum Insured (TSI)">
                   <Field label="Amount (IDR)" required hint="Nilai pertanggungan kendaraan">
-                    <TextField fullWidth size="small" type="number" placeholder="e.g., 400000000"
-                      value={tsi} onChange={(e) => setTsi(e.target.value)}
+                    <TextField fullWidth size="small" placeholder="e.g., 400.000.000"
+                      value={formatTsiInput(tsi)} onChange={handleTsiChange}
+                      inputProps={{ inputMode: 'numeric' }}
                       InputProps={{
                         startAdornment: <InputAdornment position="start"><Typography fontSize={13} fontWeight={700} sx={{ color: '#606770' }}>Rp</Typography></InputAdornment>,
                       }}
                       sx={inputStyle}
                     />
                   </Field>
-                  {tsi && Number(tsi) > 0 && (
-                    <Box sx={{ p: 2, borderRadius: '8px', bgcolor: '#EBF4FF', border: `1px solid ${alpha('#1971C2', 0.2)}` }}>
-                      <Typography fontSize={11} sx={{ color: '#1971C2', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.3 }}>TSI Amount</Typography>
-                      <Typography fontSize={20} fontWeight={700} sx={{ color: '#1971C2' }}>{fmt(Number(tsi))}</Typography>
-                    </Box>
-                  )}
                 </Section>
               </Paper>
 
@@ -672,10 +854,32 @@ export default function CreateQuotationPage() {
           </Fade>
         )}
 
-        {/* ── STEP 2 ── */}
+        {/* STEP 2 */}
         {activeStep === 1 && (
           <Fade in key="s2">
             <Box>
+              {quotationType === 'car' && (
+                <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
+                  <Section title="Informasi Asuransi Utama">
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                      <Box flex={1}>
+                        <Field label="Provider Asuransi" required hint="Contoh: Sinar Mas, ACA">
+                          <TextField fullWidth size="small" placeholder="Ketik nama asuransi..." value={insuranceProvider} onChange={(e) => setInsuranceProvider(e.target.value)} sx={inputStyle} />
+                        </Field>
+                      </Box>
+                      <Box flex={1}>
+                        <Field label="Jenis Asuransi" required hint="Pilih tipe perlindungan">
+                          <TextField select fullWidth size="small" value={insuranceType} onChange={e => setInsuranceType(e.target.value)} sx={inputStyle} SelectProps={{ native: true }}>
+                            <option value="All Risk">All Risk (Comprehensive)</option>
+                            <option value="TLO">Total Loss Only (TLO)</option>
+                          </TextField>
+                        </Field>
+                      </Box>
+                    </Stack>
+                  </Section>
+                </Paper>
+              )}
+
               <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
                 <Section title="Coverage Options">
                   <Stack spacing={1.25}>
@@ -725,13 +929,21 @@ export default function CreateQuotationPage() {
                                   sx={{ m: 0 }}
                                 />
                                 <Box display="flex" alignItems="center" gap={1}>
-                                  <TextField size="small" type="number" value={c.percentage} disabled={c.freeInclude}
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={c.percentage === '' ? '' : c.percentage}
+                                    disabled={c.freeInclude}
                                     onChange={(e) => setPct(key, e.target.value)}
-                                    inputProps={{ step: 0.01, min: 0, max: 100 }}
-                                    InputProps={{ endAdornment: <InputAdornment position="end"><Typography fontSize={12} sx={{ color: '#606770' }}>%</Typography></InputAdornment> }}
-                                    sx={{ width: 100, '& .MuiOutlinedInput-root': { borderRadius: '6px', fontSize: 13, bgcolor: c.freeInclude ? '#F0F0F0' : '#FFFFFF', '& fieldset': { borderColor: '#E4E6EA' }, '&.Mui-focused fieldset': { borderColor: '#1971C2' } } }}
+                                    placeholder={c.isFixedAmount ? "Masukkan nominal" : "0"}
+                                    inputProps={c.isFixedAmount ? { min: 0, step: 1000 } : { step: 0.01, min: 0, max: 100 }}
+                                    InputProps={{
+                                      endAdornment: !c.isFixedAmount && <InputAdornment position="end"><Typography fontSize={12} sx={{ color: '#606770' }}>%</Typography></InputAdornment>,
+                                      startAdornment: c.isFixedAmount && <InputAdornment position="start"><Typography fontSize={12} sx={{ color: '#606770' }}>Rp</Typography></InputAdornment>
+                                    }}
+                                    sx={{ width: c.isFixedAmount ? 180 : 100, '& .MuiOutlinedInput-root': { borderRadius: '6px', fontSize: 13, bgcolor: c.freeInclude ? '#F0F0F0' : '#FFFFFF', '& fieldset': { borderColor: '#E4E6EA' }, '&.Mui-focused fieldset': { borderColor: '#1971C2' } } }}
                                   />
-                                  <Typography fontSize={12} sx={{ color: '#606770' }}>dari TSI</Typography>
+                                  <Typography fontSize={12} sx={{ color: '#606770' }}>{c.isFixedAmount ? '' : 'dari TSI'}</Typography>
                                 </Box>
                               </Stack>
                             </Box>
@@ -766,8 +978,6 @@ export default function CreateQuotationPage() {
                   <Divider sx={{ borderColor: '#E4E6EA', my: 1.5 }} />
                   <Stack spacing={0.75} mb={2}>
                     <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Subtotal</Typography><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>{fmt(calculations.subtotal)}</Typography></Box>
-                    <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Admin Fee</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(calculations.adminFee)}</Typography></Box>
-                    <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Stamp Duty</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(calculations.stampDuty)}</Typography></Box>
                   </Stack>
                   <Box sx={{ p: 2, borderRadius: '8px', bgcolor: '#EBF4FF', border: `1px solid ${alpha('#1971C2', 0.2)}` }}>
                     <Box display="flex" justifyContent="space-between" alignItems="baseline">
@@ -792,7 +1002,7 @@ export default function CreateQuotationPage() {
           </Fade>
         )}
 
-        {/* ── STEP 3 ── */}
+        {/* STEP 3 */}
         {activeStep === 2 && (
           <Fade in key="s3">
             <Box>
@@ -807,24 +1017,54 @@ export default function CreateQuotationPage() {
                 </Section>
               </Paper>
 
-              {/* Customer */}
+              {/* Customer - Beautiful Bill To Card */}
               <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
-                <Section title="Customer Details">
-                  <Grid container spacing={2}>
-                    {[
-                      { label: 'Name', value: selectedCustomer?.name },
-                      { label: 'Phone', value: selectedCustomer?.phone },
-                      { label: 'Address', value: selectedCustomer?.address },
-                      { label: 'Plate', value: selectedCustomer?.carData?.plateNumber },
-                      { label: 'Vehicle', value: `${selectedCustomer?.carData?.carBrand || ''} ${selectedCustomer?.carData?.carModel || ''}`.trim() },
-                      { label: 'TSI', value: fmt(Number(tsi)) },
-                    ].map(({ label, value }) => (
-                      <Grid item xs={6} key={label}>
-                        <Typography fontSize={11} sx={{ color: '#9EA8B3', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.3 }}>{label}</Typography>
-                        <Typography fontSize={13.5} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || '—'}</Typography>
-                      </Grid>
+                <Section title="Bill To">
+                  {/* Owner header */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
+                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#EBF4FF', color: '#1971C2', fontSize: 16, fontWeight: 700 }}>
+                      {((quotationType === 'car' ? selectedItem?.carData?.ownerName : (selectedItem?.ownerName || selectedItem?.customerName)) || '?').charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography fontSize={15} fontWeight={700} sx={{ color: '#1C1E21', lineHeight: 1.3 }}>
+                        {quotationType === 'car' ? (selectedItem?.carData?.ownerName || '-') : (selectedItem?.ownerName || selectedItem?.customerName || '-')}
+                      </Typography>
+                      <Typography fontSize={12} sx={{ color: '#606770', mt: 0.25, lineHeight: 1.3, overflowWrap: 'anywhere' }}>
+                        {quotationType === 'car' 
+                          ? (selectedItem?.customerData?.address || selectedItem?.carData?.address || '-') 
+                          : (selectedItem?.propertyData?.address || selectedItem?.customerData?.address || '-')}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Detail rows list strip */}
+                  <Box sx={{ borderRadius: '10px', border: '1px solid #E4E6EA', overflow: 'hidden' }}>
+                    {(quotationType === 'car' ? [
+                      { icon: 'mdi:car', label: 'Kendaraan', value: `${selectedItem?.carData?.carBrand || ''} ${selectedItem?.carData?.carModel || ''}`.trim() },
+                      { icon: 'mdi:card-text', label: 'No. Plat', value: selectedItem?.carData?.plateNumber },
+                      { icon: 'mdi:barcode', label: 'No. Rangka', value: selectedItem?.carData?.chassisNumber },
+                      { icon: 'mdi:engine', label: 'No. Mesin', value: selectedItem?.carData?.engineNumber || '-' },
+                      { icon: 'mdi:cash', label: 'Harga TSI', value: fmt(Number(tsi)) },
+                    ] : [
+                      { icon: 'mdi:home', label: 'Tipe Properti', value: selectedItem?.propertyData?.propertyType },
+                      { icon: 'mdi:city', label: 'Kota', value: selectedItem?.propertyData?.city },
+                      { icon: 'mdi:map-marker', label: 'Alamat', value: selectedItem?.propertyData?.address },
+                      { icon: 'mdi:cash', label: 'Harga TSI', value: fmt(Number(tsi)) },
+                    ]).map(({ icon, label, value }, idx, arr) => (
+                      <Box key={label} sx={{
+                        display: 'flex', alignItems: 'center', gap: 1.5,
+                        px: 2, py: 1.5,
+                        bgcolor: idx % 2 === 0 ? '#FAFBFC' : '#FFFFFF',
+                        borderBottom: idx < arr.length - 1 ? '1px solid #E4E6EA' : 'none',
+                      }}>
+                        <Icon icon={icon} width={16} color="#9EA8B3" style={{ flexShrink: 0 }} />
+                        <Typography fontSize={12.5} sx={{ color: '#606770', minWidth: 90, flexShrink: 0 }}>{label}</Typography>
+                        <Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21', flex: 1, overflowWrap: 'anywhere', textAlign: 'right' }}>
+                          {value || '-'}
+                        </Typography>
+                      </Box>
                     ))}
-                  </Grid>
+                  </Box>
                 </Section>
               </Paper>
 
@@ -840,7 +1080,7 @@ export default function CreateQuotationPage() {
                             <Icon icon="mdi:check-circle-outline" width={15} color="#1971C2" />
                             <Typography fontSize={13} sx={{ color: '#606770' }}>{coverageLabels[key]}</Typography>
                           </Box>
-                          <Chip label={c.freeInclude ? 'FREE' : `${c.percentage}%`} size="small"
+                          <Chip label={c.freeInclude ? 'FREE' : (c.isFixedAmount ? (c.percentage === '' ? 'Rp 0' : fmt(Number(c.percentage))) : `${c.percentage}%`)} size="small"
                             sx={{ height: 20, fontSize: 11, fontWeight: 700, bgcolor: c.freeInclude ? '#EBF8EF' : '#EBF4FF', color: c.freeInclude ? '#1E8840' : '#1971C2' }} />
                         </Box>
                       );
@@ -848,14 +1088,14 @@ export default function CreateQuotationPage() {
                   </Stack>
                   <Divider sx={{ borderColor: '#E4E6EA', my: 2 }} />
                   <Stack spacing={0.75} mb={2}>
-                    {enabledKeys.filter(k => !coverages[k].freeInclude).map(key => (
+                    {enabledKeys.map(key => (
                       <Box key={key} display="flex" justifyContent="space-between">
                         <Typography fontSize={13} sx={{ color: '#606770' }}>{coverageLabels[key]}</Typography>
-                        <Typography fontSize={13} fontWeight={500} sx={{ color: '#1C1E21' }}>{fmt(calculations.itemAmounts?.[key] ?? 0)}</Typography>
+                        <Typography fontSize={13} fontWeight={500} sx={{ color: coverages[key].freeInclude ? '#1E8840' : '#1C1E21' }}>
+                          {coverages[key].freeInclude ? 'FREE INCLUDE' : fmt(calculations.itemAmounts?.[key] ?? 0)}
+                        </Typography>
                       </Box>
                     ))}
-                    <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Admin Fee</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(calculations.adminFee)}</Typography></Box>
-                    <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Stamp Duty</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(calculations.stampDuty)}</Typography></Box>
                   </Stack>
                   <Box sx={{ p: 2.5, borderRadius: '8px', bgcolor: '#EBF4FF', border: `1px solid ${alpha('#1971C2', 0.2)}`, mb: 2 }}>
                     <Box display="flex" justifyContent="space-between" alignItems="baseline">
@@ -892,49 +1132,58 @@ export default function CreateQuotationPage() {
 
       </Container>
 
-      {/* Customer Dialog */}
-      <Dialog open={openCustomerDialog} onClose={() => { setOpenCustomerDialog(false); setCustomerSearch(''); }}
+      {/* Selection Dialog */}
+      <Dialog open={openSelectDialog} onClose={() => { setOpenSelectDialog(false); setSelectSearch(''); }}
         maxWidth="xs" fullWidth fullScreen={isMobile}
         PaperProps={{ sx: { borderRadius: isMobile ? 0 : '12px', m: 2 } }}>
         <Box sx={{ p: 2.5 }}>
           <Box display="flex" alignItems="center" mb={2}>
-            <IconButton size="small" onClick={() => { setOpenCustomerDialog(false); setCustomerSearch(''); }} sx={{ mr: 1 }}>
+            <IconButton size="small" onClick={() => { setOpenSelectDialog(false); setSelectSearch(''); }} sx={{ mr: 1 }}>
               <Icon icon="mdi:arrow-left" width={20} color="#606770" />
             </IconButton>
-            <Typography fontSize={16} fontWeight={700} sx={{ color: '#1C1E21' }}>Select Customer</Typography>
+            <Typography fontSize={16} fontWeight={700} sx={{ color: '#1C1E21' }}>Pilih {quotationType === 'car' ? 'Kendaraan' : 'Properti'}</Typography>
           </Box>
-          <TextField fullWidth autoFocus size="small" placeholder="Search by name, phone, or plate..."
-            value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)}
+          <TextField fullWidth autoFocus size="small" placeholder={quotationType === 'car' ? 'Cari pemilik, merek, plat...' : 'Cari pemilik, tipe, kota...'}
+            value={selectSearch} onChange={(e) => setSelectSearch(e.target.value)}
             InputProps={{ startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" width={18} color="#9EA8B3" /></InputAdornment> }}
             sx={{ mb: 2, ...inputStyle }} />
           <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
-            {filteredCustomers.length === 0 ? (
+            {filteredList.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 5 }}>
-                <Icon icon="mdi:account-search" width={44} color="#C8CDD4" />
-                <Typography fontSize={14} sx={{ color: '#606770', mt: 1.5 }}>No customers found</Typography>
-                {customerSearch && <Button onClick={() => setCustomerSearch('')} sx={{ mt: 1, textTransform: 'none', fontSize: 12, color: '#1971C2' }}>Clear search</Button>}
+                <Icon icon={quotationType === 'car' ? "mdi:car-search" : "mdi:home-search"} width={44} color="#C8CDD4" />
+                <Typography fontSize={14} sx={{ color: '#606770', mt: 1.5 }}>Tidak ada {quotationType === 'car' ? 'kendaraan' : 'properti'} ditemukan</Typography>
+                {selectSearch && <Button onClick={() => setSelectSearch('')} sx={{ mt: 1, textTransform: 'none', fontSize: 12, color: '#1971C2' }}>Clear search</Button>}
               </Box>
             ) : (
               <Stack spacing={1}>
-                {filteredCustomers.map((customer) => {
-                  const sel = selectedCustomer?.id === customer.id;
+                {filteredList.map((item) => {
+                  const sel = selectedItem?.id === item.id;
+                  const title = quotationType === 'car'
+                    ? `${item.carData?.carBrand || ''} ${item.carData?.carModel || ''}`.trim()
+                    : item.propertyData?.propertyType || 'Property';
+                  const sub1 = quotationType === 'car'
+                    ? (item.carData?.ownerName || '-')
+                    : (item.ownerName || item.customerName || '-');
+                  const sub2 = quotationType === 'car'
+                    ? (item.carData?.plateNumber || 'No plate')
+                    : (item.propertyData?.city || '-');
                   return (
-                    <Box key={customer.id} onClick={() => { setSelectedCustomer(customer); setOpenCustomerDialog(false); setCustomerSearch(''); }}
+                    <Box key={item.id} onClick={() => { setSelectedItem(item); setOpenSelectDialog(false); setSelectSearch(''); }}
                       sx={{
                         display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: '8px', cursor: 'pointer',
-                        border: `1px solid ${sel ? '#1971C2' : '#E4E6EA'}`,
-                        bgcolor: sel ? '#EBF4FF' : '#FFFFFF', transition: 'all 0.15s',
-                        '&:hover': { borderColor: '#1971C2', bgcolor: sel ? '#EBF4FF' : '#FAFBFC' },
+                        border: `1px solid ${sel ? accentColor : '#E4E6EA'}`,
+                        bgcolor: sel ? accentLight : '#FFFFFF', transition: 'all 0.15s',
+                        '&:hover': { borderColor: accentColor, bgcolor: sel ? accentLight : '#FAFBFC' },
                       }}>
-                      <Avatar sx={{ width: 38, height: 38, bgcolor: '#1971C2', fontSize: 15, fontWeight: 700 }}>
-                        {customer.name?.charAt(0)?.toUpperCase() || 'C'}
+                      <Avatar sx={{ width: 38, height: 38, bgcolor: accentColor, fontSize: 15, fontWeight: 700 }}>
+                        <Icon icon={quotationType === 'car' ? 'mdi:car' : 'mdi:home'} width={20} />
                       </Avatar>
                       <Box flex={1} minWidth={0}>
-                        <Typography fontSize={13.5} fontWeight={600} sx={{ color: '#1C1E21' }}>{customer.name}</Typography>
-                        <Typography fontSize={12} sx={{ color: '#606770' }}>{customer.phone || '—'}</Typography>
-                        <Typography fontSize={12} sx={{ color: '#9EA8B3' }}>{customer.carData?.carBrand || 'No car'} · {customer.carData?.plateNumber || 'No plate'}</Typography>
+                        <Typography fontSize={13.5} fontWeight={600} sx={{ color: '#1C1E21' }}>{title}</Typography>
+                        <Typography fontSize={12} sx={{ color: '#606770' }}>{sub1}</Typography>
+                        <Typography fontSize={12} sx={{ color: '#9EA8B3' }}>{sub2}</Typography>
                       </Box>
-                      {sel && <Icon icon="mdi:check-circle" width={18} color="#1971C2" />}
+                      {sel && <Icon icon="mdi:check-circle" width={18} color={accentColor} />}
                     </Box>
                   );
                 })}
@@ -946,39 +1195,42 @@ export default function CreateQuotationPage() {
 
       {/* Preview Dialog */}
       <Dialog open={openPreviewDialog} onClose={() => setOpenPreviewDialog(false)}
-        maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '12px', m: 2 } }}>
-        <DialogTitle sx={{ pb: 1 }}>
-          <Box display="flex" alignItems="center" gap={1}>
+        maxWidth="lg" fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: isMobile ? 0 : '12px' } }}>
+        <DialogTitle sx={{ p: 2.5, borderBottom: '1px solid #E4E6EA' }}>
+          <Box display="flex" alignItems="center" gap={1.5}>
             <Icon icon="mdi:file-pdf-box" width={22} color="#D32F2F" />
             <Typography fontSize={16} fontWeight={700} sx={{ color: '#1C1E21' }}>Preview Quotation</Typography>
           </Box>
         </DialogTitle>
-        <DialogContent>
-          <Box sx={{ p: 2.5, borderRadius: '8px', bgcolor: '#F8F9FA', border: '1px solid #E4E6EA' }}>
+        <DialogContent sx={{ p: 3, bgcolor: '#F4F5F7' }}>
+          <Box sx={{ overflow: 'auto', maxHeight: '70vh', display: 'flex', justifyContent: 'center', bgcolor: '#fff', borderRadius: '8px' }}>
+            <QuotationPreviewContent />
+          </Box>
+          <Box sx={{ display: 'none', p: 2.5, borderRadius: '8px', bgcolor: '#F8F9FA', border: '1px solid #E4E6EA' }}>
             <Box textAlign="center" mb={2}>
               <Typography fontSize={14} fontWeight={700} sx={{ color: '#1C1E21' }}>{companyName}</Typography>
               <Typography fontSize={12} sx={{ color: '#606770' }}>{companySubtitle} · {companyCity}</Typography>
             </Box>
             <Divider sx={{ borderColor: '#E4E6EA', my: 1.5 }} />
             <Stack spacing={0.75}>
-              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Customer</Typography><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>{selectedCustomer?.name}</Typography></Box>
-              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Vehicle</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{selectedCustomer?.carData?.plateNumber}</Typography></Box>
+              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Pemilik</Typography><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>{getOwnerName() || '-'}</Typography></Box>
+              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>{quotationType === 'car' ? 'Kendaraan' : 'Properti'}</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{getSelectedLabel() || '-'}</Typography></Box>
               <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>TSI</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(Number(tsi))}</Typography></Box>
               <Divider sx={{ borderColor: '#E4E6EA', my: 0.5 }} />
               <Box display="flex" justifyContent="space-between"><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>Total Premium</Typography><Typography fontSize={15} fontWeight={700} sx={{ color: '#D32F2F' }}>{fmt(calculations.totalPremium)}</Typography></Box>
             </Stack>
           </Box>
-          <Typography fontSize={12} sx={{ color: '#9EA8B3', mt: 2, display: 'block' }}>
+          <Typography fontSize={12} sx={{ color: '#9EA8B3', mt: 2, display: 'none' }}>
             PDF will include full coverage breakdown and calculation.
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ p: 2.5, pt: 0, gap: 1 }}>
+        <DialogActions sx={{ p: 2.5, borderTop: '1px solid #E4E6EA', gap: 1 }}>
           <Button onClick={() => setOpenPreviewDialog(false)} variant="outlined"
-            sx={{ flex: 1, borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: '#E4E6EA', color: '#606770' }}>
+            sx={{ borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: '#E4E6EA', color: '#606770', px: 3 }}>
             Cancel
           </Button>
           <Button onClick={handleConfirmDownload} variant="contained" startIcon={<Icon icon="mdi:download" width={15} />}
-            sx={{ flex: 1, bgcolor: '#D32F2F', borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, boxShadow: 'none', '&:hover': { bgcolor: '#B71C1C' } }}>
+            sx={{ bgcolor: '#D32F2F', borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, px: 3, boxShadow: 'none', '&:hover': { bgcolor: '#B71C1C' } }}>
             Download PDF
           </Button>
         </DialogActions>

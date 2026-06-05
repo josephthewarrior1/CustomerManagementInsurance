@@ -1,0 +1,1253 @@
+{
+  "company_profiles": {
+    "tester123": {
+      "companyCity": "Jakarta",
+      "companyLogo": {
+        "format": "jpg",
+        "height": 400,
+        "publicId": "[REDACTED_publicId]",
+        "uploadedAt": 1770438885559,
+        "url": "[REDACTED_url]",
+        "width": 400
+      },
+      "companyName": "[REDACTED_companyName]",
+      "companySubtitle": "Solusi Teknologi Terdepan",
+      "createdAt": 1770106946486,
+      "updatedAt": 1770438885559
+    }
+  },
+  "customer_counters": {
+    "kuda123": 10,
+    "tester123": 14
+  },
+  "customer_data": {
+    "kuda123": {
+      "kuda123-1": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "Honda",
+          "carModel": "HR-V",
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "[REDACTED_URL]",
+          "front": "[REDACTED_URL]",
+          "leftSide": "[REDACTED_URL]",
+          "rightSide": "[REDACTED_URL]"
+        },
+        "createdAt": 1767063953468,
+        "email": "[REDACTED_email]",
+        "name": "[REDACTED_name]",
+        "notes": "Perpanjangan asuransi mobil tahunan",
+        "phone": "[REDACTED_phone]",
+        "updatedAt": 1767512587238
+      },
+      "kuda123-10": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "asdasda",
+          "carModel": "sa",
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "",
+          "front": "",
+          "leftSide": "",
+          "rightSide": ""
+        },
+        "createdAt": 1767510050773,
+        "email": "",
+        "name": "[REDACTED_name]",
+        "notes": "",
+        "phone": "[REDACTED_phone]",
+        "updatedAt": 1767510050773
+      },
+      "kuda123-6": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "asdasda",
+          "carModel": "assdasd",
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "",
+          "front": "",
+          "leftSide": "",
+          "rightSide": ""
+        },
+        "createdAt": 1767415381753,
+        "email": "",
+        "name": "[REDACTED_name]",
+        "notes": "",
+        "phone": "[REDACTED_phone]",
+        "updatedAt": 1767415381753
+      },
+      "kuda123-9": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "BMW",
+          "carModel": "civic",
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "[REDACTED_URL]",
+          "front": "[REDACTED_URL]",
+          "leftSide": "[REDACTED_URL]",
+          "rightSide": "[REDACTED_URL]"
+        },
+        "createdAt": 1767498249080,
+        "email": "",
+        "name": "[REDACTED_name]",
+        "notes": "",
+        "phone": "[REDACTED_phone]",
+        "updatedAt": 1767498258426
+      }
+    },
+    "tester123": {
+      "tester123-1": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "Honda",
+          "carModel": "HR-V",
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "",
+          "front": "",
+          "leftSide": "[REDACTED_URL]",
+          "rightSide": "[REDACTED_URL]"
+        },
+        "createdAt": 1767332294021,
+        "documentPhotos": {
+          "ktp": "",
+          "sim": "",
+          "stnk": "[REDACTED_URL]"
+        },
+        "email": "[REDACTED_email]",
+        "name": "[REDACTED_name]",
+        "notes": "Perpanjangan asuransi mobil tahunan",
+        "phone": "[REDACTED_phone]",
+        "updatedAt": 1770873730118
+      },
+      "tester123-10": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "lexus",
+          "carModel": "civic",
+          "carPrice": 200000000,
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "",
+          "front": "",
+          "leftSide": "",
+          "rightSide": ""
+        },
+        "createdAt": 1769994733503,
+        "documentPhotos": {
+          "ktp": "",
+          "sim": "",
+          "stnk": ""
+        },
+        "documentStatus": {
+          "hasKTP": false,
+          "hasSIM": false,
+          "hasSTNK": false
+        },
+        "email": "",
+        "name": "[REDACTED_name]",
+        "notes": "",
+        "phone": "[REDACTED_phone]",
+        "status": "Cancelled",
+        "updatedAt": 1771468764004
+      },
+      "tester123-12": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "Toyota",
+          "carModel": "Avanza",
+          "carPrice": 0,
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "",
+          "front": "",
+          "leftSide": "",
+          "rightSide": ""
+        },
+        "createdAt": 1771464645643,
+        "documentPhotos": {
+          "ktp": "",
+          "sim": "",
+          "stnk": ""
+        },
+        "documentStatus": {
+          "hasKTP": false,
+          "hasSIM": false,
+          "hasSTNK": false
+        },
+        "email": "",
+        "name": "[REDACTED_name]",
+        "notes": "",
+        "phone": "[REDACTED_phone]",
+        "status": "Cancelled",
+        "updatedAt": 1771468761915
+      },
+      "tester123-13": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "BMW",
+          "carModel": "X300",
+          "carPrice": 0,
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "[REDACTED_URL]",
+          "front": "[REDACTED_URL]",
+          "leftSide": "[REDACTED_URL]",
+          "rightSide": "[REDACTED_URL]"
+        },
+        "createdAt": 1771553170871,
+        "documentPhotos": {
+          "ktp": "",
+          "sim": "",
+          "stnk": ""
+        },
+        "documentStatus": {
+          "hasKTP": false,
+          "hasSIM": false,
+          "hasSTNK": false
+        },
+        "email": "",
+        "name": "[REDACTED_name]",
+        "notes": "",
+        "phone": "[REDACTED_phone]",
+        "updatedAt": 1771553213374
+      },
+      "tester123-14": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "BMW",
+          "carModel": "Avanza",
+          "carPrice": 250000,
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "",
+          "front": "",
+          "leftSide": "",
+          "rightSide": ""
+        },
+        "createdAt": 1772770035107,
+        "documentPhotos": {
+          "ktp": "",
+          "sim": "",
+          "stnk": ""
+        },
+        "documentStatus": {
+          "hasKTP": false,
+          "hasSIM": false,
+          "hasSTNK": false
+        },
+        "email": "",
+        "name": "[REDACTED_name]",
+        "notes": "",
+        "phone": "[REDACTED_phone]",
+        "updatedAt": 1772776350238
+      },
+      "tester123-3": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "Honda",
+          "carModel": "HR-V",
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "",
+          "front": "",
+          "leftSide": "[REDACTED_URL]",
+          "rightSide": "[REDACTED_URL]"
+        },
+        "createdAt": 1769219289779,
+        "email": "",
+        "name": "[REDACTED_name]",
+        "notes": "Customer VIP",
+        "phone": "[REDACTED_phone]",
+        "updatedAt": 1769219863649
+      },
+      "tester123-4": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "lexus",
+          "carModel": "civic",
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "",
+          "front": "",
+          "leftSide": "[REDACTED_URL]",
+          "rightSide": ""
+        },
+        "createdAt": 1769220581459,
+        "email": "",
+        "name": "[REDACTED_name]",
+        "notes": "",
+        "phone": "[REDACTED_phone]",
+        "updatedAt": 1769223155411
+      },
+      "tester123-5": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "BMW",
+          "carModel": "lexus",
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "",
+          "front": "",
+          "leftSide": "[REDACTED_URL]",
+          "rightSide": "[REDACTED_URL]"
+        },
+        "createdAt": 1769223460288,
+        "email": "",
+        "name": "[REDACTED_name]",
+        "notes": "sdfs",
+        "phone": "[REDACTED_phone]",
+        "updatedAt": 1769223468538
+      },
+      "tester123-6": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "Toyota",
+          "carModel": "Avanza",
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "[REDACTED_URL]",
+          "front": "[REDACTED_URL]",
+          "leftSide": "[REDACTED_URL]",
+          "rightSide": "[REDACTED_URL]"
+        },
+        "createdAt": 1769401674011,
+        "email": "",
+        "name": "[REDACTED_name]",
+        "notes": "",
+        "phone": "[REDACTED_phone]",
+        "updatedAt": 1769401681841
+      },
+      "tester123-7": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "BMW",
+          "carModel": "civic",
+          "carPrice": 150000000,
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "[REDACTED_URL]",
+          "front": "[REDACTED_URL]",
+          "leftSide": "[REDACTED_URL]",
+          "rightSide": "[REDACTED_URL]"
+        },
+        "createdAt": 1769572234153,
+        "documentPhotos": {
+          "ktp": "",
+          "sim": "",
+          "stnk": ""
+        },
+        "documentStatus": {
+          "hasKTP": true,
+          "hasSIM": true,
+          "hasSTNK": true
+        },
+        "email": "",
+        "name": "[REDACTED_name]",
+        "notes": "",
+        "phone": "[REDACTED_phone]",
+        "updatedAt": 1769572244632
+      },
+      "tester123-8": {
+        "address": "[REDACTED_address]",
+        "carData": {
+          "carBrand": "lexus",
+          "carModel": "Avanza",
+          "carPrice": 200000000,
+          "chassisNumber": "[REDACTED_chassisNumber]",
+          "dueDate": "[REDACTED_PHONE]",
+          "engineNumber": "[REDACTED_engineNumber]",
+          "ownerName": "[REDACTED_ownerName]",
+          "plateNumber": "[REDACTED_plateNumber]"
+        },
+        "carPhotos": {
+          "back": "",
+          "front": "",
+          "leftSide": "",
+          "rightSide": ""
+        },
+        "createdAt": 1769573052125,
+        "documentPhotos": {
+          "ktp": "",
+          "sim": "",
+          "stnk": "[REDACTED_URL]"
+        },
+        "documentStatus": {
+          "hasKTP": false,
+          "hasSIM": false,
+          "hasSTNK": true
+        },
+        "email": "",
+        "name": "[REDACTED_name]",
+        "notes": "",
+        "phone": "[REDACTED_phone]",
+        "updatedAt": 1772770203251
+      }
+    }
+  },
+  "customers": {
+    "d1b85c29-49ca-4326-bf28-19b8bde07cbd": {
+      "address": "[REDACTED_address]",
+      "createdAt": 1766465842933,
+      "createdBy": "tester123",
+      "email": "[REDACTED_email]",
+      "name": "[REDACTED_name]",
+      "notes": "Customer baru dari user biasa",
+      "phone": "[REDACTED_phone]",
+      "updatedAt": 1766465842933
+    }
+  },
+  "property_counters": {
+    "kuda123": 1,
+    "tester123": 3
+  },
+  "property_data": {
+    "kuda123": {
+      "kuda123-1": {
+        "createdAt": 1769239798502,
+        "documents": {
+          "certificate": "",
+          "imb": "",
+          "other": "",
+          "pbb": ""
+        },
+        "insuranceData": {
+          "coverageType": "",
+          "deductible": "",
+          "insuranceCompany": "",
+          "insuranceValue": "",
+          "policyNumber": "",
+          "premium": ""
+        },
+        "notes": "",
+        "ownerAddress": "[REDACTED_ownerAddress]",
+        "ownerEmail": "[REDACTED_ownerEmail]",
+        "ownerName": "[REDACTED_ownerName]",
+        "ownerPhone": "[REDACTED_ownerPhone]",
+        "propertyData": {
+          "address": "",
+          "buildingArea": "",
+          "buildingStructure": "",
+          "city": "jakarta",
+          "landArea": "",
+          "numberOfFloors": "",
+          "postalCode": "",
+          "propertyType": "",
+          "propertyValue": "",
+          "province": "",
+          "yearBuilt": ""
+        },
+        "propertyPhotos": {
+          "back": "",
+          "front": "",
+          "interior1": "",
+          "interior2": "",
+          "interior3": "",
+          "interior4": "",
+          "left": "",
+          "right": ""
+        },
+        "status": "Active",
+        "updatedAt": 1769392187040
+      }
+    },
+    "tester123": {
+      "tester123-2": {
+        "createdAt": 1769563777040,
+        "documents": {
+          "certificate": "[REDACTED_URL]",
+          "imb": "",
+          "other": "",
+          "pbb": ""
+        },
+        "insuranceData": {
+          "coverageType": "All Risk",
+          "deductible": "[REDACTED_PHONE]",
+          "endDate": 1769040000000,
+          "insuranceCompany": "ACA",
+          "insuranceValue": "5000000",
+          "policyNumber": "Wjkdksjf202",
+          "premium": "[REDACTED_PHONE]",
+          "startDate": 1767225600000
+        },
+        "notes": "",
+        "ownerAddress": "[REDACTED_ownerAddress]",
+        "ownerEmail": "[REDACTED_ownerEmail]",
+        "ownerName": "[REDACTED_ownerName]",
+        "ownerPhone": "[REDACTED_ownerPhone]",
+        "propertyData": {
+          "address": "[REDACTED_address]",
+          "buildingArea": "250",
+          "buildingStructure": "kayu",
+          "city": "jakarta",
+          "landArea": "2000",
+          "numberOfFloors": "5",
+          "postalCode": "14410",
+          "propertyType": "Office",
+          "propertyValue": "[REDACTED_PHONE]",
+          "province": "Dki Jakarta",
+          "yearBuilt": "2006"
+        },
+        "propertyPhotos": {
+          "back": "",
+          "front": "",
+          "interior1": "",
+          "interior2": "",
+          "interior3": "",
+          "interior4": "",
+          "left": "",
+          "right": ""
+        },
+        "status": "Expired",
+        "updatedAt": 1769564362243
+      },
+      "tester123-3": {
+        "createdAt": 1770432901407,
+        "documents": {
+          "certificate": "",
+          "imb": "",
+          "other": "",
+          "pbb": ""
+        },
+        "insuranceData": {
+          "coverageType": "Flood",
+          "deductible": "[REDACTED_PHONE]",
+          "endDate": 1771977600000,
+          "insuranceCompany": "ACA",
+          "insuranceValue": "5000000",
+          "policyNumber": "Wjkdksjf202",
+          "premium": "",
+          "startDate": 1770422400000
+        },
+        "notes": "q212",
+        "ownerAddress": "[REDACTED_ownerAddress]",
+        "ownerEmail": "[REDACTED_ownerEmail]",
+        "ownerName": "[REDACTED_ownerName]",
+        "ownerPhone": "[REDACTED_ownerPhone]",
+        "propertyData": {
+          "address": "[REDACTED_address]",
+          "buildingArea": "250",
+          "buildingStructure": "kayu",
+          "city": "sdffdf",
+          "landArea": "2000",
+          "numberOfFloors": "5",
+          "postalCode": "1123213",
+          "propertyType": "Office",
+          "propertyValue": "[REDACTED_PHONE]",
+          "province": "dfdfdf",
+          "yearBuilt": "2006"
+        },
+        "propertyPhotos": {
+          "back": "",
+          "front": "",
+          "interior1": "",
+          "interior2": "",
+          "interior3": "",
+          "interior4": "",
+          "left": "",
+          "right": ""
+        },
+        "status": "Expired",
+        "updatedAt": 1771981845098
+      }
+    }
+  },
+  "quotation_counters": {
+    "tester123": 5
+  },
+  "quotation_data": {
+    "tester123": {
+      "tester123-1": {
+        "calculations": {
+          "coverages": [
+            {
+              "calculatedAmount": 2400000,
+              "isFree": false,
+              "isPercentage": true,
+              "rate": 1.2,
+              "type": "Comprehensive"
+            },
+            {
+              "calculatedAmount": 200000,
+              "isFree": false,
+              "isPercentage": true,
+              "rate": 0.1,
+              "type": "Banjir, Angin Topan, Badai, Hujan Es, Tanah Longsor"
+            },
+            {
+              "calculatedAmount": 200000,
+              "isFree": false,
+              "isPercentage": true,
+              "rate": 0.1,
+              "type": "Huru Hara / RSCC"
+            },
+            {
+              "amount": 0,
+              "calculatedAmount": 0,
+              "isFree": true,
+              "isPercentage": true,
+              "rate": 0,
+              "type": "Water Hammer"
+            },
+            {
+              "amount": 0,
+              "calculatedAmount": 0,
+              "isFree": true,
+              "isPercentage": true,
+              "rate": 0,
+              "type": "Authorized Workshop"
+            },
+            {
+              "amount": 300000,
+              "calculatedAmount": 300000,
+              "isFree": false,
+              "isPercentage": false,
+              "rate": 0,
+              "type": "TPL (Tanggung Jawab Hukum Pihak III)"
+            },
+            {
+              "amount": 100000,
+              "calculatedAmount": 100000,
+              "isFree": false,
+              "isPercentage": false,
+              "rate": 0,
+              "type": "PA Driver"
+            },
+            {
+              "amount": 80000,
+              "calculatedAmount": 80000,
+              "isFree": false,
+              "isPercentage": false,
+              "rate": 0,
+              "type": "PA Passanger 4 Person"
+            }
+          ],
+          "discountAmount": 700000,
+          "discountPercent": 25,
+          "stampDuty": 60000,
+          "totalFixedPremiums": 480000,
+          "totalPercentagePremiums": 2800000,
+          "totalPremium": 2640000,
+          "tsiPrice": 200000000
+        },
+        "coverages": [
+          {
+            "calculatedAmount": 2400000,
+            "isFree": false,
+            "isPercentage": true,
+            "rate": 1.2,
+            "type": "Comprehensive"
+          },
+          {
+            "calculatedAmount": 200000,
+            "isFree": false,
+            "isPercentage": true,
+            "rate": 0.1,
+            "type": "Banjir, Angin Topan, Badai, Hujan Es, Tanah Longsor"
+          },
+          {
+            "calculatedAmount": 200000,
+            "isFree": false,
+            "isPercentage": true,
+            "rate": 0.1,
+            "type": "Huru Hara / RSCC"
+          },
+          {
+            "amount": 0,
+            "calculatedAmount": 0,
+            "isFree": true,
+            "isPercentage": true,
+            "rate": 0,
+            "type": "Water Hammer"
+          },
+          {
+            "amount": 0,
+            "calculatedAmount": 0,
+            "isFree": true,
+            "isPercentage": true,
+            "rate": 0,
+            "type": "Authorized Workshop"
+          },
+          {
+            "amount": 300000,
+            "calculatedAmount": 300000,
+            "isFree": false,
+            "isPercentage": false,
+            "rate": 0,
+            "type": "TPL (Tanggung Jawab Hukum Pihak III)"
+          },
+          {
+            "amount": 100000,
+            "calculatedAmount": 100000,
+            "isFree": false,
+            "isPercentage": false,
+            "rate": 0,
+            "type": "PA Driver"
+          },
+          {
+            "amount": 80000,
+            "calculatedAmount": 80000,
+            "isFree": false,
+            "isPercentage": false,
+            "rate": 0,
+            "type": "PA Passanger 4 Person"
+          }
+        ],
+        "createdAt": 1769995461740,
+        "createdBy": "tester123",
+        "customerId": "tester123-10",
+        "customerName": "[REDACTED_customerName]",
+        "discountPercent": 25,
+        "id": "tester123-1",
+        "notes": "Quotation ini berlaku 30 hari dari tanggal terbit",
+        "quotationNo": "QS/001/MV/V/2025",
+        "stampDuty": 60000,
+        "status": "generated",
+        "updatedAt": 1769995461740,
+        "vehicleData": {
+          "carType": "lexus civic",
+          "policeNo": "[REDACTED_policeNo]",
+          "tsiPrice": 200000000
+        }
+      },
+      "tester123-2": {
+        "calculations": {
+          "coverages": [
+            {
+              "calculatedAmount": 2400000,
+              "isInclude": false,
+              "isPercentage": true,
+              "rate": 1.2,
+              "type": "Comprehensive"
+            },
+            {
+              "calculatedAmount": 200000,
+              "isInclude": false,
+              "isPercentage": true,
+              "rate": 0.1,
+              "type": "Banjir, Angin Topan, Badai, Hujan Es, Tanah Longsor"
+            },
+            {
+              "calculatedAmount": 200000,
+              "isInclude": false,
+              "isPercentage": true,
+              "rate": 0.1,
+              "type": "Huru Hara / RSCC"
+            },
+            {
+              "amount": 0,
+              "calculatedAmount": 0,
+              "isInclude": true,
+              "isPercentage": true,
+              "rate": 0,
+              "type": "Water Hammer"
+            },
+            {
+              "amount": 0,
+              "calculatedAmount": 0,
+              "isInclude": true,
+              "isPercentage": true,
+              "rate": 0,
+              "type": "Authorized Workshop"
+            },
+            {
+              "amount": 300000,
+              "calculatedAmount": 300000,
+              "isInclude": false,
+              "isPercentage": false,
+              "rate": 0,
+              "type": "TPL (Tanggung Jawab Hukum Pihak III)"
+            },
+            {
+              "amount": 100000,
+              "calculatedAmount": 100000,
+              "isInclude": false,
+              "isPercentage": false,
+              "rate": 0,
+              "type": "PA Driver"
+            },
+            {
+              "amount": 80000,
+              "calculatedAmount": 80000,
+              "isInclude": false,
+              "isPercentage": false,
+              "rate": 0,
+              "type": "PA Passanger 4 Person"
+            }
+          ],
+          "discountAmount": 700000,
+          "discountPercent": 25,
+          "totalPremium": 2640000
+        },
+        "createdAt": 1769995714565,
+        "createdBy": "tester123",
+        "customerId": "tester123-10",
+        "customerName": "[REDACTED_customerName]",
+        "id": "tester123-2",
+        "quotationNo": "QS/002/MV/V/2025",
+        "updatedAt": 1769995714565,
+        "vehicleData": {
+          "carType": "lexus civic",
+          "policeNo": "[REDACTED_policeNo]",
+          "tsiPrice": 200000000
+        }
+      },
+      "tester123-3": {
+        "calculations": {
+          "coverages": [
+            {
+              "calculatedAmount": 2400000,
+              "isInclude": false,
+              "isPercentage": true,
+              "rate": 1.2,
+              "type": "Comprehensive"
+            },
+            {
+              "calculatedAmount": 200000,
+              "isInclude": false,
+              "isPercentage": true,
+              "rate": 0.1,
+              "type": "Banjir, Angin Topan, Badai, Hujan Es, Tanah Longsor"
+            },
+            {
+              "calculatedAmount": 200000,
+              "isInclude": false,
+              "isPercentage": true,
+              "rate": 0.1,
+              "type": "Huru Hara / RSCC"
+            },
+            {
+              "amount": 0,
+              "calculatedAmount": 0,
+              "isInclude": true,
+              "isPercentage": true,
+              "rate": 0,
+              "type": "Water Hammer"
+            },
+            {
+              "amount": 0,
+              "calculatedAmount": 0,
+              "isInclude": true,
+              "isPercentage": true,
+              "rate": 0,
+              "type": "Authorized Workshop"
+            },
+            {
+              "amount": 300000,
+              "calculatedAmount": 300000,
+              "isInclude": false,
+              "isPercentage": false,
+              "rate": 0,
+              "type": "TPL (Tanggung Jawab Hukum Pihak III)"
+            },
+            {
+              "amount": 100000,
+              "calculatedAmount": 100000,
+              "isInclude": false,
+              "isPercentage": false,
+              "rate": 0,
+              "type": "PA Driver"
+            },
+            {
+              "amount": 80000,
+              "calculatedAmount": 80000,
+              "isInclude": false,
+              "isPercentage": false,
+              "rate": 0,
+              "type": "PA Passanger 4 Person"
+            }
+          ],
+          "discountAmount": 700000,
+          "discountPercent": 25,
+          "totalPremium": 2640000
+        },
+        "createdAt": 1769996007780,
+        "createdBy": "tester123",
+        "customerId": "tester123-10",
+        "customerName": "[REDACTED_customerName]",
+        "id": "tester123-3",
+        "quotationNo": "QS/003/MV/V/2025",
+        "updatedAt": 1769996007780,
+        "vehicleData": {
+          "carType": "lexus civic",
+          "policeNo": "[REDACTED_policeNo]",
+          "tsiPrice": 200000000
+        }
+      },
+      "tester123-4": {
+        "calculations": {
+          "coverages": [
+            {
+              "calculatedAmount": 2400000,
+              "isFree": false,
+              "isPercentage": true,
+              "rate": 1.2,
+              "type": "Comprehensive"
+            },
+            {
+              "calculatedAmount": 200000,
+              "isFree": false,
+              "isPercentage": true,
+              "rate": 0.1,
+              "type": "Banjir, Angin Topan, Badai, Hujan Es, Tanah Longsor"
+            },
+            {
+              "calculatedAmount": 200000,
+              "isFree": false,
+              "isPercentage": true,
+              "rate": 0.1,
+              "type": "Huru Hara / RSCC"
+            },
+            {
+              "amount": 0,
+              "calculatedAmount": 0,
+              "isFree": true,
+              "isPercentage": true,
+              "rate": 0,
+              "type": "Water Hammer"
+            },
+            {
+              "amount": 0,
+              "calculatedAmount": 0,
+              "isFree": true,
+              "isPercentage": true,
+              "rate": 0,
+              "type": "Authorized Workshop"
+            },
+            {
+              "amount": 300000,
+              "calculatedAmount": 300000,
+              "isFree": false,
+              "isPercentage": false,
+              "rate": 0,
+              "type": "TPL (Tanggung Jawab Hukum Pihak III)"
+            },
+            {
+              "amount": 100000,
+              "calculatedAmount": 100000,
+              "isFree": false,
+              "isPercentage": false,
+              "rate": 0,
+              "type": "PA Driver"
+            },
+            {
+              "amount": 80000,
+              "calculatedAmount": 80000,
+              "isFree": false,
+              "isPercentage": false,
+              "rate": 0,
+              "type": "PA Passanger 4 Person"
+            }
+          ],
+          "discountAmount": 700000,
+          "discountPercent": 25,
+          "stampDuty": 60000,
+          "totalFixedPremiums": 480000,
+          "totalPercentagePremiums": 2800000,
+          "totalPremium": 2640000,
+          "tsiPrice": 200000000
+        },
+        "coverages": [
+          {
+            "calculatedAmount": 2400000,
+            "isFree": false,
+            "isPercentage": true,
+            "rate": 1.2,
+            "type": "Comprehensive"
+          },
+          {
+            "calculatedAmount": 200000,
+            "isFree": false,
+            "isPercentage": true,
+            "rate": 0.1,
+            "type": "Banjir, Angin Topan, Badai, Hujan Es, Tanah Longsor"
+          },
+          {
+            "calculatedAmount": 200000,
+            "isFree": false,
+            "isPercentage": true,
+            "rate": 0.1,
+            "type": "Huru Hara / RSCC"
+          },
+          {
+            "amount": 0,
+            "calculatedAmount": 0,
+            "isFree": true,
+            "isPercentage": true,
+            "rate": 0,
+            "type": "Water Hammer"
+          },
+          {
+            "amount": 0,
+            "calculatedAmount": 0,
+            "isFree": true,
+            "isPercentage": true,
+            "rate": 0,
+            "type": "Authorized Workshop"
+          },
+          {
+            "amount": 300000,
+            "calculatedAmount": 300000,
+            "isFree": false,
+            "isPercentage": false,
+            "rate": 0,
+            "type": "TPL (Tanggung Jawab Hukum Pihak III)"
+          },
+          {
+            "amount": 100000,
+            "calculatedAmount": 100000,
+            "isFree": false,
+            "isPercentage": false,
+            "rate": 0,
+            "type": "PA Driver"
+          },
+          {
+            "amount": 80000,
+            "calculatedAmount": 80000,
+            "isFree": false,
+            "isPercentage": false,
+            "rate": 0,
+            "type": "PA Passanger 4 Person"
+          }
+        ],
+        "createdAt": 1769996101385,
+        "createdBy": "tester123",
+        "customerId": "tester123-10",
+        "customerName": "[REDACTED_customerName]",
+        "discountPercent": 25,
+        "id": "tester123-4",
+        "notes": "Quotation ini berlaku 30 hari dari tanggal terbit",
+        "quotationNo": "QS/004/MV/V/2025",
+        "stampDuty": 60000,
+        "status": "generated",
+        "updatedAt": 1769996101385,
+        "vehicleData": {
+          "carType": "lexus civic",
+          "policeNo": "[REDACTED_policeNo]",
+          "tsiPrice": 200000000
+        }
+      },
+      "tester123-5": {
+        "coverages": [
+          {
+            "rate": "1,2 %",
+            "type": "Comprehensive"
+          },
+          {
+            "rate": "0,1 %",
+            "type": "HURU HARA / RSCC"
+          },
+          {
+            "rate": "0,1 %",
+            "type": "Banjir, Angin Topan, Badai, Hujan Es, Tanah Longsor"
+          },
+          {
+            "amount": "FREE INCLUDE",
+            "type": "Water Hammer"
+          },
+          {
+            "amount": "FREE INCLUDE",
+            "type": "Authorized Workshop"
+          },
+          {
+            "amount": "20.000.000,-(IDR)",
+            "type": "PA Driver"
+          },
+          {
+            "amount": "10.000.000,-(IDR)",
+            "type": "PA Passanger 4 Person"
+          },
+          {
+            "amount": "30.000.000,-(IDR)",
+            "type": "TPL"
+          }
+        ],
+        "createdAt": 1769996618635,
+        "createdBy": "tester123",
+        "customerId": "tester123-10",
+        "customerName": "[REDACTED_customerName]",
+        "id": "tester123-5",
+        "premiumItems": [
+          {
+            "calculation": "590.000.000 X 1,2",
+            "isPercentage": true,
+            "result": "7.080.000,-",
+            "type": "Comprehensive"
+          },
+          {
+            "calculation": "590.000.000 X 0,1",
+            "isPercentage": true,
+            "result": "590.000,-",
+            "type": "Banjir,Angin Topan, Badai"
+          },
+          {
+            "calculation": "590.000.000 X 0,1",
+            "isPercentage": true,
+            "result": "590.000,-",
+            "type": "Huru Hara / RSCC"
+          },
+          {
+            "calculation": "FREE INCLUDE",
+            "result": "FREE INCLUDE",
+            "type": "Water Hammer"
+          },
+          {
+            "calculation": "FREE INCLUDE",
+            "result": "FREE INCLUDE",
+            "type": "Authorized Workshop"
+          },
+          {
+            "calculation": "300.000",
+            "result": "300.000,-",
+            "type": "TPL"
+          },
+          {
+            "calculation": "100.000",
+            "result": "100.000,-",
+            "type": "PA Driver"
+          },
+          {
+            "calculation": "80.000",
+            "result": "80.000,-",
+            "type": "PA Passenger 4 Person"
+          }
+        ],
+        "quotationNo": "QS/005/MV/V/2025",
+        "totalPremium": 6615000,
+        "updatedAt": 1769996618635
+      }
+    }
+  },
+  "users": {
+    "-OeQHhVds7e13l2uJjp-": {
+      "createdAt": 1763541965720,
+      "fullName": "[REDACTED_fullName]",
+      "password": "[REDACTED_password]",
+      "updatedAt": 1763541965720,
+      "username": "[REDACTED_username]"
+    },
+    "admin": {
+      "createdAt": 1766457073551,
+      "fullName": "[REDACTED_fullName]",
+      "password": "[REDACTED_password]",
+      "role": "admin",
+      "updatedAt": 1766457073551,
+      "username": "[REDACTED_username]"
+    },
+    "joseph": {
+      "createdAt": 1764144042352,
+      "fullName": "[REDACTED_fullName]",
+      "password": "[REDACTED_password]",
+      "updatedAt": 1764144042352,
+      "username": "[REDACTED_username]"
+    },
+    "josephimanuel": {
+      "createdAt": 1771988417894,
+      "email": "[REDACTED_email]",
+      "fullName": "[REDACTED_fullName]",
+      "password": "[REDACTED_password]",
+      "role": "user",
+      "updatedAt": 1771988417894,
+      "username": "[REDACTED_username]"
+    },
+    "josephsetiawan": {
+      "createdAt": 1770945944834,
+      "fullName": "[REDACTED_fullName]",
+      "password": "[REDACTED_password]",
+      "role": "user",
+      "updatedAt": 1770945944834,
+      "username": "[REDACTED_username]"
+    },
+    "kuda123": {
+      "createdAt": 1766998548039,
+      "fullName": "[REDACTED_fullName]",
+      "password": "[REDACTED_password]",
+      "role": "user",
+      "updatedAt": 1766998548039,
+      "username": "[REDACTED_username]"
+    },
+    "tester123": {
+      "createdAt": 1766465533989,
+      "email": "[REDACTED_email]",
+      "fullName": "[REDACTED_fullName]",
+      "password": "[REDACTED_password]",
+      "role": "user",
+      "updatedAt": 1771984798837,
+      "username": "[REDACTED_username]"
+    }
+  }
+}

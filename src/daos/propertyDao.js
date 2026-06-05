@@ -17,6 +17,14 @@ export default class PropertyDAO {
     );
   };
 
+  // Get properties by customer ID
+  static getPropertiesByCustomer = async (customerId) => {
+    return await ApiRequest.set(
+      `/api/properties/customer/${customerId}`,
+      ApiRequest.HTTP_METHOD.GET,
+    );
+  };
+
   // Create new property
   static createProperty = async (propertyData) => {
     return await ApiRequest.set(
@@ -52,7 +60,7 @@ export default class PropertyDAO {
       size: val.size,
       type: val.type
     })));
-    
+
     return await ApiRequest.setMultipart(
       `/api/properties/${propertyId}/upload-photos`,
       ApiRequest.HTTP_METHOD.POST,
@@ -69,7 +77,7 @@ export default class PropertyDAO {
       size: val.size,
       type: val.type
     })));
-    
+
     return await ApiRequest.setMultipart(
       `/api/properties/${propertyId}/upload-documents`,
       ApiRequest.HTTP_METHOD.POST,

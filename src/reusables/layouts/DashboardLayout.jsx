@@ -17,13 +17,16 @@ import Constants from '../../utils/Constants';
 import CustomIcon from '../CustomIcon';
 import { useUser } from '../../hooks/UserProvider';
 import CustomerDAO from '../../daos/CustomerDao';
-import PropertyDAO from '../../daos/propertyDao';
+import CarDAO from '../../daos/CarDao';
+// import PropertyDAO from '../../daos/propertyDao';
 
 const todayMidnight = new Date();
 todayMidnight.setHours(0, 0, 0, 0);
 const getDiffDays = (dateStr) => {
   if (!dateStr) return null;
-  return Math.ceil((new Date(dateStr) - todayMidnight) / (1000 * 60 * 60 * 24));
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  return Math.round((d - todayMidnight) / (1000 * 60 * 60 * 24));
 };
 
 function useNotifications() {
@@ -32,28 +35,29 @@ function useNotifications() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [custRes, propRes] = await Promise.allSettled([CustomerDAO.getAllCustomers(), PropertyDAO.getAllProperties()]);
+      const [carRes] = await Promise.allSettled([CarDAO.getAllCars()]);
       const result = [];
-      if (custRes.status === 'fulfilled') {
-        const custs = custRes.value?.customers || custRes.value?.data || (Array.isArray(custRes.value) ? custRes.value : []);
-        custs.forEach((c) => {
-          if (c.status === 'Cancelled') return;
-          const diff = getDiffDays(c.carData?.dueDate);
+      
+      if (carRes.status === 'fulfilled') {
+        const cars = carRes.value?.cars || carRes.value?.data || (Array.isArray(carRes.value) ? carRes.value : []);
+        cars.forEach((car) => {
+          if (car.status === 'Cancelled') return;
+          const diff = getDiffDays(car.dueDate || car.carData?.dueDate);
           if (diff === null) return;
-          if (diff < 0) result.push({ id: `v-exp-${c.id}`, type: 'expired', category: 'Kendaraan', name: c.name, detail: `${c.carData?.carBrand || ''} ${c.carData?.carModel || ''} · ${c.carData?.plateNumber || ''}`.trim(), diff });
-          else if (diff <= 30) result.push({ id: `v-soon-${c.id}`, type: 'soon', category: 'Kendaraan', name: c.name, detail: `${c.carData?.carBrand || ''} ${c.carData?.carModel || ''} · ${c.carData?.plateNumber || ''}`.trim(), diff });
+          
+          const carBrand = car.carBrand || car.carData?.carBrand || '';
+          const carModel = car.carModel || car.carData?.carModel || '';
+          const plateNumber = car.plateNumber || car.carData?.plateNumber || '';
+          const ownerName = car.ownerName || car.carData?.ownerName || car.customerName || 'Unknown';
+
+          if (diff < 0) {
+              result.push({ id: `c-exp-${car.id}`, type: 'expired', category: 'Kendaraan', name: ownerName, detail: `${carBrand} ${carModel} · ${plateNumber}`.trim(), diff });
+          } else if (diff <= 30) {
+              result.push({ id: `c-soon-${car.id}`, type: 'soon', category: 'Kendaraan', name: ownerName, detail: `${carBrand} ${carModel} · ${plateNumber}`.trim(), diff });
+          }
         });
       }
-      if (propRes.status === 'fulfilled') {
-        const props = propRes.value?.properties || propRes.value?.data || (Array.isArray(propRes.value) ? propRes.value : []);
-        props.forEach((p) => {
-          if (p.status === 'Cancelled') return;
-          const diff = getDiffDays(p.insuranceData?.endDate);
-          if (diff === null) return;
-          if (diff < 0) result.push({ id: `p-exp-${p.id}`, type: 'expired', category: 'Properti', name: p.ownerName, detail: `${p.propertyData?.propertyType || ''} · ${p.propertyData?.city || ''}`.trim(), diff });
-          else if (diff <= 30) result.push({ id: `p-soon-${p.id}`, type: 'soon', category: 'Properti', name: p.ownerName, detail: `${p.propertyData?.propertyType || ''} · ${p.propertyData?.city || ''}`.trim(), diff });
-        });
-      }
+
       result.sort((a, b) => { if (a.type !== b.type) return a.type === 'expired' ? -1 : 1; return a.diff - b.diff; });
       setNotifs(result);
     } catch (e) { console.error(e); } finally { setLoading(false); }
@@ -117,22 +121,32 @@ function BellButton({ notifs, loading, sx = {} }) {
 
 export default function DashboardLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [docMenuAnchor, setDocMenuAnchor] = useState(null);
-  const isDocMenuOpen = Boolean(docMenuAnchor);
+
   const { user, logout, isLoading } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
   const { notifs, loading: notifLoading } = useNotifications();
+
+  const isFullscreenMobileRoute = (() => {
+    const p = location.pathname;
+    return p.match(/^\/customers\/[^/]+$/) || 
+           p.match(/^\/customers\/edit\/[^/]+$/) || 
+           p.match(/^\/cars\/[^/]+$/) || 
+           p.match(/^\/cars\/edit\/[^/]+$/) ||
+           p.match(/^\/payments\/[^/]+$/);
+  })();
 
   useEffect(() => { if (!user && !isLoading) navigate('/login', { replace: true }); }, [user, isLoading, navigate]);
 
   const sections = [
     { icon: 'heroicons:rectangle-group', label: 'Dashboard', url: '/dashboard', title: 'Dashboard' },
     { icon: 'heroicons:users', label: 'Customers', url: '/customers', title: 'Customer Management' },
-    { icon: 'heroicons:building-office-2', label: 'Properties', url: '/properties', title: 'Property Management' },
+    // { icon: 'heroicons:building-office-2', label: 'Properti', url: '/properties', title: 'Manajemen Properti' },
+    { icon: 'heroicons:truck', label: 'Kendaraan', url: '/cars', title: 'Manajemen Kendaraan' },
+    { icon: 'heroicons:banknotes', label: 'Payment', url: '/payments', title: 'Manajemen Pembayaran' },
+    { icon: 'heroicons:arrow-path', label: 'Renewal', url: '/renewals', title: 'Manajemen Renewal' },
     { icon: 'heroicons:calendar', label: 'Quotation', url: '/quotations/create', title: 'Create Quotation' },
     { icon: 'heroicons:document-currency-dollar', label: 'Invoice', url: '/invoices/create', title: 'Create Invoice' },
-    { icon: 'heroicons:shield-check', label: 'Admin Management', url: '/admin-management', title: 'Admin Management', adminOnly: true },
     { icon: 'heroicons:document-text', label: 'Kwitansi', url: '/kwitansi', title: 'Kwitansi' },
   ];
 
@@ -156,52 +170,36 @@ export default function DashboardLayout() {
 
       <div className="max-h-full w-full flex flex-col">
         {/* Mobile Toolbar */}
-        <Box sx={{ display: { xs: 'flex', sm: 'none' }, justifyContent: 'space-between', alignItems: 'center', px: 2, height: `${Constants.HEADER_MOBILE_HEIGHT}px`, bgcolor: '#fff', borderBottom: '1px solid #f1f5f9' }}>
+        <Box sx={{ display: { xs: isFullscreenMobileRoute ? 'none' : 'flex', sm: 'none' }, justifyContent: 'space-between', alignItems: 'center', px: 2, height: `${Constants.HEADER_MOBILE_HEIGHT}px`, bgcolor: '#fff', borderBottom: '1px solid #f1f5f9' }}>
           <IconButton onClick={() => setIsDrawerOpen(true)} sx={{ color: '#334155' }}><CustomIcon icon="heroicons:bars-3-solid" /></IconButton>
-          <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 16 }}>{sections.find(s => s.url === location.pathname)?.label || 'Dashboard'}</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <BellButton notifs={notifs} loading={notifLoading} />
-            <Avatar sx={{ width: 32, height: 32, bgcolor: '#2563eb', fontSize: 13, fontWeight: 700 }}>{user?.username?.charAt(0)?.toUpperCase() || 'U'}</Avatar>
-          </Box>
+          <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 16 }}>
+            {(() => {
+              const p = location.pathname;
+              if (p.startsWith('/customers')) return 'Customers';
+              if (p.startsWith('/properties')) return 'Properti';
+              if (p.startsWith('/cars')) return 'Kendaraan';
+              if (p.startsWith('/payments')) return 'Payment';
+              if (p.startsWith('/renewals')) return 'Renewal';
+              if (p.startsWith('/quotations')) return 'Quotation';
+              if (p.startsWith('/invoices')) return 'Invoice';
+              if (p.startsWith('/kwitansi')) return 'Kwitansi';
+              return sections.find(s => s.url === p)?.label || 'Dashboard';
+            })()}
+          </Typography>
+          <BellButton notifs={notifs} loading={notifLoading} />
         </Box>
 
         {/* Desktop Toolbar */}
-        <Box sx={{ display: { xs: 'none', sm: 'flex' }, justifyContent: 'flex-end', alignItems: 'center', px: 5, width: { sm: `calc(100% - ${Constants.NAVIGATION_DRAWER_WIDTH}px)` }, ml: { sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px` }, height: `${Constants.HEADER_DESKTOP_HEIGHT}px`, gap: 2, borderBottom: '1px solid #f1f5f9', bgcolor: '#fff' }}>
+        <Box sx={{ display: { xs: 'none', sm: 'flex' }, justifyContent: 'flex-end', alignItems: 'center', px: 4, width: { sm: `calc(100% - ${Constants.NAVIGATION_DRAWER_WIDTH}px)` }, ml: { sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px` }, height: `${Constants.HEADER_DESKTOP_HEIGHT}px`, borderBottom: '1px solid #f1f5f9', bgcolor: '#fff' }}>
           <BellButton notifs={notifs} loading={notifLoading} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{user?.username || 'Demo User'}</div>
-              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'capitalize' }}>{user?.role || 'user'}</div>
-            </div>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: '#2563eb', fontSize: 13, fontWeight: 700 }}>
-              {(user?.username?.charAt(0) || 'D')?.toUpperCase()}
-            </Avatar>
-          </div>
         </Box>
 
         {/* Content */}
-        <Box component="main" sx={{ px: { xs: 0, sm: 5 }, py: { xs: 0, sm: 4 }, width: { sm: `calc(100% - ${Constants.NAVIGATION_DRAWER_WIDTH}px)` }, marginLeft: { sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px` }, maxHeight: { xs: `calc(100vh - ${Constants.HEADER_MOBILE_HEIGHT}px - 60px)`, sm: `calc(100vh - ${Constants.HEADER_DESKTOP_HEIGHT}px)` }, overflow: 'auto', bgcolor: '#f8fafc' }}>
+        <Box component="main" sx={{ px: { xs: 0, sm: 5 }, py: { xs: 0, sm: 4 }, width: { sm: `calc(100% - ${Constants.NAVIGATION_DRAWER_WIDTH}px)` }, marginLeft: { sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px` }, maxHeight: { xs: isFullscreenMobileRoute ? '100vh' : `calc(100vh - ${Constants.HEADER_MOBILE_HEIGHT}px)`, sm: `calc(100vh - ${Constants.HEADER_DESKTOP_HEIGHT}px)` }, overflow: 'auto', bgcolor: '#f8fafc' }}>
           <div className="w-full"><Outlet /></div>
         </Box>
 
-        {/* Bottom Nav Mobile */}
-        <Box sx={{ display: { xs: 'flex', sm: 'none' }, position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', bgcolor: '#fff', borderTop: '1px solid #f1f5f9', justifyContent: 'space-around', alignItems: 'center', zIndex: 1000 }}>
-          {[{ icon: 'heroicons:home', label: 'Home', url: '/dashboard' }, { icon: 'heroicons:users', label: 'Customers', url: '/customers' }, { icon: 'heroicons:building-office-2', label: 'Properties', url: '/properties' }, { icon: 'heroicons:document-text', label: 'Docs', url: '/documents', isMenu: true }].map((item) => {
-            const isActive = item.isMenu ? ['/invoices', '/quotations', '/kwitansi'].some(p => location.pathname.startsWith(p)) : location.pathname === item.url || (item.url !== '/' && location.pathname.startsWith(item.url));
-            return (
-              <Box key={item.label} onClick={(e) => { if (item.isMenu) setDocMenuAnchor(e.currentTarget); else navigate(item.url); }} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4, color: isActive ? '#2563eb' : '#94a3b8', cursor: 'pointer', minWidth: '60px' }}>
-                <CustomIcon icon={isActive ? `${item.icon}-solid` : item.icon} sx={{ fontSize: '22px' }} />
-                <Typography variant="caption" sx={{ fontWeight: isActive ? 600 : 400, fontSize: '0.6rem' }}>{item.label}</Typography>
-              </Box>
-            );
-          })}
-        </Box>
 
-        <Menu anchorEl={docMenuAnchor} open={isDocMenuOpen} onClose={() => setDocMenuAnchor(null)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} transformOrigin={{ vertical: 'bottom', horizontal: 'center' }} sx={{ '& .MuiPaper-root': { borderRadius: '12px', mt: -1, minWidth: 150, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' } }}>
-          <MuiMenuItem onClick={() => { navigate('/invoices/create'); setDocMenuAnchor(null); }}><ListItemIcon><CustomIcon icon="heroicons:document-plus" sx={{ color: '#2563eb' }} /></ListItemIcon><ListItemText primary="Invoice" /></MuiMenuItem>
-          <MuiMenuItem onClick={() => { navigate('/kwitansi'); setDocMenuAnchor(null); }}><ListItemIcon><CustomIcon icon="heroicons:receipt-percent" sx={{ color: '#2563eb' }} /></ListItemIcon><ListItemText primary="Kwitansi" /></MuiMenuItem>
-          <MuiMenuItem onClick={() => { navigate('/quotations/create'); setDocMenuAnchor(null); }}><ListItemIcon><CustomIcon icon="heroicons:clipboard-document-list" sx={{ color: '#2563eb' }} /></ListItemIcon><ListItemText primary="Quotation" /></MuiMenuItem>
-        </Menu>
       </div>
     </div>
   );
@@ -211,24 +209,14 @@ export default function DashboardLayout() {
 function DrawerContent({ sections, onClose, user, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const filteredSections = sections.filter(s => !(s.adminOnly && user?.role !== 'superadmin'));
-  const mainNav = filteredSections.filter(s => ['Dashboard', 'Customers', 'Properties'].includes(s.label));
-  const docNav = filteredSections.filter(s => ['Quotation', 'Invoice', 'Kwitansi'].includes(s.label));
-  const adminNav = filteredSections.filter(s => s.adminOnly);
+  const mainNav = sections.filter(s => ['Dashboard', 'Customers', /* 'Properti', */ 'Kendaraan', 'Payment', 'Renewal'].includes(s.label));
+  const docNav = sections.filter(s => ['Quotation', 'Invoice', 'Kwitansi'].includes(s.label));
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#fff' }}>
 
       {/* Logo */}
       <div style={{ padding: '20px 16px 14px', borderBottom: '1px solid #f1f5f9' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622C17.176 19.29 21 14.591 21 9a12.02 12.02 0 00-.382-3.016A11.955 11.955 0 0112 2.944z" fill="white" />
-            </svg>
-          </div>
-          <span style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', letterSpacing: '-0.3px' }}>Asuransi</span>
-        </div>
       </div>
 
       {/* User */}
@@ -239,7 +227,7 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12.5, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.username || 'Demo User'}</div>
-            <div style={{ fontSize: 10.5, color: '#94a3b8', textTransform: 'capitalize' }}>{user?.role || 'user'}</div>
+            <div style={{ fontSize: 10.5, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email || user?.fullName || 'User'}</div>
           </div>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
         </div>
@@ -253,11 +241,6 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
         <NavGroup label="Dokumen">
           {docNav.map(s => <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose} />)}
         </NavGroup>
-        {adminNav.length > 0 && (
-          <NavGroup label="Admin">
-            {adminNav.map(s => <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose} />)}
-          </NavGroup>
-        )}
       </div>
 
       {/* Logout */}

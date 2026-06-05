@@ -3,13 +3,13 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useUser } from '../../hooks/UserProvider';
-import { getDatabase, ref, set, get } from 'firebase/database';
+import { getFirestore, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { app } from '../../config/firebaseConfig';
 import { useNavigate, useParams } from 'react-router';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useEffect } from 'react';
-import { hash, compare } from 'bcryptjs'; // Import the hash function
+import { hash } from 'bcryptjs';
 
 const validationSchema = Yup.object({
   username: Yup.string().required('Username is required'),
@@ -23,7 +23,7 @@ export default function AdminEdit() {
   const navigate = useNavigate();
   const message = useAlert();
   const loading = useLoading();
-  const db = getDatabase(app);
+  const db = getFirestore(app);
 
   const formik = useFormik({
     initialValues: {
@@ -42,12 +42,11 @@ export default function AdminEdit() {
         };
 
         if (values.newPassword) {
-          // Use the imported hash function
           const hashedPassword = await hash(values.newPassword, 10);
           updates.password = hashedPassword;
         }
 
-        await set(ref(db, `admins/${id}`), updates);
+        await updateDoc(doc(db, 'admins', id), updates);
         
         message('Admin updated successfully!', 'success');
         navigate('/admin-management');
@@ -61,12 +60,12 @@ export default function AdminEdit() {
 
   useEffect(() => {
     const fetchAdmin = async () => {
-      const snapshot = await get(ref(db, `admins/${id}`));
+      const snapshot = await getDoc(doc(db, 'admins', id));
       if (snapshot.exists()) {
-        const adminData = snapshot.val();
+        const adminData = snapshot.data();
         formik.setValues({
-          username: adminData.username,
-          role: adminData.role,
+          username: adminData.username || '',
+          role: adminData.role || 'admin',
           newPassword: ''
         });
       }
@@ -87,7 +86,6 @@ export default function AdminEdit() {
 
   return (
     <Box sx={{ p: 4 }}>
-      {/* Icon Back */}
       <IconButton onClick={() => navigate('/admin-management')} sx={{ mb: 2 }}>
         <ArrowBackIcon />
       </IconButton>

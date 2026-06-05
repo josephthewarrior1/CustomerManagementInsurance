@@ -6,6 +6,7 @@ export default function CustomTextInput({
     onChange, 
     searchIcon = false,
     label,
+    endAdornment,
     ...props
 }) {
     return (
@@ -36,6 +37,7 @@ export default function CustomTextInput({
                                 icon={'heroicons:magnifying-glass-solid'}
                             />
                         ),
+                        endAdornment: endAdornment,
                     },
                 }}
                 label={''}

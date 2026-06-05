@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import { Icon } from '@iconify/react';
 import { useUser } from '../../hooks/UserProvider';
-import { getDatabase, ref, get, update } from 'firebase/database';
+import { getFirestore, collection, getDocs, doc, updateDoc, deleteField } from 'firebase/firestore';
 import { app } from '../../config/firebaseConfig';
 import { useNavigate, useParams } from 'react-router';
 import { useAlert } from '../../hooks/SnackbarProvider';
@@ -22,7 +22,7 @@ export default function AdminAssignPage() {
   const navigate = useNavigate();
   const message = useAlert();
   const loading = useLoading();
-  const db = getDatabase(app);
+  const db = getFirestore(app);
   const [couples, setCouples] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
@@ -34,14 +34,16 @@ export default function AdminAssignPage() {
     const fetchData = async () => {
       loading.start();
       try {
-        const couplesSnapshot = await get(ref(db, 'couples'));
-        const couplesData = couplesSnapshot.val() || {};
-        
-        const formattedCouples = Object.entries(couplesData).map(([id, data]) => ({
-          id,
-          name: data.name,
-          isAssigned: data.assigned_admins && data.assigned_admins[adminId]
-        }));
+        const couplesSnapshot = await getDocs(collection(db, 'couples'));
+        const formattedCouples = [];
+        couplesSnapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          formattedCouples.push({
+            id: docSnap.id,
+            name: data.name || '',
+            isAssigned: data.assigned_admins && data.assigned_admins[adminId]
+          });
+        });
 
         setCouples(formattedCouples);
       } catch (error) {
@@ -80,11 +82,11 @@ export default function AdminAssignPage() {
   const handleAssignment = async (coupleId, isAssigned) => {
     try {
       loading.start();
-      const updates = {
-        [`couples/${coupleId}/assigned_admins/${adminId}`]: isAssigned || null
-      };
+      const coupleDocRef = doc(db, 'couples', coupleId);
       
-      await update(ref(db), updates);
+      await updateDoc(coupleDocRef, {
+        [`assigned_admins.${adminId}`]: isAssigned ? true : deleteField()
+      });
 
       setCouples(prev => prev.map(couple => 
         couple.id === coupleId 
